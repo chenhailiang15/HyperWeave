@@ -3,7 +3,7 @@ import torch
 import subprocess
 import psutil
 import gpustat
-
+import time
 
 
 
@@ -21,7 +21,7 @@ class Record:
 
     def run(self):
         file=open(self.out_dir+self.out_file_name,"w")
-
+        start_time=time.time()
         while not self.event.is_set():
             cpu_util=self.get_cpu_util()
             mem_util=self.get_mem_util()
@@ -43,6 +43,8 @@ class Record:
             # print()
             # global current_epoch_num
             file.flush()
+        end_time=time.time()
+        file.write((round(end_time-start_time,2)).__str__())
         file.close()
 
     def get_cpu_util(self):

@@ -111,7 +111,7 @@ if __name__=="__main__":
     parser.add_argument('--total_epochs', default= 10,type=int, help='Total epochs to train the model')
     parser.add_argument('--worker_num', default= 4,type=int, help='Number of worker for data load')
     #模型特定参数
-    parser.add_argument('--squad_data_size',default=0,type=int,help='Size of squad dataset for Bert')
+    parser.add_argument('--squad_data_size',default=1000,type=int,help='Size of squad dataset for Bert')
     parser.add_argument('--layer_num',default=10,type=int,help='Layer number for GCN')
     parser.add_argument('--layer_feature',default=10,type=int,help='Layer feature number for GCN')
 
@@ -156,6 +156,8 @@ if __name__=="__main__":
     batch_size=args.batch_size
     total_epochs=args.total_epochs
     sample_interval=args.sample_interval
+    layer_num=args.layer_num
+    layer_feature=args.layer_feature
     
 
     
@@ -163,7 +165,7 @@ if __name__=="__main__":
     if args.record_flage:
         out_file_name=model_name+"-"+device_name+\
         "-nno:"+args.nnodes.__str__()+"-nra:"+args.node_rank.__str__()+"-ppn:"+args.nprocs_per_node.__str__()+\
-        "-bs:"+batch_size.__str__() +"-ep:"+total_epochs.__str__() +\
+        "-bs:"+batch_size.__str__() +"-ep:"+total_epochs.__str__() +"-lan:"+layer_num.__str__() +"-laf:"+layer_feature.__str__() +\
         "-si:"+sample_interval.__str__()+"-tim:"+formatted_time+".txt"
         print(out_file_name)
         event=threading.Event()
