@@ -53,9 +53,9 @@ class Bert_class:
         # 加载BERT模型和优化器
         # 下载未经微调的BERT
         # tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-        # self.model = BertForQuestionAnswering.from_pretrained('bert-base-uncased').to(self.device)snapshots/86b5e0934494bd15c9632b12f734a8a67f723594
-        para_path="../model_para_data/bert_para/"
-        self.model = BertForQuestionAnswering.from_pretrained(para_path).to(self.device)
+        self.model = BertForQuestionAnswering.from_pretrained('bert-base-uncased').to(self.device)
+        # para_path="../model_para_data/bert_para/"
+        # self.model = BertForQuestionAnswering.from_pretrained(para_path).to(self.device)
         self.optimizer = AdamW(self.model.parameters(), lr=5e-5)
         self.model = DDP(self.model, device_ids=[self.device],output_device=self.device)
 

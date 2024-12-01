@@ -26,19 +26,19 @@ class Record:
             cpu_util=self.get_cpu_util()
             mem_util=self.get_mem_util()
             file.write(cpu_util.__str__()+","+mem_util.__str__())
-            # print("cpu:",cpu_util,"\tmem:",mem_util,end="")
+            #print("cpu:",cpu_util,"\tmem:",mem_util,end="")
             if self.gpu_id==-1:
                 for i in range(torch.cuda.device_count()):
                     gpu_util=self.get_gpu_util_1(i)
                     gpu_mem_util=self.get_gpu_mem_util(i)
                     file.write(","+gpu_util.__str__()+","+gpu_mem_util.__str__())
-                    # print("\tgpu:"+i.__str__(),"-",gpu_util,"\tgmem:"+i.__str__(),"-",gpu_mem_util,end="")
+                    #print("\tgpu:"+i.__str__(),"-",gpu_util,"\tgmem:"+i.__str__(),"-",gpu_mem_util,end="")
             
             else:
                 gpu_util=self.get_gpu_util_1(self.gpu_id)
                 gpu_mem_util=self.get_gpu_mem_util(self.gpu_id)
                 file.write(","+gpu_util.__str__()+","+gpu_mem_util.__str__())
-                # print("\tgpu:"+i.__str__(),"-",gpu_util,"\tgmem:"+i.__str__(),"-",gpu_mem_util,end="")
+                #print("\tgpu:"+i.__str__(),"-",gpu_util,"\tgmem:"+i.__str__(),"-",gpu_mem_util,end="")
             file.write("\n")
             # print()
             # global current_epoch_num

@@ -5,7 +5,7 @@ pip install -r requirement.txt
 
 
 ## run code
-run:
+- run:
 start_MGN.sh
 
 

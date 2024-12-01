@@ -23,6 +23,7 @@ import threading
 import time
 import datetime
 import ast
+import torchvision
 
 def ddp_setup(local_rank, args):
     """
@@ -93,6 +94,9 @@ def Run_model_training(args_t,dataset_dir):
         exit(-1)
     mp.spawn(single_training, args=(args_t,model), nprocs=args_t.nprocs_per_node)
 
+
+# torchvision.disable_beta_transforms_warning()
+
 if __name__=="__main__":
 
     parser = argparse.ArgumentParser(description='simple distributed training job')
@@ -102,7 +106,7 @@ if __name__=="__main__":
     parser.add_argument('--nprocs_per_node', default=1, type=int,help='used gpu number for each node')
     parser.add_argument('--gpu_id_list', default=[], type=parse_list_arg,help='gpu id for each node used')
     #模型通用参数
-    parser.add_argument('--model_name',default="ResNet18",help='model name, such as ResNet18, GCN, Bert...')
+    parser.add_argument('--model_name',default="GraphSage",help='model name, such as ResNet18, GCN, Bert...')
     parser.add_argument('--batch_size', default=16, type=int, help='Input batch size on each device (default: 32)')
     parser.add_argument('--total_epochs', default= 10,type=int, help='Total epochs to train the model')
     parser.add_argument('--worker_num', default= 4,type=int, help='Number of worker for data load')
@@ -113,14 +117,22 @@ if __name__=="__main__":
 
     #记录参数
     parser.add_argument("--sample_interval", default=1, type=float,help='sample interval for recorder')
-    parser.add_argument("--record_flage",default=False, type=bool, help='A flage for if to use recorder to save resource information')
+    parser.add_argument("--record_flage", action='store_true', help='A flage for if to use recorder to save resource information')
+    #其他参数
+    parser.add_argument("--environ_flage", action='store_true')
     args = parser.parse_args()
+    #设置
+    if not args.environ_flage:
+        os.environ["MASTER_ADDR"]="localhost"
+        os.environ["MASTER_PORT"]="12355"
+
 
     version="v3"
     print("code version:"+version)
 
     # 数据集路径
     # 获取当前文件所在目录的上级目录
+    path=os.path.abspath(os.curdir)
     parent_dir  = os.path.dirname(os.path.abspath(os.curdir))
     dataset_dir = parent_dir + '/dataset/'
     out_dir     = parent_dir + "/output/"
@@ -146,12 +158,14 @@ if __name__=="__main__":
     sample_interval=args.sample_interval
     
 
-    out_file_name=model_name+"-"+device_name+\
+    
+    print("record flage:",args.record_flage)
+    if args.record_flage:
+        out_file_name=model_name+"-"+device_name+\
         "-nno:"+args.nnodes.__str__()+"-nra:"+args.node_rank.__str__()+"-ppn:"+args.nprocs_per_node.__str__()+\
         "-bs:"+batch_size.__str__() +"-ep:"+total_epochs.__str__() +\
         "-si:"+sample_interval.__str__()+"-tim:"+formatted_time+".txt"
-    print(out_file_name)
-    if args.record_flage: 
+        print(out_file_name)
         event=threading.Event()
         subTread_record=threading.Thread(target=Record_resource,args=(-1,sample_interval,out_dir,out_file_name,event))
         subTread_record.start()

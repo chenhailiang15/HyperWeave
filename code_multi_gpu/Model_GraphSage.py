@@ -55,25 +55,26 @@ class GraphSage_class:
         torch.cuda.manual_seed_all(seed)
 	
         self.dataCenter = DataCenter()
-        self.dataCenter.load_dataSet(dataSet)
-        self.dataCenter = DataLoader(self.dataCenter, sampler=DistributedSampler(self.dataCenter), batch_size=self.args.batch_size)
+        self.dataCenter.load_dataSet(self.dataset_dir,dataSet)
+        # self.dataCenter = DataLoader(self.dataCenter, sampler=DistributedSampler(self.dataCenter), batch_size=self.args.batch_size)
         
         features = torch.FloatTensor(getattr(self.dataCenter, dataSet+'_feats')).to(self.device)
 
         graphSage = GraphSage(self.args.layer_num, features.size(1), self.args.layer_feature , features, getattr(self.dataCenter, dataSet+'_adj_lists'), self.device, gcn=gcn, agg_func=agg_func)
         graphSage.to(self.device)
-        self.graphSage=DDP(self.graphSage, device_ids=[self.device],output_device=self.device)
+        self.graphSage=DDP(graphSage, device_ids=[self.device],output_device=self.device)
 		
 
         num_labels = len(set(getattr(self.dataCenter, dataSet+'_labels')))
         classification = Classification(self.args.layer_feature, num_labels)
         classification.to(self.device)
-        self.classification=DDP(self.classification, device_ids=[self.device],output_device=self.device)
+        self.classification=DDP(classification, device_ids=[self.device],output_device=self.device)
 
         self.unsupervised_loss = UnsupervisedLoss(getattr(self.dataCenter, dataSet+'_adj_lists'), getattr(self.dataCenter, dataSet+'_train'), self.device)
 
     def run(self):
         for epoch in range(self.epochs):
+            print("epoch:",epoch)
             test_nodes = getattr(self.dataCenter, self.ds+'_test')
             val_nodes = getattr(self.dataCenter, self.ds+'_val')
             train_nodes = getattr(self.dataCenter, self.ds+'_train')
@@ -210,13 +211,15 @@ class DataCenter(object):
 			assert len(feat_data) == len(labels) == len(adj_lists)
 			test_indexs, val_indexs, train_indexs = self._split_data(feat_data.shape[0])
 
-			setattr(self, dataSet+'_test', test_indexs)
-			setattr(self, dataSet+'_val', val_indexs)
-			setattr(self, dataSet+'_train', train_indexs)
+			setattr(self, dataSet+'_test',  DataLoader(test_indexs, sampler=DistributedSampler(test_indexs)).dataset)
+			setattr(self, dataSet+'_val', DataLoader(val_indexs, sampler=DistributedSampler(val_indexs)).dataset )
+			setattr(self, dataSet+'_train', DataLoader(train_indexs, sampler=DistributedSampler(train_indexs)).dataset )
 
-			setattr(self, dataSet+'_feats', feat_data)
-			setattr(self, dataSet+'_labels', labels)
-			setattr(self, dataSet+'_adj_lists', adj_lists)
+			setattr(self, dataSet+'_feats', DataLoader(feat_data, sampler=DistributedSampler(feat_data)).dataset )
+			setattr(self, dataSet+'_labels', DataLoader(labels, sampler=DistributedSampler(labels)).dataset )
+			setattr(self, dataSet+'_adj_lists', DataLoader(adj_lists, sampler=DistributedSampler(adj_lists)).dataset )
+
+
 
 		elif dataSet == 'pubmed':
 			pubmed_content_file = "Pubmed-Diabetes.NODE.paper.tab"

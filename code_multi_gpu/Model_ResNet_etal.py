@@ -113,15 +113,8 @@ class ResNet_etal_class:
                     self.model.eval()  # 设置模型为评估模式
                 running_loss = 0.0
                 running_corrects = 0
-                temp=0
                 # 迭代数据
                 for inputs, labels in self.dataloaders[phase]:
-                    #***************************
-                    print(temp)
-                    temp+=1
-                    if temp>10:
-                        break
-                    #*****************************
                     inputs = inputs.to(self.device)
                     labels = labels.to(self.device)
                     # 清除梯度
