@@ -105,6 +105,7 @@ class GraphSage_class:
             batches = math.ceil(len(train_nodes) / self.b_sz)
 
             visited_nodes = set()
+            batch_order = 0
             for index in range(batches):
                 nodes_batch = train_nodes[index*self.b_sz:(index+1)*self.b_sz]
 
@@ -118,41 +119,83 @@ class GraphSage_class:
 
                 # feed nodes batch to the graphSAGE
                 # returning the nodes embeddings
-                embs_batch = self.graphSage(nodes_batch)
+                batch_order+=1
+                if batch_order<batches:
+                    with self.graphSage.no_sync():
+                        with self.classification.no_sync():
+                            embs_batch = self.graphSage(nodes_batch)
 
-                if self.learn_method == 'sup':
-                    # superivsed learning
-                    logists = self.classification(embs_batch)
-                    loss_sup = -torch.sum(logists[range(logists.size(0)), labels_batch], 0)
-                    loss_sup /= len(nodes_batch)
-                    loss = loss_sup
-                elif self.learn_method == 'plus_unsup':
-                    # superivsed learning
-                    logists = self.classification(embs_batch)
-                    loss_sup = -torch.sum(logists[range(logists.size(0)), labels_batch], 0)
-                    loss_sup /= len(nodes_batch)
-                    # unsuperivsed learning
-                    if self.unsup_loss == 'margin':
-                        loss_net = self.unsupervised_loss.get_loss_margin(embs_batch, nodes_batch)
-                    elif self.unsup_loss == 'normal':
-                        loss_net = self.unsupervised_loss.get_loss_sage(embs_batch, nodes_batch)
-                    loss = loss_sup + loss_net
+                            if self.learn_method == 'sup':
+								# superivsed learning
+                                logists = self.classification(embs_batch)
+                                loss_sup = -torch.sum(logists[range(logists.size(0)), labels_batch], 0)
+                                loss_sup /= len(nodes_batch)
+                                loss = loss_sup
+                            elif self.learn_method == 'plus_unsup':
+								# superivsed learning
+                                logists = self.classification(embs_batch)
+                                loss_sup = -torch.sum(logists[range(logists.size(0)), labels_batch], 0)
+                                loss_sup /= len(nodes_batch)
+								# unsuperivsed learning
+                                if self.unsup_loss == 'margin':
+                                    loss_net = self.unsupervised_loss.get_loss_margin(embs_batch, nodes_batch)
+                                elif self.unsup_loss == 'normal':
+                                    loss_net = self.unsupervised_loss.get_loss_sage(embs_batch, nodes_batch)
+                                loss = loss_sup + loss_net
+                            else:
+                                if self.unsup_loss == 'margin':
+                                    loss_net = self.unsupervised_loss.get_loss_margin(embs_batch, nodes_batch)
+                                elif self.unsup_loss == 'normal':
+                                    loss_net = self.unsupervised_loss.get_loss_sage(embs_batch, nodes_batch)
+                                loss = loss_net
+
+                            print('Step [{}/{}], Loss: {:.4f}, Dealed Nodes [{}/{}]'.format(index+1, batches, loss.item(), len(visited_nodes), len(train_nodes)))
+							
+                            loss.backward()
+                            for model in models:
+                                nn.utils.clip_grad_norm_(model.parameters(), 5)
+                            # optimizer.step()
+
+                            # optimizer.zero_grad()
+                            # for model in models:
+                            #     model.zero_grad()
                 else:
-                    if self.unsup_loss == 'margin':
-                        loss_net = self.unsupervised_loss.get_loss_margin(embs_batch, nodes_batch)
-                    elif self.unsup_loss == 'normal':
-                        loss_net = self.unsupervised_loss.get_loss_sage(embs_batch, nodes_batch)
-                    loss = loss_net
+                    embs_batch = self.graphSage(nodes_batch)
 
-                # print('Step [{}/{}], Loss: {:.4f}, Dealed Nodes [{}/{}]'.format(index+1, batches, loss.item(), len(visited_nodes), len(train_nodes)))
-                loss.backward()
-                for model in models:
-                    nn.utils.clip_grad_norm_(model.parameters(), 5)
-                optimizer.step()
+                    if self.learn_method == 'sup':
+						# superivsed learning
+                        logists = self.classification(embs_batch)
+                        loss_sup = -torch.sum(logists[range(logists.size(0)), labels_batch], 0)
+                        loss_sup /= len(nodes_batch)
+                        loss = loss_sup
+                    elif self.learn_method == 'plus_unsup':
+						# superivsed learning
+                        logists = self.classification(embs_batch)
+                        loss_sup = -torch.sum(logists[range(logists.size(0)), labels_batch], 0)
+                        loss_sup /= len(nodes_batch)
+						# unsuperivsed learning
+                        if self.unsup_loss == 'margin':
+                            loss_net = self.unsupervised_loss.get_loss_margin(embs_batch, nodes_batch)
+                        elif self.unsup_loss == 'normal':
+                            loss_net = self.unsupervised_loss.get_loss_sage(embs_batch, nodes_batch)
+                        loss = loss_sup + loss_net
+                    else:
+                        if self.unsup_loss == 'margin':
+                            loss_net = self.unsupervised_loss.get_loss_margin(embs_batch, nodes_batch)
+                        elif self.unsup_loss == 'normal':
+                            loss_net = self.unsupervised_loss.get_loss_sage(embs_batch, nodes_batch)
+                        loss = loss_net
 
-                optimizer.zero_grad()
-                for model in models:
-                    model.zero_grad()
+                    print('Step [{}/{}], Loss: {:.4f}, Dealed Nodes [{}/{}]'.format(index+1, batches, loss.item(), len(visited_nodes), len(train_nodes)))
+					
+                    loss.backward()
+                    for model in models:
+                        nn.utils.clip_grad_norm_(model.parameters(), 5)
+                    optimizer.step()
+
+                    optimizer.zero_grad()
+                    for model in models:
+                        model.zero_grad()
 
 
 

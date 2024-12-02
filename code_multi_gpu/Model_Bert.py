@@ -63,17 +63,32 @@ class Bert_class:
         # 微调BERT
         for epoch in range(self.args.total_epochs):
             print("epoch:",epoch)
+            batch_order=0
             for step, batch in enumerate(self.train_dataloader):
-                self.model.train()
-                self.optimizer.zero_grad()
-                input_ids, attention_mask, token_type_ids, start_positions, end_positions = tuple(t.to(self.device) for t in batch)
-                outputs = self.model(input_ids=input_ids,
-                                attention_mask=attention_mask,
-                                token_type_ids=token_type_ids,
-                                start_positions=start_positions,
-                                end_positions=end_positions)
-                loss = outputs.loss
-                loss.backward()
-                self.optimizer.step()
+                batch_order+=1
+                if batch_order<len(self.train_dataloader):
+                    with self.model.no_sync():
+                        self.model.train()
+                        self.optimizer.zero_grad()
+                        input_ids, attention_mask, token_type_ids, start_positions, end_positions = tuple(t.to(self.device) for t in batch)
+                        outputs = self.model(input_ids=input_ids,
+                                        attention_mask=attention_mask,
+                                        token_type_ids=token_type_ids,
+                                        start_positions=start_positions,
+                                        end_positions=end_positions)
+                        loss = outputs.loss
+                        loss.backward()
+                else:
+                    self.model.train()
+                    self.optimizer.zero_grad()
+                    input_ids, attention_mask, token_type_ids, start_positions, end_positions = tuple(t.to(self.device) for t in batch)
+                    outputs = self.model(input_ids=input_ids,
+                                    attention_mask=attention_mask,
+                                    token_type_ids=token_type_ids,
+                                    start_positions=start_positions,
+                                    end_positions=end_positions)
+                    loss = outputs.loss
+                    loss.backward()
+                    self.optimizer.step()
 
                 print(f"Epoch [{epoch + 1}/{self.args.total_epochs}], Step [{step + 1}/{len(self.train_dataloader)}], Loss: {loss.item():.4f}")

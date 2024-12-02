@@ -114,7 +114,9 @@ class ResNet_etal_class:
                 running_loss = 0.0
                 running_corrects = 0
                 # 迭代数据
+                batch_order=0
                 for inputs, labels in self.dataloaders[phase]:
+                    print(f'batch:{batch_order+1}/{len(self.dataloaders[phase])}')
                     inputs = inputs.to(self.device)
                     labels = labels.to(self.device)
                     # 清除梯度
@@ -122,14 +124,26 @@ class ResNet_etal_class:
 
                     # 跟踪历史中的操作
                     with torch.set_grad_enabled(phase == 'train'):
-                        outputs = self.model(inputs)
-                        _, preds = torch.max(outputs, 1)
-                        loss = self.criterion(outputs, labels)
+                        batch_order+=1
+                        if batch_order<len(self.dataloaders[phase]):
+                            with self.model.no_sync():
+                                outputs = self.model(inputs)
+                                _, preds = torch.max(outputs, 1)
+                                loss = self.criterion(outputs, labels)
 
-                        # 仅在训练阶段进行反向传播和优化
-                        if phase == 'train':
-                            loss.backward()
-                            self.optimizer.step()
+                                # 仅在训练阶段进行反向传播和优化
+                                if phase == 'train':
+                                    loss.backward()
+                                    # self.optimizer.step()
+                        else:
+                            outputs = self.model(inputs)
+                            _, preds = torch.max(outputs, 1)
+                            loss = self.criterion(outputs, labels)
+
+                            # 仅在训练阶段进行反向传播和优化
+                            if phase == 'train':
+                                loss.backward()
+                                self.optimizer.step()
 
                     # 统计
                     running_loss += loss.item() * inputs.size(0)
