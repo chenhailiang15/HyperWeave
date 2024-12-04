@@ -2,7 +2,7 @@
 
 #Ber batch size should be about 8
 
-export MASTER_ADDR="10.0.0.214"
+export MASTER_ADDR="10.26.128.70"   # one node:localhost  multi node: master ip
 export MASTER_PORT="12355"
 
 model_name="ResNet18"
