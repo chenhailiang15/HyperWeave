@@ -86,6 +86,8 @@ def Run_model_training(args_t,dataset_dir):
 
 
 if __name__=="__main__":
+    os.environ["NCCL_SOCKET_IFNAME"]="eno1"
+    # os.environ["NCCL_DEBUG"]="INFO"
 
     parser = argparse.ArgumentParser(description='simple distributed training job')
     #系统参数

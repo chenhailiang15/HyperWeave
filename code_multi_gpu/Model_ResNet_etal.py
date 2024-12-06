@@ -8,6 +8,10 @@ import torch
 import copy
 import os
 import torchvision
+import psutil
+import time
+
+
 torchvision.disable_beta_transforms_warning()
 
 class ResNet_etal_class:
@@ -96,6 +100,31 @@ class ResNet_etal_class:
         print("device :" + self.device)
         self.model = DDP(self.model, device_ids=[self.device], output_device=self.device)
         print("model init end")
+    
+
+
+    def getNetworkData(self):
+        # 获取网卡流量信息
+        recv = {}
+        sent = {}
+        data = psutil.net_io_counters(pernic=True)
+        interfaces = data.keys()
+        for interface in interfaces:
+            recv.setdefault(interface, data.get(interface).bytes_recv)
+            sent.setdefault(interface, data.get(interface).bytes_sent)
+        return interfaces, recv, sent
+
+    
+    def evaluate_io(self,func,interface):
+        _, oldRecv, oldSent = self.getNetworkData()
+        func()
+        _, newRecv, newSent = self.getNetworkData()
+        networkIn = {}
+        networkOut = {}
+        networkIn.setdefault(interface, float("%.3f" % ((newRecv.get(interface) - oldRecv.get(interface)) )))
+        networkOut.setdefault(interface, float("%.3f" % ((newSent.get(interface) - oldSent.get(interface)) )))
+        return networkIn, networkOut
+                           
 
     def run(self):
         max_epochs = self.args.total_epochs
@@ -117,33 +146,72 @@ class ResNet_etal_class:
                 # 迭代数据
                 batch_order=0
                 for inputs, labels in self.dataloaders[phase]:
-                    # print(f'batch:{batch_order+1}/{len(self.dataloaders[phase])}')
+                    print(f'batch:{batch_order+1}/{len(self.dataloaders[phase])}')
                     inputs = inputs.to(self.device)
                     labels = labels.to(self.device)
                     # 清除梯度
                     self.optimizer.zero_grad()
-
+                    import time
                     # 跟踪历史中的操作
                     with torch.set_grad_enabled(phase == 'train'):
                         batch_order+=1
-                        if batch_order<len(self.dataloaders[phase]):
+                        if batch_order<5:
                             with self.model.no_sync():
+                        
+                        # print("start last batch...")
+                                interface="eno1"
+                                _, oldRecv, oldSent = self.getNetworkData()
                                 outputs = self.model(inputs)
                                 _, preds = torch.max(outputs, 1)
                                 loss = self.criterion(outputs, labels)
-                                loss.backward()
-                                self.optimizer.step()
+                                _, newRecv, newSent = self.getNetworkData()
+                                networkIn = {}
+                                networkOut = {}
+                                networkIn.setdefault(interface, float("%.3f" % ((newRecv.get(interface) - oldRecv.get(interface)) )))
+                                networkOut.setdefault(interface, float("%.3f" % ((newSent.get(interface) - oldSent.get(interface)) )))
+                                print(f'forward: in {networkIn["eno1"]}, out {networkOut["eno1"]}')
+
+                                # print("start backward...")
+
+                                netIn, netOut=self.evaluate_io(loss.backward,"eno1")
+                                print(f'loss.backward: in {netIn["eno1"]}, out {netOut["eno1"]}')
+                                netIn, netOut=self.evaluate_io(self.optimizer.step,"eno1")
+                                print(f'self.optimizer.step: in {netIn["eno1"]}, out {netOut["eno1"]}')
                         else:
-                            print("start last batch...")
+                            print("开始同步batch：")
+                            interface="eno1"
+                            _, oldRecv, oldSent = self.getNetworkData()
                             outputs = self.model(inputs)
                             _, preds = torch.max(outputs, 1)
-                            print("start get loss...")
                             loss = self.criterion(outputs, labels)
-                            print("start backward...")
-                            loss.backward()
-                            print("start update para...")
-                            self.optimizer.step()
-                            print("end update para...")
+                            _, newRecv, newSent = self.getNetworkData()
+                            networkIn = {}
+                            networkOut = {}
+                            networkIn.setdefault(interface, float("%.3f" % ((newRecv.get(interface) - oldRecv.get(interface)) )))
+                            networkOut.setdefault(interface, float("%.3f" % ((newSent.get(interface) - oldSent.get(interface)) )))
+                            print(f'forward: in {networkIn["eno1"]}, out {networkOut["eno1"]}')
+
+                            # print("start backward...")
+
+                            netIn, netOut=self.evaluate_io(loss.backward,"eno1")
+                            print(f'loss.backward: in {netIn["eno1"]}, out {netOut["eno1"]}')
+                            netIn, netOut=self.evaluate_io(self.optimizer.step,"eno1")
+                            print(f'self.optimizer.step: in {netIn["eno1"]}, out {netOut["eno1"]}')
+                        
+                        # print("start update para...")
+                        # self.optimizer.step()
+                        # print("end update para...")
+                        # else:
+                        #     print("start last batch...")
+                        #     outputs = self.model(inputs)
+                        #     _, preds = torch.max(outputs, 1)
+                        #     print("start get loss...")
+                        #     loss = self.criterion(outputs, labels)
+                        #     print("start backward...")
+                        #     loss.backward()
+                        #     print("start update para...")
+                        #     self.optimizer.step()
+                        #     print("end update para...")
 
                     # 统计
                     running_loss += loss.item() * inputs.size(0)

@@ -27,7 +27,7 @@ class Record:
     def run(self):
         global netIn, netOut
         
-        subTread_record=threading.Thread(target=self.get_netIO,args=(self.net_card, self.sample_interval*2, self.unit, self.event))
+        subTread_record=threading.Thread(target=self.get_netIO,args=(self.net_card, self.sample_interval*10, self.unit, self.event))
         subTread_record.start()
 
         file=open(self.out_dir+self.out_file_name,"w")
@@ -146,6 +146,8 @@ class Record:
                     else:
                         netIn = "%.1f" % networkIn.get(interface)#B/s
                         netOut = "%.1f" % networkOut.get(interface)
+                #     print(interface+":"+netIn+","+netOut,end="\t")
+                # print("")
         # print("sub sub theading out")
 
     def getNetworkData(self):
