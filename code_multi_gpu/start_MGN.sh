@@ -6,9 +6,9 @@ export MASTER_ADDR="10.26.128.70"   # one node:localhost  multi node: master ip
 export MASTER_PORT="12355"
 
 model_name="ResNet18"
-nnodes=2
+nnodes=1
 node_rank=0
-nprocs_per_node=1
+nprocs_per_node=2
 gpu_id_list=[]
 
 total_epochs=10
