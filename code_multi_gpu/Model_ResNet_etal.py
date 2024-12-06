@@ -7,7 +7,8 @@ from torch.utils.data import DataLoader
 import torch
 import copy
 import os
-
+import torchvision
+torchvision.disable_beta_transforms_warning()
 
 class ResNet_etal_class:
     def __init__(self, args_t, dataset_dir):
@@ -116,7 +117,7 @@ class ResNet_etal_class:
                 # 迭代数据
                 batch_order=0
                 for inputs, labels in self.dataloaders[phase]:
-                    print(f'batch:{batch_order+1}/{len(self.dataloaders[phase])}')
+                    # print(f'batch:{batch_order+1}/{len(self.dataloaders[phase])}')
                     inputs = inputs.to(self.device)
                     labels = labels.to(self.device)
                     # 清除梯度
@@ -130,20 +131,19 @@ class ResNet_etal_class:
                                 outputs = self.model(inputs)
                                 _, preds = torch.max(outputs, 1)
                                 loss = self.criterion(outputs, labels)
-
-                                # 仅在训练阶段进行反向传播和优化
-                                if phase == 'train':
-                                    loss.backward()
-                                    # self.optimizer.step()
-                        else:
-                            outputs = self.model(inputs)
-                            _, preds = torch.max(outputs, 1)
-                            loss = self.criterion(outputs, labels)
-
-                            # 仅在训练阶段进行反向传播和优化
-                            if phase == 'train':
                                 loss.backward()
                                 self.optimizer.step()
+                        else:
+                            print("start last batch...")
+                            outputs = self.model(inputs)
+                            _, preds = torch.max(outputs, 1)
+                            print("start get loss...")
+                            loss = self.criterion(outputs, labels)
+                            print("start backward...")
+                            loss.backward()
+                            print("start update para...")
+                            self.optimizer.step()
+                            print("end update para...")
 
                     # 统计
                     running_loss += loss.item() * inputs.size(0)

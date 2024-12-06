@@ -1,29 +1,21 @@
 #!/usr/bin/env python
 ## -*- coding: utf-8 -*-
 import torch.multiprocessing as mp
-from torch.utils.data.distributed import DistributedSampler
-from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.distributed import init_process_group, destroy_process_group
 import os
 import torch
-import torch.nn.functional as F
-from torch.utils.data import Dataset, DataLoader
-from sklearn.datasets import load_wine
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
-# import numpy as np
-import os
-import torch
-import torch.nn as nn
-from torchvision import datasets,transforms,models
-import torch.optim as optim
-import copy
 import argparse
 import threading
 import time
 import datetime
 import ast
-import torchvision
+
+
+from Recorder import Record
+from Model_ResNet_etal import ResNet_etal_class
+from Model_Bert import Bert_class
+from Model_GCN import GCN_class
+from Model_GraphSage import GraphSage_class
 
 def ddp_setup(local_rank, args):
     """
@@ -67,16 +59,12 @@ def parse_list_arg(list_arg):
     except (ValueError, SyntaxError) as e:
         raise argparse.ArgumentTypeError(f"Invalid list argument: {list_arg}")
 
-from Recorder import Record
-from Model_ResNet_etal import ResNet_etal_class
-from Model_Bert import Bert_class
-from Model_GCN import GCN_class
-from Model_GraphSage import GraphSage_class
 
 
 
-def Record_resource(gpu_id, sample_interval,out_dir, out_file_name,event):
-    record=Record(gpu_id=gpu_id,sample_interval=sample_interval,out_dir=out_dir, out_file_name=out_file_name,event=event)
+
+def Record_resource(args, gpu_id, out_dir, out_file_name,event):
+    record=Record(gpu_id=gpu_id,net_card=args.net_card, sample_interval=args.sample_interval,out_dir=out_dir, out_file_name=out_file_name,event=event,print_flage=args.print_flage)
     record.run()
 
 def Run_model_training(args_t,dataset_dir):
@@ -95,7 +83,7 @@ def Run_model_training(args_t,dataset_dir):
     mp.spawn(single_training, args=(args_t,model), nprocs=args_t.nprocs_per_node)
 
 
-# torchvision.disable_beta_transforms_warning()
+
 
 if __name__=="__main__":
 
@@ -116,8 +104,10 @@ if __name__=="__main__":
     parser.add_argument('--layer_feature',default=10,type=int,help='Layer feature number for GCN')
 
     #记录参数
+    parser.add_argument("--net_card",default="eno1")
     parser.add_argument("--sample_interval", default=1, type=float,help='sample interval for recorder')
     parser.add_argument("--record_flage", action='store_true', help='A flage for if to use recorder to save resource information')
+    parser.add_argument("--print_flage", action='store_true')
     #其他参数
     parser.add_argument("--environ_flage", action='store_true')
     args = parser.parse_args()
@@ -127,7 +117,7 @@ if __name__=="__main__":
         os.environ["MASTER_PORT"]="12355"
 
 
-    version="v3"
+    version="v4"
     print("code version:"+version)
 
     # 数据集路径
@@ -169,7 +159,7 @@ if __name__=="__main__":
         "-si:"+sample_interval.__str__()+"-tim:"+formatted_time+".txt"
         print(out_file_name)
         event=threading.Event()
-        subTread_record=threading.Thread(target=Record_resource,args=(-1,sample_interval,out_dir,out_file_name,event))
+        subTread_record=threading.Thread(target=Record_resource,args=(args, -1, out_dir,out_file_name,event))
         subTread_record.start()
     time.sleep(1)
     #主线程
