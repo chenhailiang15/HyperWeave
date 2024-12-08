@@ -100,7 +100,201 @@ class ResNet_etal_class:
         print("device :" + self.device)
         self.model = DDP(self.model, device_ids=[self.device], output_device=self.device)
         print("model init end")
+        
+    def run_simplify(self):
+        for epoch in range(self.args.total_epochs):
+            self.model.train()
+            # 每个epoch都有训练阶段
+            batch_order=0
+            for inputs, labels in self.dataloaders["train"]:
+                print(f'batch:{batch_order+1}/{len(self.dataloaders["train"])}')
+                inputs = inputs.to(self.device)
+                labels = labels.to(self.device)
+                # 清除梯度
+                self.optimizer.zero_grad()
+                # 跟踪历史中的操作
+                with torch.set_grad_enabled():
+                    batch_order+=1
+                    outputs = self.model(inputs)
+                    _, preds = torch.max(outputs, 1)
+                    loss = self.criterion(outputs, labels)
+                    loss.backward()
+                    self.optimizer.step()
+        return
     
+    
+    def run_origin(self):
+        max_epochs = self.args.total_epochs
+        print("in trainning")
+        best_model_wts = copy.deepcopy(self.model.state_dict())
+        best_acc = 0.0
+        for epoch in range(max_epochs):
+            #这里等待对方计算结束。
+
+            print(f'Epoch {epoch}/{max_epochs - 1}')
+            print('-' * 10)
+            # 每个epoch都有训练和验证阶段
+            for phase in ['train']:
+                if phase == 'train':
+                    self.model.train()  # 设置模型为训练模式
+                else:
+                    self.model.eval()  # 设置模型为评估模式
+                running_loss = 0.0
+                running_corrects = 0
+                # 迭代数据
+                batch_order=0
+                for inputs, labels in self.dataloaders[phase]:
+                    print(f'batch:{batch_order+1}/{len(self.dataloaders[phase])}')
+                    inputs = inputs.to(self.device)
+                    labels = labels.to(self.device)
+                    # 清除梯度
+                    self.optimizer.zero_grad()
+                    import time
+                    # 跟踪历史中的操作
+                    with torch.set_grad_enabled(phase == 'train'):
+                        batch_order+=1
+                        outputs = self.model(inputs)
+                        _, preds = torch.max(outputs, 1)
+                        loss = self.criterion(outputs, labels)
+                        loss.backward()
+                        self.optimizer.step()
+
+                    #统计
+                    running_loss += loss.item() * inputs.size(0)
+                    running_corrects += torch.sum(preds == labels.data)
+                epoch_loss = running_loss / self.dataset_sizes[phase]
+                epoch_acc = running_corrects.double() / self.dataset_sizes[phase]
+                print(f'{phase} Loss: {epoch_loss:.4f} Acc: {epoch_acc:.4f}')
+
+                # 深度拷贝模型
+                if phase == 'val' and epoch_acc > best_acc:
+                    best_acc = epoch_acc
+                    best_model_wts = copy.deepcopy(self.model.state_dict())
+            print()
+        print(f'Best val Acc: {best_acc:4f}')
+
+        # 加载最佳模型权重
+        self.model.load_state_dict(best_model_wts)
+        return
+    
+    def run(self):
+        max_epochs = self.args.total_epochs
+        print("in trainning")
+        best_model_wts = copy.deepcopy(self.model.state_dict())
+        best_acc = 0.0
+        for epoch in range(max_epochs):
+            #这里等待对方计算结束。
+
+            print(f'Epoch {epoch}/{max_epochs - 1}')
+            print('-' * 10)
+            # 每个epoch都有训练和验证阶段
+            for phase in ['train']:
+                if phase == 'train':
+                    self.model.train()  # 设置模型为训练模式
+                else:
+                    self.model.eval()  # 设置模型为评估模式
+                running_loss = 0.0
+                running_corrects = 0
+                # 迭代数据
+                batch_order=0
+                for inputs, labels in self.dataloaders[phase]:
+                    print(f'batch:{batch_order+1}/{len(self.dataloaders[phase])}')
+                    inputs = inputs.to(self.device)
+                    labels = labels.to(self.device)
+                    # 清除梯度
+                    self.optimizer.zero_grad()
+                    import time
+                    # 跟踪历史中的操作
+                    with torch.set_grad_enabled(phase == 'train'):
+                        batch_order+=1
+                        # if batch_order<len(self.dataloaders[phase]):
+                        #     with self.model.no_sync():
+                        
+                        # # print("start last batch...")
+                        #         # interface="eno1"
+                        #         # _, oldRecv, oldSent = self.getNetworkData()
+                        #         outputs = self.model(inputs)
+                        #         _, preds = torch.max(outputs, 1)
+                        #         loss = self.criterion(outputs, labels)
+                        #         # _, newRecv, newSent = self.getNetworkData()
+                        #         # networkIn = {}
+                        #         # networkOut = {}
+                        #         # networkIn.setdefault(interface, float("%.3f" % ((newRecv.get(interface) - oldRecv.get(interface)) )))
+                        #         # networkOut.setdefault(interface, float("%.3f" % ((newSent.get(interface) - oldSent.get(interface)) )))
+                        #         # print(f'forward: in {networkIn["eno1"]}, out {networkOut["eno1"]}')
+
+                        #         # print("start backward...")
+                        #         loss.backward()
+                        #         self.optimizer.step()
+                        #         # netIn, netOut=self.evaluate_io(loss.backward,"eno1")
+                        #         # print(f'loss.backward: in {netIn["eno1"]}, out {netOut["eno1"]}')
+                        #         # netIn, netOut=self.evaluate_io(self.optimizer.step,"eno1")
+                        #         # print(f'self.optimizer.step: in {netIn["eno1"]}, out {netOut["eno1"]}')
+                        # else:
+                            #等待对方同步结束
+                            #
+                        outputs = self.model(inputs)
+                        
+                            # print("开始同步batch：")
+                            # interface="eno1"
+                            # _, oldRecv, oldSent = self.getNetworkData()
+                            # outputs = self.model(inputs)
+                            # _, preds = torch.max(outputs, 1)
+                            # loss = self.criterion(outputs, labels)
+                            # _, newRecv, newSent = self.getNetworkData()
+                            # networkIn = {}
+                            # networkOut = {}
+                            # networkIn.setdefault(interface, float("%.3f" % ((newRecv.get(interface) - oldRecv.get(interface)) )))
+                            # networkOut.setdefault(interface, float("%.3f" % ((newSent.get(interface) - oldSent.get(interface)) )))
+                            # print(f'forward: in {networkIn["eno1"]}, out {networkOut["eno1"]}')
+
+                            # # print("start backward...")
+
+                            # netIn, netOut=self.evaluate_io(loss.backward,"eno1")
+                            # print(f'loss.backward: in {netIn["eno1"]}, out {netOut["eno1"]}')
+                            # netIn, netOut=self.evaluate_io(self.optimizer.step,"eno1")
+                            # print(f'self.optimizer.step: in {netIn["eno1"]}, out {netOut["eno1"]}')
+                        
+                        # print("start update para...")
+                        # self.optimizer.step()
+                        # print("end update para...")
+                        # else:
+                        #     print("start last batch...")
+                        #     outputs = self.model(inputs)
+                        #     _, preds = torch.max(outputs, 1)
+                        #     print("start get loss...")
+                        #     loss = self.criterion(outputs, labels)
+                        #     print("start backward...")
+                        #     loss.backward()
+                        #     print("start update para...")
+                        #     self.optimizer.step()
+                        #     print("end update para...")
+
+                    # 统计
+            #         running_loss += loss.item() * inputs.size(0)
+            #         running_corrects += torch.sum(preds == labels.data)
+            #     epoch_loss = running_loss / self.dataset_sizes[phase]
+            #     epoch_acc = running_corrects.double() / self.dataset_sizes[phase]
+            #     print(f'{phase} Loss: {epoch_loss:.4f} Acc: {epoch_acc:.4f}')
+
+            #     # 深度拷贝模型
+            #     if phase == 'val' and epoch_acc > best_acc:
+            #         best_acc = epoch_acc
+            #         best_model_wts = copy.deepcopy(self.model.state_dict())
+            # print()
+        # print(f'Best val Acc: {best_acc:4f}')
+
+        # 加载最佳模型权重
+        self.model.load_state_dict(best_model_wts)
+        return
+
+
+
+
+
+
+
+
 
 
     def getNetworkData(self):
@@ -126,107 +320,4 @@ class ResNet_etal_class:
         return networkIn, networkOut
                            
 
-    def run(self):
-        max_epochs = self.args.total_epochs
-        print("in trainning")
-        best_model_wts = copy.deepcopy(self.model.state_dict())
-        best_acc = 0.0
-        for epoch in range(max_epochs):
-
-            print(f'Epoch {epoch}/{max_epochs - 1}')
-            print('-' * 10)
-            # 每个epoch都有训练和验证阶段
-            for phase in ['train']:
-                if phase == 'train':
-                    self.model.train()  # 设置模型为训练模式
-                else:
-                    self.model.eval()  # 设置模型为评估模式
-                running_loss = 0.0
-                running_corrects = 0
-                # 迭代数据
-                batch_order=0
-                for inputs, labels in self.dataloaders[phase]:
-                    print(f'batch:{batch_order+1}/{len(self.dataloaders[phase])}')
-                    inputs = inputs.to(self.device)
-                    labels = labels.to(self.device)
-                    # 清除梯度
-                    self.optimizer.zero_grad()
-                    import time
-                    # 跟踪历史中的操作
-                    with torch.set_grad_enabled(phase == 'train'):
-                        batch_order+=1
-                        if batch_order<5:
-                            with self.model.no_sync():
-                        
-                        # print("start last batch...")
-                                interface="eno1"
-                                _, oldRecv, oldSent = self.getNetworkData()
-                                outputs = self.model(inputs)
-                                _, preds = torch.max(outputs, 1)
-                                loss = self.criterion(outputs, labels)
-                                _, newRecv, newSent = self.getNetworkData()
-                                networkIn = {}
-                                networkOut = {}
-                                networkIn.setdefault(interface, float("%.3f" % ((newRecv.get(interface) - oldRecv.get(interface)) )))
-                                networkOut.setdefault(interface, float("%.3f" % ((newSent.get(interface) - oldSent.get(interface)) )))
-                                print(f'forward: in {networkIn["eno1"]}, out {networkOut["eno1"]}')
-
-                                # print("start backward...")
-
-                                netIn, netOut=self.evaluate_io(loss.backward,"eno1")
-                                print(f'loss.backward: in {netIn["eno1"]}, out {netOut["eno1"]}')
-                                netIn, netOut=self.evaluate_io(self.optimizer.step,"eno1")
-                                print(f'self.optimizer.step: in {netIn["eno1"]}, out {netOut["eno1"]}')
-                        else:
-                            print("开始同步batch：")
-                            interface="eno1"
-                            _, oldRecv, oldSent = self.getNetworkData()
-                            outputs = self.model(inputs)
-                            _, preds = torch.max(outputs, 1)
-                            loss = self.criterion(outputs, labels)
-                            _, newRecv, newSent = self.getNetworkData()
-                            networkIn = {}
-                            networkOut = {}
-                            networkIn.setdefault(interface, float("%.3f" % ((newRecv.get(interface) - oldRecv.get(interface)) )))
-                            networkOut.setdefault(interface, float("%.3f" % ((newSent.get(interface) - oldSent.get(interface)) )))
-                            print(f'forward: in {networkIn["eno1"]}, out {networkOut["eno1"]}')
-
-                            # print("start backward...")
-
-                            netIn, netOut=self.evaluate_io(loss.backward,"eno1")
-                            print(f'loss.backward: in {netIn["eno1"]}, out {netOut["eno1"]}')
-                            netIn, netOut=self.evaluate_io(self.optimizer.step,"eno1")
-                            print(f'self.optimizer.step: in {netIn["eno1"]}, out {netOut["eno1"]}')
-                        
-                        # print("start update para...")
-                        # self.optimizer.step()
-                        # print("end update para...")
-                        # else:
-                        #     print("start last batch...")
-                        #     outputs = self.model(inputs)
-                        #     _, preds = torch.max(outputs, 1)
-                        #     print("start get loss...")
-                        #     loss = self.criterion(outputs, labels)
-                        #     print("start backward...")
-                        #     loss.backward()
-                        #     print("start update para...")
-                        #     self.optimizer.step()
-                        #     print("end update para...")
-
-                    # 统计
-                    running_loss += loss.item() * inputs.size(0)
-                    running_corrects += torch.sum(preds == labels.data)
-                epoch_loss = running_loss / self.dataset_sizes[phase]
-                epoch_acc = running_corrects.double() / self.dataset_sizes[phase]
-                print(f'{phase} Loss: {epoch_loss:.4f} Acc: {epoch_acc:.4f}')
-
-                # 深度拷贝模型
-                if phase == 'val' and epoch_acc > best_acc:
-                    best_acc = epoch_acc
-                    best_model_wts = copy.deepcopy(self.model.state_dict())
-            print()
-        print(f'Best val Acc: {best_acc:4f}')
-
-        # 加载最佳模型权重
-        self.model.load_state_dict(best_model_wts)
-        return
+    
