@@ -165,8 +165,10 @@ if __name__=="__main__":
         subTread_record.start()
     time.sleep(1)
     #主线程
-    Run_model_training(args,dataset_dir)
-    
+    subTread_record2=threading.Thread(target=Run_model_training,args=(args,dataset_dir))
+    # Run_model_training(args,dataset_dir)
+    subTread_record2.start()
+    subTread_record2.join()
     if args.record_flage: 
         event.set()
         subTread_record.join()
