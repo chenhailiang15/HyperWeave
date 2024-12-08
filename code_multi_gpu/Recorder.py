@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+## -*- coding: utf-8 -*-
 import pynvml
 import torch
 import subprocess
@@ -38,8 +40,8 @@ class Record:
             file.write(cpu_util.__str__()+","+mem_util.__str__())
             file.write(","+netIn+","+netOut)
             if self.print_flage:
-                print("cpu:",cpu_util,"\tmem:",mem_util,end="")
-                print("\tnetIn:"+netIn+"\tnetOut:"+netOut,end="")
+                print("cpu:"+cpu_util.__str__()+"\tmem:"+mem_util.__str__(), end="")
+                print("\tnetIn:"+netIn.__str__()+"\tnetOut:"+netOut.__str__(), end="")
                 
             if self.gpu_id==-1:
                 for i in range(torch.cuda.device_count()):

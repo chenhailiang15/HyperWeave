@@ -2,9 +2,6 @@
 ## -*- coding: utf-8 -*-
 from Recorder import Record
 from Model_ResNet_etal import ResNet_etal_class
-from Model_Bert import Bert_class
-from Model_GCN import GCN_class
-from Model_GraphSage import GraphSage_class
 import argparse
 import os
 import time
@@ -28,7 +25,7 @@ def single_training(args,model,barrier):
     
     model.set_local_rank(args.gpu_id)
     # Load the necessary training objects - dataset, model, and optimizer.
-    model.load_mode_data()
+    model.load_mode_data_simplify()
     
     barrier.wait()
     
@@ -41,12 +38,12 @@ def Run_model_training(args_t,dataset_dir,barrier):
     if args_t.model_name == "ResNet18" or args_t.model_name == "ResNet50" or args_t.model_name =="AlexNet"\
         or args_t.model_name =="VGG16" or args_t.model_name =="MobileNetv2":
         model=ResNet_etal_class(args_t,dataset_dir)
-    elif args_t.model_name == "Bert":
-        model=Bert_class(args_t,dataset_dir)
-    elif args_t.model_name == "GCN":
-        model=GCN_class(args_t,dataset_dir)
-    elif args_t.model_name == "GraphSage":
-        model=GraphSage_class(args_t,dataset_dir)
+    # elif args_t.model_name == "Bert":
+    #     model=Bert_class(args_t,dataset_dir)
+    # elif args_t.model_name == "GCN":
+    #     model=GCN_class(args_t,dataset_dir)
+    # elif args_t.model_name == "GraphSage":
+    #     model=GraphSage_class(args_t,dataset_dir)
     else:
         print("model_name wrong!")
         exit(-1)
@@ -68,17 +65,28 @@ def set_mps_mode(gpu_index, mps_mode):
         # print(f'MPS mode set to {mps_state} for GPU {gpu_index}')
     return
 
-
+import ast
+def parse_list_arg(list_arg):
+    try:
+        return ast.literal_eval(list_arg)
+    except (ValueError, SyntaxError) as e:
+        raise argparse.ArgumentTypeError(f"Invalid list argument: {list_arg}")
+    
 if __name__=="__main__":
-
+    import os
+    os.environ['CUDA_LAUNCH_BLOCKING'] = "1"    
     parser = argparse.ArgumentParser(description='multi model training job')
     #系统参数
+    parser.add_argument('--nnodes', default=1, type=int, help='The number of nodes in multi-node training')
+    parser.add_argument('--node_rank', default=0, type=int, help='The rank of the node in multi-node training')
+    parser.add_argument('--nprocs_per_node', default=1, type=int,help='used gpu number for each node')
+    parser.add_argument('--gpu_id_list', default=[], type=parse_list_arg,help='gpu id for each node used')
     parser.add_argument('--gpu_id', default="1", type=str,help='gpu id for each node used')
     parser.add_argument('--thead_num',default=1, type=int,help='model number')
     #模型通用参数
-    parser.add_argument('--model_name',default="GraphSage",help='model name, such as ResNet18, GCN, Bert...')
+    parser.add_argument('--model_name',default="ResNet18",help='model name, such as ResNet18, GCN, Bert...')
     parser.add_argument('--batch_size', default=16, type=int, help='Input batch size on each device (default: 32)')
-    parser.add_argument('--total_epochs', default= 10,type=int, help='Total epochs to train the model')
+    parser.add_argument('--total_epochs', default= 1,type=int, help='Total epochs to train the model')
     parser.add_argument('--worker_num', default= 4,type=int, help='Number of worker for data load')
     #模型特定参数
     parser.add_argument('--squad_data_size',default=1000,type=int,help='Size of squad dataset for Bert')
@@ -98,9 +106,9 @@ if __name__=="__main__":
     print("code version:"+version)
     
     
-    #设置MPS模式
-    set_mps_mode(args.gpu_id,True)
-    exit()
+    # #设置MPS模式
+    # set_mps_mode(args.gpu_id,True)
+    # exit()
 
     # 数据集路径
     # 获取当前文件所在目录的上级目录
@@ -122,7 +130,7 @@ if __name__=="__main__":
     nnodes=args.nnodes
     node_rank=args.node_rank
     nprocs_per_node=args.nprocs_per_node
-    gpu_id_list=args.gpu_id_list
+    
 
     model_name=args.model_name
     batch_size=args.batch_size
@@ -165,5 +173,5 @@ if __name__=="__main__":
         event.set()
         subTread_record.join()
         
-    print("model num:"+args.thead_num+"\ttraining time (sec):"+ round(end_time-start_time,2).__str__())
+    print("model num:"+args.thead_num.__str__()+"\ttraining time (sec):"+ round(end_time-start_time,2).__str__())
     print("process end!")
