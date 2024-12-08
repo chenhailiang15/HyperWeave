@@ -181,8 +181,8 @@ class ResNet_etal_class:
             # 每个epoch都有训练阶段
             batch_order=0
             for inputs, labels in self.dataloaders["train"]:
-                if batch_order%500 == 0 :
-                    print(f'batch:{batch_order}/{len(self.dataloaders["train"])-1}')
+                # if batch_order%500 == 0 :
+                print(f'batch:{batch_order}/{len(self.dataloaders["train"])-1}')
                 inputs = inputs.to(self.device)
                 labels = labels.to(self.device)
                 # 清除梯度
@@ -309,7 +309,11 @@ class ResNet_etal_class:
                             #等待对方同步结束
                             #
                         outputs = self.model(inputs)
+                        loss = self.criterion(outputs, labels)
+                        loss.backward()
+                        self.optimizer.step()
                         
+                        batch_order+=1
                             # print("开始同步batch：")
                             # interface="eno1"
                             # _, oldRecv, oldSent = self.getNetworkData()

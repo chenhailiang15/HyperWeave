@@ -7,9 +7,9 @@ export MASTER_PORT="12355"
 
 model_name="AlexNet"
 nnodes=1
-node_rank=1
+node_rank=0
 nprocs_per_node=2
-gpu_id_list=[2]
+gpu_id_list=[1,2]
 
 total_epochs=3
 batch_size=16           #8 for Bert (default:16)
