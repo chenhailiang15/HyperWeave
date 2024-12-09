@@ -11,12 +11,15 @@ import numpy as np
 
 class Synchronizer:
     def __init__(self,first_flage,shm_name,shm_size):
+        self.cpu_index=0
+        self.gpu_index=1
+        
         self.first_flage=first_flage
         self.shm_name=shm_name
         self.shm_size=shm_size
         self.load_share_memory()
-        self.boolean_array = np.ndarray((2,), dtype=np.int8, buffer=self.shm.buf)
-        new_values = np.array([True, False], dtype=bool)
+        self.boolean_array = np.ndarray((3,), dtype=np.int8, buffer=self.shm.buf)
+        new_values = np.array([True, False,False], dtype=bool)
         self.boolean_array[:]=new_values.astype(np.int8)
         
         return
@@ -32,29 +35,41 @@ class Synchronizer:
         
         
             
-    def sync_in_start_epoch(self,fisrt_epoch):
-        if fisrt_epoch & self.first_flage:
+    def sync_in_start_epoch(self,first_epoch):
+        #初始化为 CPU： True， GPU：False
+        if first_epoch & self.first_flage:
             return
-        # while 
-        
+            
+        while self.boolean_array[self.cpu_index] == True:
+            time.sleep(0.1)
+        self.boolean_array[self.cpu_index]=True
         return
         
     def sync_in_batch(self):
+        self.boolean_array[self.cpu_index]=False
+        while self.boolean_array[self.gpu_index] == True:
+            time.sleep(0.1)
+        self.boolean_array[self.gpu_index]=True
+            
         return
         
         
     def sync_in_end_epoch(self):
+        self.boolean_array[self.gpu_index]=False
         return
     
     
     def close(self):
-        try:
-            self.shm.close()
-            self.unlink()
-            print("shared memory delete here!")
-            
-        except :
-            print("shared memory has deleted!")
+        if self.boolean_array[2] == False:
+            self.boolean_array[2]=True
+        else:
+            try:
+                self.shm.close()
+                self.unlink()
+                print("shared memory delete here!")
+                
+            except :
+                print("shared memory has deleted!")
             
             
     def write_test(self):
@@ -82,22 +97,28 @@ class Synchronizer:
 
 def threading_func(first_flage, shm_name,shm_size):
     sync_er=Synchronizer(first_flage, shm_name,shm_size)
-    if first_flage:
-        sync_er.write_test()
-    else:
-        sync_er.read_test()
+    # if first_flage:
+    #     sync_er.write_test()
+    # else:
+    #     sync_er.read_test()
+    thread_id=threading.current_thread().ident.__str__()
         
-        
-    sync_er.close()
-    # for i in range(10):
-    #     sync_er.sync_in_start_epoch(i)
-    #     time.sleep(2)
-    #     for j in range(10):
-    #         sync_er.sync_in_batch()
-    #         time.sleep(5)
+    
+    for i in range(10):
+        sync_er.sync_in_start_epoch(i==0)
+        print(thread_id+":"+"load data ... use cpu")
+        time.sleep(0.1)
+        for j in range(10):
+            if j == 0:
+                sync_er.sync_in_batch()
+            print(thread_id+":"+"train model ... use gpu")
+            time.sleep(0.01)
             
-    #     sync_er.sync_in_end_epoch()
-    #     time.sleep(2)
+        sync_er.sync_in_end_epoch()
+    
+    print("code over")
+    sync_er.close()
+    print("close over")
             
 
 
@@ -106,7 +127,7 @@ def threading_func(first_flage, shm_name,shm_size):
 if __name__=="__main__":
     
     shm_name="test_mem_share_sync"
-    shm_size=shm_size = 2 * np.dtype(np.int8).itemsize
+    shm_size=shm_size = 3 * np.dtype(np.int8).itemsize
     subthreading1=threading.Thread(target=threading_func,args=(True,shm_name,shm_size))
     subthreading2=threading.Thread(target=threading_func,args=(False,shm_name,shm_size))
     subthreading1.start()
