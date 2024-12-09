@@ -4,7 +4,7 @@ import json
 import secrets
 import string
 import os
-
+import threading
 
 
 def generate_shm_name(length=10):
@@ -100,6 +100,70 @@ def get_strategy():
     strategy_all["task_first"]=task_first
     strategy_all["task_second"]=task_second
     return strategy_all
+def get_strategy2():
+    strategy_all={}
+    ####################第一个任务信息
+    task_first={}
+    task_first["MASTER_ADDR"]="10.26.128.51"
+    task_first["MASTER_PORT"]=12365
+    task_first["nnodes"]=1
+    task_first["nprocs_per_node"]=2
+    
+    task_first["model_name"]="AlexNet"
+    task_first["total_epochs"]=3
+    task_first["batch_size"]=16
+    task_first["worker_num"]=4
+    
+    task_first["max_sync_num"]=2
+    
+    
+    #master特定信息
+    task_first["master_spec"]={}
+    task_first["master_spec"]["net_card"]="eno1"
+    task_first["master_spec"]["node_rank"]=0
+    task_first["master_spec"]["gpu_id_list"]=[1,2]
+    #worker特定信息
+    task_first["worker_spec"]={}
+    task_first["worker_spec"]["net_card"]="eno1"
+    task_first["worker_spec"]["node_rank"]=1
+    task_first["worker_spec"]["gpu_id_list"]=[2,3]
+    
+    ####################第二个任务信息
+    task_second={}
+    task_second["MASTER_ADDR"]="10.26.128.51"
+    task_second["MASTER_PORT"]=12375
+    task_second["nnodes"]=1
+    task_second["nprocs_per_node"]=2
+    
+    task_second["model_name"]="ResNet18"
+    task_second["total_epochs"]=3
+    task_second["batch_size"]=16
+    task_second["worker_num"]=4
+    
+    task_second["max_sync_num"]=2
+    #master特定信息
+    task_second["master_spec"]={}
+    task_second["master_spec"]["net_card"]="eno1"
+    task_second["master_spec"]["node_rank"]=0
+    task_second["master_spec"]["gpu_id_list"]=[1,2]
+    #worker特定信息
+    task_second["worker_spec"]={}
+    task_second["worker_spec"]["net_card"]="eno1"
+    task_second["worker_spec"]["node_rank"]=1
+    task_second["worker_spec"]["gpu_id_list"]=[2,3]
+    
+    ##############共同共享内存名
+    task_first["shm_name_list"]=[]
+    task_second["shm_name_list"]=[]
+    for i in range(task_first["max_sync_num"]):
+        shm_name=generate_shm_name(16)
+        task_first["shm_name_list"].append(shm_name)
+        task_second["shm_name_list"].append(shm_name)
+        
+    strategy_all["task_first"]=task_first
+    strategy_all["task_second"]=task_second
+    return strategy_all
+
 
 def parameter_analyse(strategy,specific,prior=False):
     MASTER_ADDR=strategy["MASTER_ADDR"]
@@ -130,7 +194,8 @@ def parameter_analyse(strategy,specific,prior=False):
     
     
     
-    
+def run_command(command):
+      os.system(command)
     
 
 def execution_local(strategy_all):
@@ -138,7 +203,12 @@ def execution_local(strategy_all):
     command_tasksecond=parameter_analyse(strategy_all["task_second"], "master_spec",)
     print(command_taskfirst)
     print(command_tasksecond)
-    os.system(command_taskfirst+" & "+command_tasksecond)
+    thread1=threading.Thread(target=run_command,args=(command_taskfirst,))
+    thread1.start()
+    thread2=threading.Thread(target=run_command,args=(command_tasksecond,))
+    thread2.start()
+    
+    # os.system(command_taskfirst+" & "+command_tasksecond)
     # os.system(command_tasksecond)
     return
     
@@ -150,6 +220,8 @@ def execution_local(strategy_all):
 if __name__=="__main__":
     strategy_all=get_strategy()
     # node_message_sender.send(json.dumps(strategy_all))
+    execution_local(strategy_all)
+    strategy_all=get_strategy2()
     execution_local(strategy_all)
     
     # print(strategy_all)
