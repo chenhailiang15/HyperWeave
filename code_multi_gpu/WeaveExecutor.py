@@ -58,8 +58,20 @@ def single_training(local_rank,args,model):
     # Cleanup the distributed environment after training is complete.
     destroy_process_group()
 
-
+def parse_list_shm(list_arg):
+    list_arg=list_arg.replace("]","").replace("[","").split(",")
+    shm_list=[]
+    for shm in list_arg:
+        shm_list.append(shm)
+        
+    return shm_list
+    
+    
+    
+    
+    
 def parse_list_arg(list_arg):
+    
     try:
         return ast.literal_eval(list_arg)
     except (ValueError, SyntaxError) as e:
@@ -118,7 +130,7 @@ if __name__=="__main__":
     
     #同步参数
     parser.add_argument("--max_sync_num",default=1,type=int)
-    parser.add_argument("--shm_name_list",default=["QigB3wOuRH0q2Khe"],type=parse_list_arg)
+    parser.add_argument("--shm_name_list",default="[QigB3wOuRH0q2Khe]",type=parse_list_shm)
     
     #其他参数
     parser.add_argument("--MASTER_ADDR",default="localhost")

@@ -109,6 +109,7 @@ def parameter_analyse(strategy,specific,prior=False):
     nnodes=strategy["nnodes"]
     nprocs_per_node=strategy["nprocs_per_node"]
     gpu_id_list=strategy[specific]["gpu_id_list"]
+    gpu_id_list=f"{gpu_id_list}".replace(" ", "")
     
     model_name=strategy["model_name"]
     batch_size=strategy["batch_size"]
@@ -117,11 +118,12 @@ def parameter_analyse(strategy,specific,prior=False):
     
     max_sync_num=strategy["max_sync_num"]
     shm_name_list=strategy["shm_name_list"]
+    shm_name_list=f"{shm_name_list}".replace(" ", "")
     net_card=strategy[specific]["net_card"]
     
     command=f"python WeaveExecutor.py --model_name {model_name} --node_rank {node_rank} --nnodes {nnodes}  --nprocs_per_node {nprocs_per_node} \
         --gpu_id_list {gpu_id_list}  --batch_size {batch_size} --total_epochs {total_epochs} --worker_num {worker_num} --max_sync_num {max_sync_num}\
-        --shm_name_list {shm_name_list} --net_card {net_card} --MASTER_ADDR {MASTER_ADDR} --MASTER_PORT {MASTER_PORT} --spec_master"
+        --shm_name_list {shm_name_list} --net_card {net_card} --MASTER_ADDR {MASTER_ADDR} --MASTER_PORT {MASTER_PORT}"
     if prior:
         command=command+" --prior"
     return command
@@ -136,8 +138,8 @@ def execution_local(strategy_all):
     command_tasksecond=parameter_analyse(strategy_all["task_second"], "master_spec",)
     print(command_taskfirst)
     print(command_tasksecond)
-    os.system(command_taskfirst)
-    os.system(command_tasksecond)
+    os.system(command_taskfirst+" & "+command_tasksecond)
+    # os.system(command_tasksecond)
     return
     
     
