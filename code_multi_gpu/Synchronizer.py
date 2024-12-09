@@ -4,25 +4,23 @@ from multiprocessing import shared_memory
 import multiprocessing
 import numpy as np
 
-
-
-
-
-
 class Synchronizer:
-    def __init__(self,first_flage,shm_name,shm_size):
+    def __init__(self,prior,shm_name,shm_size=3*np.dtype(np.int8).itemsize,enable_flage=True):
         self.cpu_index=0
         self.gpu_index=1
-        
-        self.first_flage=first_flage
+        self.prior=prior
         self.shm_name=shm_name
         self.shm_size=shm_size
-        self.load_share_memory()
-        self.boolean_array = np.ndarray((3,), dtype=np.int8, buffer=self.shm.buf)
-        new_values = np.array([True, False,False], dtype=bool)
-        self.boolean_array[:]=new_values.astype(np.int8)
+        self.enable_flage=enable_flage
+        if self.enable_flage:
+            self.load_share_memory()
+            self.boolean_array = np.ndarray((3,), dtype=np.int8, buffer=self.shm.buf)
+            new_values = np.array([True, False,False], dtype=bool)
+            self.boolean_array[:]=new_values.astype(np.int8)
         
         return
+    
+
     
     
     def load_share_memory(self):
@@ -36,8 +34,11 @@ class Synchronizer:
         
             
     def sync_in_start_epoch(self,first_epoch):
+        #是否发挥作用
+        if not self.enable_flage:
+            return
         #初始化为 CPU： True， GPU：False
-        if first_epoch & self.first_flage:
+        if first_epoch & self.prior:
             return
             
         while self.boolean_array[self.cpu_index] == True:
@@ -46,6 +47,10 @@ class Synchronizer:
         return
         
     def sync_in_batch(self):
+        #是否发挥作用
+        if not self.enable_flage:
+            return
+        
         self.boolean_array[self.cpu_index]=False
         while self.boolean_array[self.gpu_index] == True:
             time.sleep(0.1)
@@ -55,11 +60,19 @@ class Synchronizer:
         
         
     def sync_in_end_epoch(self):
+        #是否发挥作用
+        if not self.enable_flage:
+            return
+        
         self.boolean_array[self.gpu_index]=False
         return
     
     
     def close(self):
+        #是否发挥作用
+        if not self.enable_flage:
+            return
+        
         if self.boolean_array[2] == False:
             self.boolean_array[2]=True
         else:
