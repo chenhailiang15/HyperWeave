@@ -101,7 +101,7 @@ def Run_model_training(args_t,dataset_dir):
 
 if __name__=="__main__":
     
-    # os.environ["NCCL_DEBUG"]="INFO"
+    os.environ["NCCL_DEBUG"]="INFO"
 
     parser = argparse.ArgumentParser(description='simple distributed training job')
     #优先级参数
@@ -143,6 +143,7 @@ if __name__=="__main__":
     os.environ["MASTER_ADDR"]=args.MASTER_ADDR
     os.environ["MASTER_PORT"]=args.MASTER_PORT
     os.environ["NCCL_SOCKET_IFNAME"]=args.net_card
+    print("addr:",args.MASTER_ADDR,"port:",args.MASTER_PORT,"netcard:",args.net_card)
     
     version="v4"
     print("code version:"+version)
