@@ -86,7 +86,7 @@ def Run_model_training(args_t,dataset_dir):
 
 
 if __name__=="__main__":
-    os.environ["NCCL_SOCKET_IFNAME"]="eno1"
+    
     # os.environ["NCCL_DEBUG"]="INFO"
 
     parser = argparse.ArgumentParser(description='simple distributed training job')
@@ -117,8 +117,8 @@ if __name__=="__main__":
     if not args.environ_flage:
         os.environ["MASTER_ADDR"]="localhost"
         os.environ["MASTER_PORT"]="12355"
-
-
+    os.environ["NCCL_SOCKET_IFNAME"]=args.net_card
+    
     version="v4"
     print("code version:"+version)
 

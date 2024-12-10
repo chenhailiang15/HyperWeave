@@ -11,7 +11,7 @@ import torchvision
 import psutil
 import time
 import threading
-from transfer.code_multi_gpu.WeaveSynchronizer import Synchronizer
+from WeaveSynchronizer import Synchronizer
 
 torchvision.disable_beta_transforms_warning()
 

@@ -2,12 +2,22 @@
 
 #Ber batch size should be about 8
 
-export MASTER_ADDR="10.26.128.51"   # one node:localhost  multi node: master ip
-export MASTER_PORT="12355"
+Is_Master=true
+
+if [ "${Is_Master}" = true ]; then
+    node_rank=0
+    net_card="eno1"
+else
+    node_rank=1
+    net_card="eno2"
+fi
+
+
+MASTER_ADDR="10.26.128.51"   # one node:localhost  multi node: master ip
+MASTER_PORT="12355"
 
 model_name="AlexNet"
 nnodes=1
-node_rank=0
 nprocs_per_node=2
 gpu_id_list=[1,2]
 
@@ -22,10 +32,10 @@ layer_feature=10        #100 for GCN (default:10)
 sample_interval=0.1
 
 
-python RunMultiGPUNode.py --model_name ${model_name} --node_rank ${node_rank} --nnodes ${nnodes} \
+python WeaveExecutor.py --MASTER_ADDR ${MASTER_ADDR} --MASTER_PORT ${MASTER_PORT} --net_card ${net_card}  --model_name ${model_name} --node_rank ${node_rank} --nnodes ${nnodes} \
 --nprocs_per_node ${nprocs_per_node} --gpu_id_list ${gpu_id_list} --layer_num ${layer_num} --layer_feature ${layer_feature} \
 --batch_size ${batch_size} --total_epochs ${total_epochs} --worker_num ${worker_num} --squad_data_size ${squad_data_size} \
---sample_interval ${sample_interval} --environ_flage --record_flage --print_flage
+--sample_interval ${sample_interval} --record_flage --print_flage
 
 # model_name="ResNet50"
 # # batch_size=8

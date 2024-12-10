@@ -129,8 +129,8 @@ if __name__=="__main__":
     parser.add_argument("--print_flage", action='store_true')
     
     #同步参数
-    parser.add_argument("--max_sync_num",default=1,type=int)
-    parser.add_argument("--shm_name_list",default="[QigB3wOuRH0q2Khe]",type=parse_list_shm)
+    parser.add_argument("--max_sync_num",default=0,type=int)
+    parser.add_argument("--shm_name_list",default="[]",type=parse_list_shm)
     
     #其他参数
     parser.add_argument("--MASTER_ADDR",default="localhost")
