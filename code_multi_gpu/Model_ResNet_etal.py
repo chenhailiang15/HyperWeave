@@ -11,7 +11,7 @@ import torchvision
 import psutil
 import time
 import threading
-from Synchronizer import Synchronizer
+from transfer.code_multi_gpu.WeaveSynchronizer import Synchronizer
 
 torchvision.disable_beta_transforms_warning()
 
@@ -104,6 +104,89 @@ class ResNet_etal_class:
         print("device :" + self.device)
         self.model = DDP(self.model, device_ids=[self.device], output_device=self.device)
         print("model init end")
+        
+    def load_mode_data_for_analyze(self,queue):
+        if self.local_rank==0:
+            queue.put("load model data")
+        print("start load_mode_data")
+        if torch.cuda.is_available():
+            if len(self.args.gpu_id_list) != 0:
+                self.device = "cuda:"+self.args.gpu_id_list[self.local_rank].__str__()
+            else:
+                self.device = "cuda:"+self.local_rank.__str__()
+        else:
+            self.device="cpu"
+        print("设备是：",self.device)
+
+        worker_num = self.args.worker_num
+        data_transforms = {
+            'train': transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+            ]),
+            'val': transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+            ]),
+        }
+
+        # 数据加载
+        data_dir = self.dataset_dir + "tiny-ImageNet"  # 替换为你的ImageNet数据集路径
+
+        image_datasets = {x: datasets.ImageFolder(os.path.join(data_dir, x), data_transforms[x])
+                          for x in ['train', 'val']}
+
+        self.dataloaders = {x: DataLoader(image_datasets[x], batch_size=self.args.batch_size, pin_memory=True, shuffle=False, sampler=DistributedSampler(image_datasets[x]), num_workers=worker_num)
+                            for x in ['train', 'val']}
+
+        self.dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']}
+        class_names = image_datasets['train'].classes
+
+        # 加载预训练的ResNet-18,50模型
+        if self.args.model_name == "ResNet18":
+            self.model = models.resnet18()
+            num_ftrs = self.model.fc.in_features
+            # 替换最后一层以适应ImageNet的类别数（1000类）
+            self.model.fc = nn.Linear(num_ftrs, len(class_names))
+        elif self.args.model_name == "ResNet50":
+            self.model = models.resnet50()
+            num_ftrs = self.model.fc.in_features
+            # 替换最后一层以适应ImageNet的类别数（1000类）
+            self.model.fc = nn.Linear(num_ftrs, len(class_names))
+        elif self.args.model_name == "AlexNet":
+            self.model = models.alexnet()
+            num_fc = self.model.classifier[6].in_features
+            self.model.classifier[6] = torch.nn.Linear(in_features=num_fc, out_features=len(class_names))
+        elif self.args.model_name =="MobileNetv2":
+            self.model = models.mobilenet_v2()
+            # 替换最后一层以适应ImageNet的类别数（1000类）
+            self.model.classifier = nn.Sequential(
+            nn.Linear(1280, 512),
+            nn.ReLU(),
+            nn.Dropout(0.5),
+            nn.Linear(512, len(class_names))
+            )
+        elif self.args.model_name =="VGG16":
+            self.model = models.vgg16()
+            # 替换最后一层以适应ImageNet的类别数（1000类）
+            num_fc = self.model.classifier[6].in_features  # 获取最后一层的输入维度
+            self.model.classifier[6] = torch.nn.Linear(num_fc, len(class_names))  # 修改最后一层的输出维度，即分类
+        else:
+            print("model name wrong!")
+            exit(-1)
+
+        # 损失函数和优化器
+        self.criterion = nn.CrossEntropyLoss()
+        self.optimizer = optim.SGD(self.model.parameters(), lr=0.0001, momentum=0.9)
+
+        
+        self.model = self.model.to(self.device)
+
+        print("device :" + self.device)
+        self.model = DDP(self.model, device_ids=[self.device], output_device=self.device)
+        print("model init end")
+        if self.local_rank==0:
+            queue.put("False")
         
     def load_mode_data_simplify(self):
         print("start load_mode_data")
@@ -276,6 +359,41 @@ class ResNet_etal_class:
                 labels = labels.to(self.device)
                 # 清除梯度
                 self.optimizer.zero_grad()
+                # if idx < len(self.dataloaders["train"])-1:
+                #     with self.model.no_sync():
+                #         outputs = self.model(inputs)
+                #         loss = self.criterion(outputs, labels)
+                #         loss.backward()
+                #         self.optimizer.step()
+                # else:
+                outputs = self.model(inputs)
+                loss = self.criterion(outputs, labels)
+                loss.backward()
+                self.optimizer.step()
+            
+            #进行同步操作（）
+            self.sync_er.sync_in_end_epoch()
+                
+        
+
+    def run_for_analyze(self,queue):
+        self.model.train()# 设置模型为训练模式
+        for epoch in range(self.args.total_epochs):
+
+            if self.local_rank==0 and epoch==1:
+                queue.put("data sample")
+            # 每个epoch都有训练阶段
+            for idx, (inputs, labels) in enumerate(self.dataloaders["train"]): #每个epoch首次进入当前代码需要加载数据，GPU利用率为0
+                if self.local_rank==0 and epoch==1 and idx==0:
+                    queue.put("False")
+                    queue.put("model training")
+                
+                if idx % 500 == 0 :
+                    print(f'batch:{idx}/{len(self.dataloaders["train"])-1}')
+                inputs = inputs.to(self.device)
+                labels = labels.to(self.device)
+                # 清除梯度
+                self.optimizer.zero_grad()
                 if idx < len(self.dataloaders["train"])-1:
                     with self.model.no_sync():
                         outputs = self.model(inputs)
@@ -287,15 +405,10 @@ class ResNet_etal_class:
                     loss = self.criterion(outputs, labels)
                     loss.backward()
                     self.optimizer.step()
+            if self.local_rank==0 and epoch==1:
+                queue.put("False")
             
-            #进行同步操作（）
-            self.sync_er.sync_in_end_epoch()
-                
-        
-
-
-
-
+            
 
 
 

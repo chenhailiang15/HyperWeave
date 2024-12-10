@@ -208,9 +208,10 @@ def execution_local(strategy_all):
     thread2=threading.Thread(target=run_command,args=(command_tasksecond,))
     thread2.start()
     
+    
     # os.system(command_taskfirst+" & "+command_tasksecond)
     # os.system(command_tasksecond)
-    return
+    return thread1,thread2
     
     
     
@@ -218,13 +219,22 @@ def execution_local(strategy_all):
 # worker_port=8000
 # node_message_sender=NodeMessageSender(worker_ip,worker_port)
 if __name__=="__main__":
+    start_time=time.time()
     strategy_all=get_strategy()
     # node_message_sender.send(json.dumps(strategy_all))
-    execution_local(strategy_all)
+    thread11,thread12=execution_local(strategy_all)
     strategy_all=get_strategy2()
-    execution_local(strategy_all)
+    thread21,thread22=execution_local(strategy_all)
     
-    # print(strategy_all)
+    
+    
+    thread11.join()
+    thread12.join()
+    thread21.join()
+    thread22.join()
+    end_time=time.time()
+    
+    print(f"total time:{round(end_time-start_time,2)}")
     
     
          
