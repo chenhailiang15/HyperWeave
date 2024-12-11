@@ -30,7 +30,7 @@ class Record:
         self.unit="M"
         
 
-
+    #正常运行，记录CPU，GPU，跨机器IO等
     def run(self):
         global netIn, netOut
         
@@ -71,9 +71,46 @@ class Record:
         file.write((round(end_time-start_time,2)).__str__())
         file.close()
 
+    #用于分析运行，记录各个阶段的资源数据
+    def run_analyze(self,queue, shm_name):
+        self.gpu_id_analyze=0
+        self.sync_er=Synchronizer(shm_name)
+        file=open(self.out_dir+self.out_file_name,"w")
+        
+        self.cpu=[]
+        self.mem=[]
+        self.gpu_util=[]
+        self.gpu_mem=[]
+        
+        self.start_flage=True
+        self.record_flage=False
+        subthread=threading.Thread(target=self.run_analyze_sub_threading,args=())
+        subthread.start()
+        
+        while not self.event.is_set():
+            if queue.qsize()>0:
+                label=queue.get()
+                out_list=[0]*4
+                #表明需要开始记录
+                while True:
+                    #这一个一定能捕获到
+                    if self.sync_er.get_value(0) == True:
+                        out_list[0]=self.run_analyze_wait_record(0)
+                    if self.sync_er.get_value(1) == True:
+                        out_list[1]=self.run_analyze_wait_record(1)
+                    if self.sync_er.get_value(2) == True:
+                        out_list[2]=self.run_analyze_wait_record(2)
+                    if self.sync_er.get_value(3) == True:
+                        out_list[3]=self.run_analyze_wait_record(3)
+                        break
+                file.write(label+"-"+out_list.__str__()+"\n")  
+                file.flush()
+        self.start_flage=False
+        file.close()
+        self.sync_er.delete_shm()
 
 
-    def record_abs(self):
+    def run_analyze_sub_threading(self):
         while self.start_flage:
             cpu_temp=self.get_cpu_use_abs()
             mem_temp=self.get_mem_use_abs()
@@ -86,8 +123,19 @@ class Record:
                 self.gpu_mem.append(gmem_temp)
         return
 
-
-    def get_ave_value(self):
+    def run_analyze_wait_record(self,index):
+        
+        start_time=time.time()
+        self.record_flage = True
+        while self.sync_er.get_value(index) == True:
+            a=1
+        self.record_flage=False
+        end_time=time.time()
+        time_t=round(end_time-start_time,2)
+        (cpu,mem,gpu,gmem)=self.run_analyze_get_ave_value()
+        return (cpu,mem,gpu,gmem,time_t)
+    
+    def run_analyze_get_ave_value(self):
         cpu_ave=round(np.mean(self.cpu),2) if len(self.cpu)>0 else 0
         mem_ave=round(np.mean(self.mem),2) if len(self.mem)>0 else 0
         gpu_ave=round(np.mean(self.gpu_util),2) if len(self.gpu_util)>0 else 0
@@ -98,56 +146,10 @@ class Record:
         self.gpu_mem=[]
         return (cpu_ave,mem_ave, gpu_ave,gmem_ave)
         
-    def consist_record(self,index):
-        start_time=time.time()
-        self.record_flage=True
-        while self.sync_er.get_value(index) ==True:
-            a=1
-        self.record_flage=False
-        end_time=time.time()
-        time_t=round(end_time-start_time,2)
-        (cpu,mem,gpu,gmem)=self.get_ave_value()
-        return (cpu,mem,gpu,gmem,time_t)
+    
         
         
-    def run_analyze(self,queue, shm_name):
-        self.gpu_id_analyze=0
-        self.sync_er=Synchronizer(shm_name)
-        file=open(self.out_dir+self.out_file_name,"w")
-        self.cpu=[]
-        self.mem=[]
-        self.gpu_util=[]
-        self.gpu_mem=[]
-        
-        self.start_flage=True
-        self.record_flage=False
-        subthread=threading.Thread(target=self.record_abs,args=())
-        subthread.start()
-        
-        while not self.event.is_set():
-            if queue.qsize()>0:
-                label=queue.get()
-                out_list=[0]*4
-                #表明需要开始记录
-                while True:
-                    #这一个一定能捕获到
-                    if self.sync_er.get_value(0) == True:
-                        out_list[0]=self.consist_record(0)
-                        # out_str=out_str+","+str(cpu)+","+str(mem)+","+str(gpu)+","+str(gmem)
-                    if self.sync_er.get_value(1) == True:
-                        out_list[1]=self.consist_record(1)
-                    if self.sync_er.get_value(2) == True:
-                        out_list[2]=self.consist_record(2)
-                    if self.sync_er.get_value(3) == True:
-                        out_list[3]=self.consist_record(3)
-                        break
-                file.write(label+"-"+out_list.__str__()+"\n")  
-                file.flush()
-                
-                # print("index:0-",self.sync_er.get_value(0),"index:1-",self.sync_er.get_value(1),"index:2-",self.sync_er.get_value(2))
-        self.start_flage=False
-        file.close()
-        self.sync_er.delete_shm()
+    
         
     def get_cpu_util(self):
         cpu_usage=psutil.cpu_percent(interval=self.sample_interval)

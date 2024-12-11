@@ -13,29 +13,36 @@ class Synchronizer:
         self.shm_size=shm_size
         self.enable_flage=enable_flage
         if self.enable_flage:
-            self.load_share_memory()
-            self.boolean_array = np.ndarray((3,), dtype=np.int8, buffer=self.shm.buf)
-            new_values = np.array([True, False,False], dtype=bool)
-            self.boolean_array[:]=new_values.astype(np.int8)
-        
+            
+            if self.load_share_memory():#为True，表示创建新的，需要初始化
+                self.boolean_array = np.ndarray((3,), dtype=np.int8, buffer=self.shm.buf)
+                new_values = np.array([True, False,False], dtype=bool)
+                self.boolean_array[:]=new_values.astype(np.int8)
+            else:
+                self.boolean_array = np.ndarray((3,), dtype=np.int8, buffer=self.shm.buf)
         return
     
     def __init__(self,shm_name,shm_size=4*np.dtype(np.int8).itemsize):
         self.shm_name=shm_name
         self.shm_size=shm_size
-        self.load_share_memory()
-        self.boolean_array = np.ndarray((4,), dtype=np.int8, buffer=self.shm.buf)
-        new_values = np.array([False, False,False,False], dtype=bool)
-        self.boolean_array[:]=new_values.astype(np.int8)
+        
+        if self.load_share_memory():#为True，表示创建新的，需要初始化
+            self.boolean_array = np.ndarray((4,), dtype=np.int8, buffer=self.shm.buf)
+            new_values = np.array([False, False,False,False], dtype=bool)
+            self.boolean_array[:]=new_values.astype(np.int8)
+        else:
+            self.boolean_array = np.ndarray((4,), dtype=np.int8, buffer=self.shm.buf)
         return
 
     def load_share_memory(self):
         try:
             self.shm=shared_memory.SharedMemory(name=self.shm_name)
             print(f"共享内存 '{self.shm_name}' 已存在。")
+            return False
         except FileNotFoundError:
             self.shm=shared_memory.SharedMemory(name=self.shm_name, create=True, size=self.shm_size)
             print(f"共享内存 '{self.shm_name}' 不存在，现在创建。")
+            return True
         
         
             

@@ -93,11 +93,11 @@ def analyze_one_task(args_t,dataset_dir):
 def analyze_tasks(args,dataset_dir,queue):
     args.total_epochs=2
     model_name_list=["AlexNet","ResNet18","ResNet50","VGG16","MobileNetv2"]
-    batch_size_list=[8,16,32,64]
-    max_parrallel=3
+    batch_size_list=[32,64]
+    max_parrallel=2
     for model_name in model_name_list:
         for batch_size in batch_size_list:
-            for parrallel in range(1,max_parrallel+1):
+            for parrallel in range(2,max_parrallel+1):
                 try:
                     print("start analyze: ", model_name+"-"+batch_size.__str__()+"-"+parrallel.__str__())
                     queue.put(model_name+"-"+batch_size.__str__()+"-"+parrallel.__str__())

@@ -114,6 +114,9 @@ class ResNet_etal_class:
             time.sleep(10)
             self.sync_er.set_value(0,False)
             self.sync_er.set_value(1,True)
+        else:
+            time.sleep(10)
+
         print("start load_mode_data")
         if torch.cuda.is_available():
             if len(self.args.gpu_id_list) != 0:
