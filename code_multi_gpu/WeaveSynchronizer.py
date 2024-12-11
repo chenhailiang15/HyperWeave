@@ -20,9 +20,15 @@ class Synchronizer:
         
         return
     
+    def __init__(self,shm_name,shm_size=3*np.dtype(np.int8).itemsize):
+        self.shm_name=shm_name
+        self.shm_size=shm_size
+        self.load_share_memory()
+        self.boolean_array = np.ndarray((3,), dtype=np.int8, buffer=self.shm.buf)
+        new_values = np.array([True, False,False], dtype=bool)
+        self.boolean_array[:]=new_values.astype(np.int8)
+        return
 
-    
-    
     def load_share_memory(self):
         try:
             self.shm=shared_memory.SharedMemory(name=self.shm_name)
@@ -68,7 +74,7 @@ class Synchronizer:
         return
     
     
-    def close(self):
+    def close_unlink(self):
         #是否发挥作用
         if not self.enable_flage:
             return
@@ -78,11 +84,37 @@ class Synchronizer:
         else:
             try:
                 self.shm.close()
-                self.unlink()
+                self.shm.unlink()
                 print("shared memory delete here!")
                 
             except :
                 print("shared memory has deleted!")
+    
+    
+    def set_value(self, index, value):
+        self.boolean_array[index]=value
+        
+        
+    def get_value(self, index):
+        return self.boolean_array[index]
+    
+    def close_only(self):
+        try:
+            self.shm.close()
+            print("shared memory close here!")
+            
+        except :
+            print("shared memory has deleted!")
+            
+    def close_unlink(self):
+        try:
+            self.shm.close()
+            self.shm.unlink()
+            print("shared memory delete here!")
+            
+        except :
+            print("shared memory has deleted!")
+            
             
             
     def write_test(self):
@@ -100,7 +132,6 @@ class Synchronizer:
             
             
             
-        
 
 
 

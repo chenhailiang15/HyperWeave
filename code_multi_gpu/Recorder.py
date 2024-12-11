@@ -24,6 +24,7 @@ class Record:
         self.pynvml=pynvml.nvmlInit()
         self.print_flage=print_flage
         self.unit="M"
+        
 
 
     def run(self):
@@ -66,6 +67,50 @@ class Record:
         file.write((round(end_time-start_time,2)).__str__())
         file.close()
 
+    def run_analyze(self,queue):
+        
+
+        file=open(self.out_dir+self.out_file_name,"w")
+        start_time=time.time()
+        while not self.event.is_set():
+            global recorder_queue
+            print("recorder:",recorder_queue)
+            
+            
+            
+            
+            cpu_util=self.get_cpu_util()
+            mem_util=self.get_mem_util()
+            file.write(cpu_util.__str__()+","+mem_util.__str__())
+            file.write(","+netIn+","+netOut)
+            if self.print_flage:
+                print("cpu:"+cpu_util.__str__()+"\tmem:"+mem_util.__str__(), end="")
+                print("\tnetIn:"+netIn.__str__()+"\tnetOut:"+netOut.__str__(), end="")
+                
+            if self.gpu_id==-1:
+                for i in range(torch.cuda.device_count()):
+                    gpu_util=self.get_gpu_util_1(i)
+                    gpu_mem_util=self.get_gpu_mem_util(i)
+                    file.write(","+gpu_util.__str__()+","+gpu_mem_util.__str__())
+                    if self.print_flage:
+                        print("\tgpu:"+i.__str__(),"-",gpu_util,"\tgmem:"+i.__str__(),"-",gpu_mem_util,end="")
+            
+            else:
+                gpu_util=self.get_gpu_util_1(self.gpu_id)
+                gpu_mem_util=self.get_gpu_mem_util(self.gpu_id)
+                file.write(","+gpu_util.__str__()+","+gpu_mem_util.__str__())
+                if self.print_flage:
+                    print("\tgpu:"+i.__str__(),"-",gpu_util,"\tgmem:"+i.__str__(),"-",gpu_mem_util,end="")
+            if self.print_flage:
+                print()
+            file.write("\n")
+            file.flush()
+            
+        end_time=time.time()
+        file.write((round(end_time-start_time,2)).__str__())
+        file.close()
+        
+        
     def get_cpu_util(self):
         cpu_usage=psutil.cpu_percent(interval=self.sample_interval)
         return cpu_usage

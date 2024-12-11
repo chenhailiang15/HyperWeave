@@ -16,74 +16,10 @@ from Model_ResNet_etal import ResNet_etal_class
 from Model_Bert import Bert_class
 from Model_GCN import GCN_class
 from Model_GraphSage import GraphSage_class
+from util import *
 
 
-class args_chl:
-    def init_with_args(self, args):
-        self.prior=args.prior
-        #系统参数
-        self.nnodes=args.nnodes
-        self.node_rank=args.node_rank
-        self.nprocs_per_node=args.nprocs_per_node
-        self.gpu_id_list=args.gpu_id_list
-        
-        #模型通用参数
-        self.model_name=args.model_name
-        self.batch_size=args.batch_size
-        self.total_epochs=args.total_epochs
-        self.worker_num=args.worker_num
-        
-        #模型特定参数
-        self.squad_data_size=args.squad_data_size
-        self.layer_num=args.layer_num
-        self.layer_feature=args.layer_feature
 
-        #记录参数
-        self.sample_interval=args.sample_interval
-        self.record_flage=args.record_flage
-        self.print_flage=args.print_flage
-        
-        #同步参数
-        self.max_sync_num=args.max_sync_num
-        self.shm_name_list=args.shm_name_list
-        
-        #其他参数
-        self.MASTER_ADDR=args.MASTER_ADDR
-        self.MASTER_PORT=args.MASTER_PORT
-        self.net_card=args.net_card
-        
-    def init_with_default(self):
-        self.prior=True
-        #系统参数
-        self.nnodes=1
-        self.node_rank=0
-        self.nprocs_per_node=1
-        self.gpu_id_list=[]
-        
-        #模型通用参数
-        self.model_name="AlexNet"
-        self.batch_size=16
-        self.total_epochs=10
-        self.worker_num= 4
-        
-        #模型特定参数
-        self.squad_data_size=1000
-        self.layer_num=10
-        self.layer_feature=10
-
-        #记录参数
-        self.sample_interval=1
-        self.record_flage=False
-        self.print_flage=False
-        
-        #同步参数
-        self.max_sync_num=1
-        self.shm_name_list=["QigB3wOuRH0q2Khe"]
-        
-        #其他参数
-        self.MASTER_ADDR="localhost"
-        self.MASTER_PORT="12355"
-        self.net_card="eno1"
 
 
 def ddp_setup(local_rank, args):
@@ -110,6 +46,12 @@ def single_training(local_rank,args,model):
     """
        Main training function for distributed data parallel (DDP) setup.
     """
+
+    #设置
+    os.environ["MASTER_ADDR"]=args.MASTER_ADDR
+    os.environ["MASTER_PORT"]=args.MASTER_PORT
+    # os.environ["NCCL_SOCKET_IFNAME"]=args.net_card
+    
     # Set up the distributed environment, including setting the master address, port, and backend.
     ddp_setup(local_rank, args)
     #set device for model and data
@@ -121,39 +63,22 @@ def single_training(local_rank,args,model):
     else:
         model.set_shm_name(args.prior, "", enable_flage=False)
     # Load the necessary training objects - dataset, model, and optimizer.
-    model.load_mode_data()
+    model.load_mode_data_analyze()
     # Train the model for the specified number of epochs.
-    model.run()
+    model.run_analyze()
     # Cleanup the distributed environment after training is complete.
     destroy_process_group()
 
-def parse_list_shm(list_arg):
-    list_arg=list_arg.replace("]","").replace("[","").split(",")
-    shm_list=[]
-    for shm in list_arg:
-        shm_list.append(shm)
-        
-    return shm_list
     
-    
-    
-    
-    
-def parse_list_arg(list_arg):
-    
-    try:
-        return ast.literal_eval(list_arg)
-    except (ValueError, SyntaxError) as e:
-        raise argparse.ArgumentTypeError(f"Invalid list argument: {list_arg}")
-
 def Record_resource(args, gpu_id, out_dir, out_file_name,event):
-    record=Record(gpu_id=gpu_id,net_card=args.net_card, sample_interval=args.sample_interval,out_dir=out_dir, out_file_name=out_file_name,event=event,print_flage=args.print_flage)
-    record.run()
+    record=Record(gpu_id=gpu_id,net_card="", sample_interval=args.sample_interval,out_dir=out_dir, out_file_name=out_file_name,event=event,print_flage=args.print_flage)
+    record.run_analyze(args.queue)
 
-def Run_model_training(args_t,dataset_dir):
+
+def analyze_one_task(args_t,dataset_dir):
     if args_t.model_name == "ResNet18" or args_t.model_name == "ResNet50" or args_t.model_name =="AlexNet"\
         or args_t.model_name =="VGG16" or args_t.model_name =="MobileNetv2":
-        model=ResNet_etal_class(args_t,dataset_dir)
+        model=ResNet_etal_class(args_t,dataset_dir,queue=args.queue)
     elif args_t.model_name == "Bert":
         model=Bert_class(args_t,dataset_dir)
     elif args_t.model_name == "GCN":
@@ -164,135 +89,40 @@ def Run_model_training(args_t,dataset_dir):
         print("model_name wrong!")
         exit(-1)
     mp.spawn(single_training, args=(args_t,model), nprocs=args_t.nprocs_per_node)
-
-
-
-
-if __name__=="__main__":
-    
-    # os.environ["NCCL_DEBUG"]="INFO"
-
-    parser = argparse.ArgumentParser(description='simple distributed training job')
-    #优先级参数
-    parser.add_argument('--prior', action='store_true',help='A flage for label it is prior to run or not in Synchronizer')
-    #系统参数
-    parser.add_argument('--nnodes', default=1, type=int, help='The number of nodes in multi-node training')
-    parser.add_argument('--node_rank', default=0, type=int, help='The rank of the node in multi-node training')
-    parser.add_argument('--nprocs_per_node', default=1, type=int,help='used gpu number for each node')
-    parser.add_argument('--gpu_id_list', default=[], type=parse_list_arg,help='gpu id for each node used')
-    
-    #模型通用参数
-    parser.add_argument('--model_name',default="AlexNet",help='model name, such as ResNet18, GCN, Bert...')
-    parser.add_argument('--batch_size', default=16, type=int, help='Input batch size on each device (default: 32)')
-    parser.add_argument('--total_epochs', default= 10,type=int, help='Total epochs to train the model')
-    parser.add_argument('--worker_num', default= 4,type=int, help='Number of worker for data load')
-    
-    #模型特定参数
-    parser.add_argument('--squad_data_size',default=1000,type=int,help='Size of squad dataset for Bert')
-    parser.add_argument('--layer_num',default=10,type=int,help='Layer number for GCN')
-    parser.add_argument('--layer_feature',default=10,type=int,help='Layer feature number for GCN')
-
-    #记录参数
-    parser.add_argument("--sample_interval", default=1, type=float,help='sample interval for recorder')
-    parser.add_argument("--record_flage", action='store_true', help='A flage for if to use recorder to save resource information')
-    parser.add_argument("--print_flage", action='store_true')
-    
-    #同步参数
-    parser.add_argument("--max_sync_num",default=1,type=int)
-    parser.add_argument("--shm_name_list",default="[QigB3wOuRH0q2Khe]",type=parse_list_shm)
-    
-    #其他参数
-    parser.add_argument("--MASTER_ADDR",default="localhost")
-    parser.add_argument("--MASTER_PORT",default="12355")
-    parser.add_argument("--net_card",default="eno1")
-
-    args = parser.parse_args()
-    #设置
-    
-    os.environ["MASTER_ADDR"]=args.MASTER_ADDR
-    os.environ["MASTER_PORT"]=args.MASTER_PORT
-    os.environ["NCCL_SOCKET_IFNAME"]=args.net_card
-    
-    version="v4"
-    print("code version:"+version)
-
-    # 数据集路径
-    # 获取当前文件所在目录的上级目录
-    path=os.path.abspath(os.curdir)
-    parent_dir  = os.path.dirname(os.path.abspath(os.curdir))
-    dataset_dir = parent_dir + '/dataset/'
-    out_dir     = parent_dir + "/output/"
-
-    
-
-    print("record flage:",args.record_flage)
-    if args.record_flage:
-        
-        # 获取当前时间
-        now_time    = datetime.datetime.now()
-        # 格式化输出
-        formatted_time = now_time.strftime('%m_%d_%H_%M_%S')
-        device_name =''
-        if torch.cuda.is_available():
-            device_name=torch.cuda.get_device_name(0).replace(" ","_")
-        else:
-            device_name="CPU"
-        
-        
-        nnodes=args.nnodes
-        node_rank=args.node_rank
-        nprocs_per_node=args.nprocs_per_node
-        gpu_id_list=args.gpu_id_list
-
-        model_name=args.model_name
-        batch_size=args.batch_size
-        total_epochs=args.total_epochs
-        sample_interval=args.sample_interval
-        layer_num=args.layer_num
-        layer_feature=args.layer_feature
-        
-        
-        
-        out_file_name=model_name+"-"+device_name+\
-        "-nno:"+args.nnodes.__str__()+"-nra:"+args.node_rank.__str__()+"-ppn:"+args.nprocs_per_node.__str__()+\
-        "-bs:"+batch_size.__str__() +"-ep:"+total_epochs.__str__() +"-lan:"+layer_num.__str__() +"-laf:"+layer_feature.__str__() +\
-        "-si:"+sample_interval.__str__()+"-tim:"+formatted_time+".txt"
-        print(out_file_name)
-        event=threading.Event()
-        subTread_record=threading.Thread(target=Record_resource,args=(args, -1, out_dir,out_file_name,event))
-        subTread_record.start()
-        time.sleep(1)
-    #主线程
-    Run_model_training(args,dataset_dir)
-    
-    if args.record_flage: 
-        event.set()
-        subTread_record.join()
-        
-    
-
-
-
-
-def analyze_one_task(model_name, batch_size, parrallel_num):
-    
-
-
     return
 
-import queue
+
+def analyze_tasks(args,dataset_dir):
+    args.total_epochs=2
+    model_name_list=["AlexNet","ResNet18"]
+    batch_size_list=[8,16]
+    max_parrallel=2
+    for model_name in model_name_list:
+        for batch_size in batch_size_list:
+            for parrallel in range(1,max_parrallel+1):
+                print("start analyze: ", model_name+"-"+batch_size.__str__()+"-"+parrallel.__str__())
+                args.queue.append(model_name+"-"+batch_size.__str__()+"-"+parrallel.__str__())
+                args.model_name=model_name
+                args.batch_size=batch_size
+                args.parrallel=parrallel
+                analyze_one_task(args,dataset_dir)
+                
+    return
+
 
 
 if __name__=="__main__":
-    obj_queue=queue.Queue()
     
-    
-    
-    
-    
-    model_name="AlexNet"
-    batch_size=16
-    parrallel_num=2
-    result=analyze_one_task(model_name, batch_size, parrallel_num)
-    print("analyze result: ",result)
+    args=args_weave()
+    my_queue=[]
+    args.set_queue(my_queue)
+    dataset_dir=get_dataset_dir()
+    output_dir=get_output_dir()
+    record_file_name=generate_file_name_for_analyze()
+    event=threading.Event()
+    subthread_record=threading.Thread(target=Record_resource,args=(args,-1,output_dir,record_file_name,event))
+    subthread_record.start()
+    analyze_tasks(args,dataset_dir)
+    event.set()
+    subthread_record.join()
     print("process end!")

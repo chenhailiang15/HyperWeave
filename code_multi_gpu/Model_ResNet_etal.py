@@ -14,11 +14,12 @@ import threading
 from WeaveSynchronizer import Synchronizer
 
 torchvision.disable_beta_transforms_warning()
-
+recorder_queue=[]
 class ResNet_etal_class:
-    def __init__(self, args_t, dataset_dir):
+    def __init__(self, args_t, dataset_dir,queue=None):
         self.args = args_t
         self.dataset_dir = dataset_dir
+        self.queue=queue
 
     def set_local_rank(self, local_rank):
         self.local_rank = local_rank
@@ -105,9 +106,10 @@ class ResNet_etal_class:
         self.model = DDP(self.model, device_ids=[self.device], output_device=self.device)
         print("model init end")
         
-    def load_mode_data_for_analyze(self,queue):
+    def load_mode_data_analyze(self):
         if self.local_rank==0:
-            queue.put("load model data")
+            recorder_queue.append("stage1: load model data")
+            self.queue.append("stage1: load model data")
         print("start load_mode_data")
         if torch.cuda.is_available():
             if len(self.args.gpu_id_list) != 0:
@@ -186,7 +188,7 @@ class ResNet_etal_class:
         self.model = DDP(self.model, device_ids=[self.device], output_device=self.device)
         print("model init end")
         if self.local_rank==0:
-            queue.put("False")
+            self.queue.append("false")
         
     def load_mode_data_simplify(self):
         print("start load_mode_data")
@@ -346,7 +348,7 @@ class ResNet_etal_class:
             print("model name:",self.args.model_name,"\tepoch:",epoch)
             #进行同步操作 等待信号，方可继续执行，后方代码主要利用CPU加载数据（首次进入，先执行的，直接进入下面代码，另一个等待）
             self.sync_er.sync_in_start_epoch(epoch==0)
-            print("model name:",self.args.model_name,"\tend sync...")
+            # print("model name:",self.args.model_name,"\tend sync...")
             # 每个epoch都有训练阶段
             for idx, (inputs, labels) in enumerate(self.dataloaders["train"]): #每个epoch首次进入当前代码需要加载数据，GPU利用率为0
                 #进行同步操作 等待信号，方可继续执行，后方代码主要利用GPU
@@ -359,34 +361,36 @@ class ResNet_etal_class:
                 labels = labels.to(self.device)
                 # 清除梯度
                 self.optimizer.zero_grad()
-                # if idx < len(self.dataloaders["train"])-1:
-                #     with self.model.no_sync():
-                #         outputs = self.model(inputs)
-                #         loss = self.criterion(outputs, labels)
-                #         loss.backward()
-                #         self.optimizer.step()
-                # else:
-                outputs = self.model(inputs)
-                loss = self.criterion(outputs, labels)
-                loss.backward()
-                self.optimizer.step()
+                if idx < len(self.dataloaders["train"])-1:
+                    with self.model.no_sync():
+                        outputs = self.model(inputs)
+                        loss = self.criterion(outputs, labels)
+                        loss.backward()
+                        self.optimizer.step()
+                else:
+                    outputs = self.model(inputs)
+                    loss = self.criterion(outputs, labels)
+                    loss.backward()
+                    self.optimizer.step()
             
             #进行同步操作（）
             self.sync_er.sync_in_end_epoch()
                 
         
 
-    def run_for_analyze(self,queue):
+    def run_analyze(self):
         self.model.train()# 设置模型为训练模式
         for epoch in range(self.args.total_epochs):
 
             if self.local_rank==0 and epoch==1:
-                queue.put("data sample")
+                self.queue.append("stage2: sample data")
             # 每个epoch都有训练阶段
             for idx, (inputs, labels) in enumerate(self.dataloaders["train"]): #每个epoch首次进入当前代码需要加载数据，GPU利用率为0
+                recorder_queue.append("stage444: load model data")
+                
                 if self.local_rank==0 and epoch==1 and idx==0:
-                    queue.put("False")
-                    queue.put("model training")
+                    self.queue.append("False")
+                    self.queue.append("stage3: model training")
                 
                 if idx % 500 == 0 :
                     print(f'batch:{idx}/{len(self.dataloaders["train"])-1}')
@@ -406,7 +410,7 @@ class ResNet_etal_class:
                     loss.backward()
                     self.optimizer.step()
             if self.local_rank==0 and epoch==1:
-                queue.put("False")
+                self.queue.append("False")
             
             
 

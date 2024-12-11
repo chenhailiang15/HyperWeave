@@ -5,14 +5,9 @@ import secrets
 import string
 import os
 import threading
+from util import *
 
 
-def generate_shm_name(length=10):
-    # 选择字母和数字
-    characters = string.ascii_letters + string.digits
-    # 使用secrets.choice从characters中随机选择字符，并使用join将它们组合成一个字符串
-    secure_random_string = ''.join(secrets.choice(characters) for i in range(length))
-    return secure_random_string
  
 
 

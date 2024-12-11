@@ -188,7 +188,7 @@ if __name__=="__main__":
         out_file_name=model_name+"-"+device_name+\
         "-nno:"+args.nnodes.__str__()+"-nra:"+args.node_rank.__str__()+"-ppn:"+args.nprocs_per_node.__str__()+\
         "-bs:"+batch_size.__str__() +"-ep:"+total_epochs.__str__() +"-lan:"+layer_num.__str__() +"-laf:"+layer_feature.__str__() +\
-        "-si:"+sample_interval.__str__()+"-tim:"+formatted_time+".txt"
+        "-si:"+sample_interval.__str__()+"-tim:"+formatted_time+".csv"
         print(out_file_name)
         event=threading.Event()
         subTread_record=threading.Thread(target=Record_resource,args=(args, -1, out_dir,out_file_name,event))
