@@ -386,7 +386,7 @@ class ResNet_etal_class:
         
         self.model.train()# 设置模型为训练模式
         for epoch in range(self.args.total_epochs):
-
+            print(f"epoch:{epoch+1}/{self.args.total_epochs}")
             if self.local_rank==0 and epoch==1:
                 self.sync_er.set_value(2,True)
             # 每个epoch都有训练阶段

@@ -145,6 +145,7 @@ class Record:
                 file.flush()
                 
                 # print("index:0-",self.sync_er.get_value(0),"index:1-",self.sync_er.get_value(1),"index:2-",self.sync_er.get_value(2))
+        self.start_flage=False
         file.close()
         self.sync_er.delete_shm()
         
