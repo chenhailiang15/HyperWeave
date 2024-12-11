@@ -20,12 +20,12 @@ class Synchronizer:
         
         return
     
-    def __init__(self,shm_name,shm_size=3*np.dtype(np.int8).itemsize):
+    def __init__(self,shm_name,shm_size=4*np.dtype(np.int8).itemsize):
         self.shm_name=shm_name
         self.shm_size=shm_size
         self.load_share_memory()
-        self.boolean_array = np.ndarray((3,), dtype=np.int8, buffer=self.shm.buf)
-        new_values = np.array([True, False,False], dtype=bool)
+        self.boolean_array = np.ndarray((4,), dtype=np.int8, buffer=self.shm.buf)
+        new_values = np.array([False, False,False,False], dtype=bool)
         self.boolean_array[:]=new_values.astype(np.int8)
         return
 
@@ -106,7 +106,7 @@ class Synchronizer:
         except :
             print("shared memory has deleted!")
             
-    def close_unlink(self):
+    def delete_shm(self):
         try:
             self.shm.close()
             self.shm.unlink()

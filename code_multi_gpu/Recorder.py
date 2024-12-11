@@ -7,6 +7,10 @@ import psutil
 import gpustat
 import time
 import threading 
+from WeaveSynchronizer import Synchronizer
+import numpy as np
+
+
 
 netIn='0.00'
 netOut='0.00'
@@ -67,49 +71,82 @@ class Record:
         file.write((round(end_time-start_time,2)).__str__())
         file.close()
 
-    def run_analyze(self,queue):
-        
 
-        file=open(self.out_dir+self.out_file_name,"w")
-        start_time=time.time()
-        while not self.event.is_set():
-            global recorder_queue
-            print("recorder:",recorder_queue)
-            
-            
-            
-            
-            cpu_util=self.get_cpu_util()
-            mem_util=self.get_mem_util()
-            file.write(cpu_util.__str__()+","+mem_util.__str__())
-            file.write(","+netIn+","+netOut)
-            if self.print_flage:
-                print("cpu:"+cpu_util.__str__()+"\tmem:"+mem_util.__str__(), end="")
-                print("\tnetIn:"+netIn.__str__()+"\tnetOut:"+netOut.__str__(), end="")
-                
-            if self.gpu_id==-1:
-                for i in range(torch.cuda.device_count()):
-                    gpu_util=self.get_gpu_util_1(i)
-                    gpu_mem_util=self.get_gpu_mem_util(i)
-                    file.write(","+gpu_util.__str__()+","+gpu_mem_util.__str__())
-                    if self.print_flage:
-                        print("\tgpu:"+i.__str__(),"-",gpu_util,"\tgmem:"+i.__str__(),"-",gpu_mem_util,end="")
-            
-            else:
-                gpu_util=self.get_gpu_util_1(self.gpu_id)
-                gpu_mem_util=self.get_gpu_mem_util(self.gpu_id)
-                file.write(","+gpu_util.__str__()+","+gpu_mem_util.__str__())
-                if self.print_flage:
-                    print("\tgpu:"+i.__str__(),"-",gpu_util,"\tgmem:"+i.__str__(),"-",gpu_mem_util,end="")
-            if self.print_flage:
-                print()
-            file.write("\n")
-            file.flush()
-            
-        end_time=time.time()
-        file.write((round(end_time-start_time,2)).__str__())
-        file.close()
+
+    def record_abs(self):
+        while self.start_flage:
+            cpu_temp=self.get_cpu_use_abs()
+            mem_temp=self.get_mem_use_abs()
+            gpu_temp=self.get_gpu_util_1(self.gpu_id_analyze)
+            gmem_temp=self.get_gmem_use_abs(self.gpu_id_analyze)
+            if self.record_flage:
+                self.cpu.append(cpu_temp)
+                self.mem.append(mem_temp)
+                self.gpu_util.append(gpu_temp)
+                self.gpu_mem.append(gmem_temp)
+        return
+
+
+    def get_ave_value(self):
+        cpu_ave=round(np.mean(self.cpu),2) if len(self.cpu)>0 else 0
+        mem_ave=round(np.mean(self.mem),2) if len(self.mem)>0 else 0
+        gpu_ave=round(np.mean(self.gpu_util),2) if len(self.gpu_util)>0 else 0
+        gmem_ave=round(np.mean(self.gpu_mem),2) if len(self.gpu_mem)>0 else 0
+        self.cpu=[]
+        self.mem=[]
+        self.gpu_util=[]
+        self.gpu_mem=[]
+        return (cpu_ave,mem_ave, gpu_ave,gmem_ave)
         
+    def consist_record(self,index):
+        start_time=time.time()
+        self.record_flage=True
+        while self.sync_er.get_value(index) ==True:
+            a=1
+        self.record_flage=False
+        end_time=time.time()
+        time_t=round(end_time-start_time,2)
+        (cpu,mem,gpu,gmem)=self.get_ave_value()
+        return (cpu,mem,gpu,gmem,time_t)
+        
+        
+    def run_analyze(self,queue, shm_name):
+        self.gpu_id_analyze=0
+        self.sync_er=Synchronizer(shm_name)
+        file=open(self.out_dir+self.out_file_name,"w")
+        self.cpu=[]
+        self.mem=[]
+        self.gpu_util=[]
+        self.gpu_mem=[]
+        
+        self.start_flage=True
+        self.record_flage=False
+        subthread=threading.Thread(target=self.record_abs,args=())
+        subthread.start()
+        
+        while not self.event.is_set():
+            if queue.qsize()>0:
+                label=queue.get()
+                out_list=[0]*4
+                #表明需要开始记录
+                while True:
+                    #这一个一定能捕获到
+                    if self.sync_er.get_value(0) == True:
+                        out_list[0]=self.consist_record(0)
+                        # out_str=out_str+","+str(cpu)+","+str(mem)+","+str(gpu)+","+str(gmem)
+                    if self.sync_er.get_value(1) == True:
+                        out_list[1]=self.consist_record(1)
+                    if self.sync_er.get_value(2) == True:
+                        out_list[2]=self.consist_record(2)
+                    if self.sync_er.get_value(3) == True:
+                        out_list[3]=self.consist_record(3)
+                        break
+                file.write(label+"-"+out_list.__str__()+"\n")  
+                file.flush()
+                
+                # print("index:0-",self.sync_er.get_value(0),"index:1-",self.sync_er.get_value(1),"index:2-",self.sync_er.get_value(2))
+        file.close()
+        self.sync_er.delete_shm()
         
     def get_cpu_util(self):
         cpu_usage=psutil.cpu_percent(interval=self.sample_interval)
@@ -221,9 +258,31 @@ class Record:
             networkOut.setdefault(interface, float("%.3f" % ((newSent.get(interface) - oldSent.get(interface)) / interval_time)))
         return interfaces, networkIn, networkOut
 
+    #单位核
+    def get_cpu_use_abs(self):
+        cpu_util=self.get_cpu_util()
+        return round(cpu_util*cpu_count()/100,2)
+    #单位MB
+    def get_mem_use_abs(self):
+        memory=psutil.virtual_memory()
+        return round(memory.used/1024/1024,2)
+    
+    #单位MB
+    def get_gmem_use_abs(self,gpu_id):
+        gpu_device = pynvml.nvmlDeviceGetHandleByIndex(gpu_id)
+        usedMemory = pynvml.nvmlDeviceGetMemoryInfo(gpu_device).used
+        return round(usedMemory/1024/1024, 2)
+        
+    def run_abs(self):
+        while True:
+            cpu=self.get_cpu_use_abs()
+            mem=self.get_mem_use_abs()
+            gmem=self.get_gmem_use_abs(0)
+            gpu=self.get_gpu_util_1(0)
+            print(f"cpu use(core):{cpu}\tmem use(MB):{mem}\tgmem use(MB):{gmem}\tgpu(per):{gpu}")
+            
 
-
-
+from multiprocessing import cpu_count
 
 if __name__=="__main__":
 
@@ -231,9 +290,9 @@ if __name__=="__main__":
     # event.set()
     out_dir="../output/"
     out_file_name="Recorder_test.csv"
-    print_flage=False
+    print_flage=True
     recorder=Record(gpu_id=-1,net_card="eno1",sample_interval=1,out_dir=out_dir, out_file_name=out_file_name,event=event,print_flage=print_flage)
-    recorder.run()
+    recorder.run_abs()
     print("end")
     
 

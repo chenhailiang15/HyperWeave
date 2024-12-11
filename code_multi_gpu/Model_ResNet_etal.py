@@ -16,16 +16,18 @@ from WeaveSynchronizer import Synchronizer
 torchvision.disable_beta_transforms_warning()
 recorder_queue=[]
 class ResNet_etal_class:
-    def __init__(self, args_t, dataset_dir,queue=None):
+    def __init__(self, args_t, dataset_dir):
         self.args = args_t
         self.dataset_dir = dataset_dir
-        self.queue=queue
 
     def set_local_rank(self, local_rank):
         self.local_rank = local_rank
         
-    def set_shm_name(self,prior, shm_name,enable_flage=True):
+    def set_shm_name(self,prior,shm_name,enable_flage=True):
         self.sync_er=Synchronizer(prior=prior, shm_name=shm_name,enable_flage=enable_flage)
+        
+    def set_shm_name_analyze(self,shm_name):
+        self.sync_er=Synchronizer(shm_name=shm_name)
 
     def load_mode_data(self):
         print("start load_mode_data")
@@ -108,8 +110,10 @@ class ResNet_etal_class:
         
     def load_mode_data_analyze(self):
         if self.local_rank==0:
-            recorder_queue.append("stage1: load model data")
-            self.queue.append("stage1: load model data")
+            self.sync_er.set_value(0,True)
+            time.sleep(10)
+            self.sync_er.set_value(0,False)
+            self.sync_er.set_value(1,True)
         print("start load_mode_data")
         if torch.cuda.is_available():
             if len(self.args.gpu_id_list) != 0:
@@ -188,7 +192,7 @@ class ResNet_etal_class:
         self.model = DDP(self.model, device_ids=[self.device], output_device=self.device)
         print("model init end")
         if self.local_rank==0:
-            self.queue.append("false")
+            self.sync_er.set_value(1,False)
         
     def load_mode_data_simplify(self):
         print("start load_mode_data")
@@ -379,18 +383,19 @@ class ResNet_etal_class:
         
 
     def run_analyze(self):
+        
         self.model.train()# 设置模型为训练模式
         for epoch in range(self.args.total_epochs):
 
             if self.local_rank==0 and epoch==1:
-                self.queue.append("stage2: sample data")
+                self.sync_er.set_value(2,True)
             # 每个epoch都有训练阶段
             for idx, (inputs, labels) in enumerate(self.dataloaders["train"]): #每个epoch首次进入当前代码需要加载数据，GPU利用率为0
                 recorder_queue.append("stage444: load model data")
                 
                 if self.local_rank==0 and epoch==1 and idx==0:
-                    self.queue.append("False")
-                    self.queue.append("stage3: model training")
+                    self.sync_er.set_value(2,False)
+                    self.sync_er.set_value(3,True)
                 
                 if idx % 500 == 0 :
                     print(f'batch:{idx}/{len(self.dataloaders["train"])-1}')
@@ -410,7 +415,7 @@ class ResNet_etal_class:
                     loss.backward()
                     self.optimizer.step()
             if self.local_rank==0 and epoch==1:
-                self.queue.append("False")
+                self.sync_er.set_value(3,False)
             
             
 

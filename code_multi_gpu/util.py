@@ -144,6 +144,8 @@ class args_weave:
         self.queue=queue
     def set_event(self, event):
         self.event=event
+    def set_shm_name(self, shm_name):
+        self.shm_name=shm_name
     
     
     
