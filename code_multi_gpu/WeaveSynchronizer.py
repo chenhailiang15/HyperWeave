@@ -5,33 +5,35 @@ import multiprocessing
 import numpy as np
 
 class Synchronizer:
-    def __init__(self,prior,shm_name,shm_size=3*np.dtype(np.int8).itemsize,enable_flage=True):
-        self.cpu_index=0
-        self.gpu_index=1
-        self.prior=prior
-        self.shm_name=shm_name
-        self.shm_size=shm_size
-        self.enable_flage=enable_flage
-        if self.enable_flage:
-            
+    def __init__(self,shm_name,shm_size=3*np.dtype(np.int8).itemsize,prior=True,enable_flage=True):
+        if shm_size==3*np.dtype(np.int8).itemsize:
+            self.cpu_index=0
+            self.gpu_index=1
+            self.prior=prior
+            self.shm_name=shm_name
+            self.shm_size=shm_size
+            self.enable_flage=enable_flage
+            if self.enable_flage:
+                
+                if self.load_share_memory():#为True，表示创建新的，需要初始化
+                    self.boolean_array = np.ndarray((3,), dtype=np.int8, buffer=self.shm.buf)
+                    new_values = np.array([True, False,False], dtype=bool)
+                    self.boolean_array[:]=new_values.astype(np.int8)
+                else:
+                    self.boolean_array = np.ndarray((3,), dtype=np.int8, buffer=self.shm.buf)
+        
+        elif shm_size==4*np.dtype(np.int8).itemsize:
+            self.shm_name=shm_name
+            self.shm_size=shm_size
             if self.load_share_memory():#为True，表示创建新的，需要初始化
-                self.boolean_array = np.ndarray((3,), dtype=np.int8, buffer=self.shm.buf)
-                new_values = np.array([True, False,False], dtype=bool)
+                self.boolean_array = np.ndarray((4,), dtype=np.int8, buffer=self.shm.buf)
+                new_values = np.array([False, False,False,False], dtype=bool)
                 self.boolean_array[:]=new_values.astype(np.int8)
             else:
-                self.boolean_array = np.ndarray((3,), dtype=np.int8, buffer=self.shm.buf)
-        return
-    
-    def __init__(self,shm_name,shm_size=4*np.dtype(np.int8).itemsize):
-        self.shm_name=shm_name
-        self.shm_size=shm_size
-        
-        if self.load_share_memory():#为True，表示创建新的，需要初始化
-            self.boolean_array = np.ndarray((4,), dtype=np.int8, buffer=self.shm.buf)
-            new_values = np.array([False, False,False,False], dtype=bool)
-            self.boolean_array[:]=new_values.astype(np.int8)
+                self.boolean_array = np.ndarray((4,), dtype=np.int8, buffer=self.shm.buf)
         else:
-            self.boolean_array = np.ndarray((4,), dtype=np.int8, buffer=self.shm.buf)
+            print("share memory size wrong!")
+            exit(-1)
         return
 
     def load_share_memory(self):

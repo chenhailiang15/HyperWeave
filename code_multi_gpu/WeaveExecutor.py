@@ -22,17 +22,19 @@ def ddp_setup(local_rank, args):
        Set up the distributed environment.
     """
     node_rank=args.node_rank
-    nprocs_per_node=args.nprocs_per_node
-    global_rank = node_rank * nprocs_per_node + local_rank
+    global_rank=0
+    for i in range(node_rank):
+        global_rank+=args.nprocs_list[i]
+    global_rank += local_rank
     # Initialize the process group.
     # 'backend' specifies the communication backend to be used, "nccl" is optimized for GPU training.
-    print("world size:",nprocs_per_node * args.nnodes)
-    init_process_group(backend="nccl", rank=global_rank, world_size=nprocs_per_node* args.nnodes)
+    
+    init_process_group(backend="nccl", rank=global_rank, world_size=args.world_size)
 
     # Set the current CUDA device to the specified device (identified by rank).
     # This ensures that each process uses a different GPU in a multi-GPU setup.
     if len(args.gpu_id_list)!=0:
-        torch.cuda.set_device(args.gpu_id_list[local_rank])
+        torch.cuda.set_device(args.gpu_id_list[args.node_rank][local_rank])
     else:
         torch.cuda.set_device(local_rank)
     
@@ -94,7 +96,7 @@ def Run_model_training(args_t,dataset_dir):
     else:
         print("model_name wrong!")
         exit(-1)
-    mp.spawn(single_training, args=(args_t,model), nprocs=args_t.nprocs_per_node)
+    mp.spawn(single_training, args=(args_t,model), nprocs=args_t.nprocs_list[args_t.node_rank])
 
 
 
@@ -107,10 +109,13 @@ if __name__=="__main__":
     #优先级参数
     parser.add_argument('--prior', action='store_true',help='A flage for label it is prior to run or not in Synchronizer')
     #系统参数
-    parser.add_argument('--nnodes', default=1, type=int, help='The number of nodes in multi-node training')
+    parser.add_argument('--world_size', default=1, type=int)
+    parser.add_argument('--nprocs_list', default=[], type=parse_list_arg)
     parser.add_argument('--node_rank', default=0, type=int, help='The rank of the node in multi-node training')
-    parser.add_argument('--nprocs_per_node', default=1, type=int,help='used gpu number for each node')
     parser.add_argument('--gpu_id_list', default=[], type=parse_list_arg,help='gpu id for each node used')
+    # parser.add_argument('--nnodes', default=1, type=int, help='The number of nodes in multi-node training')
+    # parser.add_argument('--nprocs_per_node', default=1, type=int,help='used gpu number for each node')
+    # parser.add_argument('--gpu_id_list', default=[], type=parse_list_arg,help='gpu id for each node used')
     
     #模型通用参数
     parser.add_argument('--model_name',default="AlexNet",help='model name, such as ResNet18, GCN, Bert...')
@@ -171,9 +176,9 @@ if __name__=="__main__":
             device_name="CPU"
         
         
-        nnodes=args.nnodes
+        nnodes=len(args.nprocs_list)
         node_rank=args.node_rank
-        nprocs_per_node=args.nprocs_per_node
+        
         gpu_id_list=args.gpu_id_list
 
         model_name=args.model_name
@@ -186,7 +191,7 @@ if __name__=="__main__":
         
         
         out_file_name=model_name+"-"+device_name+\
-        "-nno:"+args.nnodes.__str__()+"-nra:"+args.node_rank.__str__()+"-ppn:"+args.nprocs_per_node.__str__()+\
+        "-nno:"+nnodes.__str__()+"-nra:"+args.node_rank.__str__()+\
         "-bs:"+batch_size.__str__() +"-ep:"+total_epochs.__str__() +"-lan:"+layer_num.__str__() +"-laf:"+layer_feature.__str__() +\
         "-si:"+sample_interval.__str__()+"-tim:"+formatted_time+".csv"
         print(out_file_name)

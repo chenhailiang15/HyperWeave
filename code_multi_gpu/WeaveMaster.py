@@ -10,8 +10,8 @@ from util import *
 import pandas as pd
 import random
 import math
-
-
+from WeaveSchedule import WeaveSchedulor
+import queue
 # if __name__=="__main__":
 #     worker_ip="10.26.128.51"
 #     worker_port=8000
@@ -209,18 +209,19 @@ def execution_local(strategy_all):
     # os.system(command_tasksecond)
     return thread1,thread2
 class WeaveMaster:
+    
     def __init__(self, print_flage=False):
         self.clock_time_factor=10000
         self.job_time_factor=1000
         self.schedule_interval=5
-        
+        self.schedule_strategy="random"
         self.model_name_list=["AlexNet","ResNet18","ResNet50","VGG16","MobileNetv2"]
         self.batch_size_list=[8,16,32,64,128]
         self.epoch_list=[5,10,15,20]
         self.analyze_2080_loader=AnalyzeDataLoader("Analyzer-NVIDIA_GeForce_RTX_2080.csv",print_flage)
         self.analyze_2080ti_loader=AnalyzeDataLoader("Analyzer-NVIDIA_GeForce_RTX_2080_Ti.csv",print_flage)
         
-        
+        self.scheduler=WeaveSchedulor(self.schedule_strategy)
         ali_trace_pd=self.load_csv("ali_trace_job_info.csv",header=0)
         min_start_time=ali_trace_pd["start_time_j"].min()
         ali_trace_pd["start_time"]=(ali_trace_pd["start_time_j"]-min_start_time)/self.clock_time_factor
@@ -228,12 +229,6 @@ class WeaveMaster:
         
         print(ali_trace_pd)
         
-        
-        
-            
-        
-        
-    
         
     def load_csv(self, file_name,header=None):
         dataset_dir=get_dataset_dir()
@@ -252,22 +247,29 @@ class WeaveMaster:
         return model_name, epoch, batch_size, parrallel_num
         
         
-    def do_schedule(self):
-        while self.schedule_flage or len(self.wait_schedule_queue)>0:
+    def schedule_subthreading(self):
+        while self.schedule_flage or self.wait_schedule_queue.qsize()>0:
             time.sleep(self.schedule_interval)
+            wait_schedule_list=[]
             
+            while self.wait_schedule_queue.qsize()>0:
+                wait_schedule_list.append(self.wait_schedule_queue.get())
+                
+            rest=self.scheduler.do_schedule(wait_schedule_list)
+            for job in rest:
+                self.wait_schedule_queue.put(job)
             
         
     def run(self):
-        self.wait_schedule_queue=[]
+        self.wait_schedule_queue=queue.Queue()
         self.schedule_flage=True
-        sub_thread_schedule=threading.Thread(target=self.do_schedule,args=())
+        sub_thread_schedule=threading.Thread(target=self.schedule_subthreading,args=())
         sub_thread_schedule.start()
         
         for index in range(len(self.ali_trace_pd)):
             model_name, epoch, batch_size, parrallel_num=self.generate_job(self.ali_trace_pd.iloc[index,:])
             print(f"{model_name}, {epoch}, {batch_size}, {parrallel_num}")
-            self.wait_schedule_queue.append([time.time(), model_name, epoch, batch_size, parrallel_num])
+            self.wait_schedule_queue.put([time.time(), model_name, epoch, batch_size, parrallel_num])
             
             if index+1<len(self.ali_trace_pd):
                 time.sleep(self.ali_trace_pd.loc[index+1,"start_time"]-self.ali_trace_pd.loc[index,"start_time"])

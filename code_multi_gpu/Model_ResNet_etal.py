@@ -12,6 +12,9 @@ import psutil
 import time
 import threading
 from WeaveSynchronizer import Synchronizer
+import numpy as np
+
+
 
 torchvision.disable_beta_transforms_warning()
 recorder_queue=[]
@@ -24,16 +27,16 @@ class ResNet_etal_class:
         self.local_rank = local_rank
         
     def set_shm_name(self,prior,shm_name,enable_flage=True):
-        self.sync_er=Synchronizer(prior=prior, shm_name=shm_name,enable_flage=enable_flage)
+        self.sync_er=Synchronizer(shm_name,prior=prior, enable_flage=enable_flage)
         
     def set_shm_name_analyze(self,shm_name):
-        self.sync_er=Synchronizer(shm_name=shm_name)
+        self.sync_er=Synchronizer(shm_name, shm_size=4*np.dtype(np.int8).itemsize)
 
     def load_mode_data(self):
         print("start load_mode_data")
         if torch.cuda.is_available():
-            if len(self.args.gpu_id_list) != 0:
-                self.device = "cuda:"+self.args.gpu_id_list[self.local_rank].__str__()
+            if len(self.args.gpu_id_list[self.args.node_rank]) != 0:
+                self.device = "cuda:"+self.args.gpu_id_list[self.args.node_rank][self.local_rank].__str__()
             else:
                 self.device = "cuda:"+self.local_rank.__str__()
         else:
@@ -119,8 +122,8 @@ class ResNet_etal_class:
 
         print("start load_mode_data")
         if torch.cuda.is_available():
-            if len(self.args.gpu_id_list) != 0:
-                self.device = "cuda:"+self.args.gpu_id_list[self.local_rank].__str__()
+            if len(self.args.gpu_id_list[self.args.node_rank]) != 0:
+                self.device = "cuda:"+self.args.gpu_id_list[self.args.node_rank][self.local_rank].__str__()
             else:
                 self.device = "cuda:"+self.local_rank.__str__()
         else:
