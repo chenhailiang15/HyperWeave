@@ -18,10 +18,10 @@ MASTER_ADDR="10.26.128.51"   # one node:localhost  multi node: master ip
 MASTER_PORT="12355"
 
 model_name="AlexNet"
-world_size=2
-nprocs_list=[2]
+world_size=3
+nprocs_list=[2,1]
 
-gpu_id_list="[[1,2],[1,2]]"
+gpu_id_list="[[1,2],[3]]"
 
 
 total_epochs=10

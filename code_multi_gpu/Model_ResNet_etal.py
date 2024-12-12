@@ -353,7 +353,6 @@ class ResNet_etal_class:
 
     def run(self):
         self.model.train()# 设置模型为训练模式
-        
         for epoch in range(self.args.total_epochs):
             print("model name:",self.args.model_name,"\tepoch:",epoch)
             #进行同步操作 等待信号，方可继续执行，后方代码主要利用CPU加载数据（首次进入，先执行的，直接进入下面代码，另一个等待）
@@ -364,24 +363,17 @@ class ResNet_etal_class:
                 #进行同步操作 等待信号，方可继续执行，后方代码主要利用GPU
                 if idx==0:
                     self.sync_er.sync_in_batch()
-                
                 if idx % 500 == 0 :
                     print(f'batch:{idx}/{len(self.dataloaders["train"])-1}')
+                    
                 inputs = inputs.to(self.device)
                 labels = labels.to(self.device)
                 # 清除梯度
                 self.optimizer.zero_grad()
-                if idx < len(self.dataloaders["train"])-1:
-                    with self.model.no_sync():
-                        outputs = self.model(inputs)
-                        loss = self.criterion(outputs, labels)
-                        loss.backward()
-                        self.optimizer.step()
-                else:
-                    outputs = self.model(inputs)
-                    loss = self.criterion(outputs, labels)
-                    loss.backward()
-                    self.optimizer.step()
+                outputs = self.model(inputs)
+                loss = self.criterion(outputs, labels)
+                loss.backward()
+                self.optimizer.step()
             
             #进行同步操作（）
             self.sync_er.sync_in_end_epoch()

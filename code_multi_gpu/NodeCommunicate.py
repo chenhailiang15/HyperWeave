@@ -2,7 +2,7 @@ from socket import  *
 import time
 
 class NodeMessageReceiver:
-    def __init__(self, port):
+    def __init__(self, port=8000):
         self.port=port
         return
     def start_listening(self, func):
