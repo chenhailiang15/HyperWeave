@@ -9,6 +9,9 @@ import threading
 import time
 import datetime
 import ast
+import queue
+import pandas as pd
+import numpy as np
 
 
 from Recorder import Record
@@ -93,11 +96,11 @@ def analyze_one_task(args_t,dataset_dir):
 def analyze_tasks(args,dataset_dir,queue):
     args.total_epochs=2
     model_name_list=["AlexNet","ResNet18","ResNet50","VGG16","MobileNetv2"]
-    batch_size_list=[32,64]
-    max_parrallel=2
+    batch_size_list=[8,16,32,64,128]
+    max_parrallel=3
     for model_name in model_name_list:
         for batch_size in batch_size_list:
-            for parrallel in range(2,max_parrallel+1):
+            for parrallel in range(1,max_parrallel+1):
                 try:
                     print("start analyze: ", model_name+"-"+batch_size.__str__()+"-"+parrallel.__str__())
                     queue.put(model_name+"-"+batch_size.__str__()+"-"+parrallel.__str__())
@@ -106,16 +109,12 @@ def analyze_tasks(args,dataset_dir,queue):
                     args.nprocs_per_node=parrallel
                     analyze_one_task(args,dataset_dir)
                 except Exception:
-                    print("wrong:",model_name+"-"+batch_size.__str__()+"-"+parrallel.__str__())
-                        
-                
-                
+                    print("wrong:",model_name+"-"+batch_size.__str__()+"-"+parrallel.__str__()) 
     return
 
-import queue
 
-if __name__=="__main__":
-    
+def offline_analyze():
+
     args=args_weave()
     shm_name=generate_shm_name()
     args.set_shm_name(shm_name)
@@ -131,3 +130,48 @@ if __name__=="__main__":
     event.set()
     subthread_record.join()
     print("process end!")
+    
+    
+class AnalyzeDataLoader:
+    def __init__(self,file_name, print_flage=False):
+        self.index={}
+        self.index["cpu"]=0
+        self.index["mem"]=1
+        self.index["gpu"]=2
+        self.index["gmem"]=3
+        self.index["time"]=4
+        
+        self.data={}
+        self.load_csv(file_name)
+        if print_flage:
+            print(f"AnalyzeDataLoader init over: {file_name}")
+        
+    def load_csv(self, file_name,header=None):
+        dataset_dir=get_dataset_dir()
+        file=open(dataset_dir+"cluster_exp_data"+"/"+file_name,"r")
+        for line in file.readlines():
+            model_info=line.split("-[(")[0]
+            base_cost=np.array(ast.literal_eval(line.split("-[(")[1].split("), (")[0]))
+            stage_init_cost=np.array(ast.literal_eval(line.split("-[(")[1].split("), (")[1]))-base_cost
+            stage_sample_cost=np.array(ast.literal_eval(line.split("-[(")[1].split("), (")[2]))-base_cost
+            stage_train_cost=np.array(ast.literal_eval(line.split("-[(")[1].split("), (")[3].split(")]")[0]))-base_cost
+            temp_dict={}
+            temp_dict["stage_init"]=stage_init_cost
+            temp_dict["stage_sample"]=stage_sample_cost
+            temp_dict["stage_train"]=stage_train_cost
+            self.data[model_info]=temp_dict
+            
+    def get_value(self, model_info, stage_info="stage_train_cost", resource_kind="gpu"):
+        return self.data[model_info][stage_info][self.index[resource_kind]]
+
+        
+    
+if __name__=="__main__":
+    # offline_analyze()
+    analyze_data=AnalyzeDataLoader("Analyzer-NVIDIA_GeForce_RTX_2080.csv")
+    
+    
+    
+    
+    
+    
