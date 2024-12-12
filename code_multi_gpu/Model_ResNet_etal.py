@@ -17,7 +17,7 @@ import numpy as np
 
 
 torchvision.disable_beta_transforms_warning()
-recorder_queue=[]
+# recorder_queue=[]
 class ResNet_etal_class:
     def __init__(self, args_t, dataset_dir):
         self.args = args_t
@@ -33,7 +33,7 @@ class ResNet_etal_class:
         self.sync_er=Synchronizer(shm_name, shm_size=4*np.dtype(np.int8).itemsize)
 
     def load_mode_data(self):
-        print("start load_mode_data")
+        # print("start load_mode_data")
         if torch.cuda.is_available():
             if len(self.args.gpu_id_list[self.args.node_rank]) != 0:
                 self.device = "cuda:"+self.args.gpu_id_list[self.args.node_rank][self.local_rank].__str__()
@@ -41,7 +41,7 @@ class ResNet_etal_class:
                 self.device = "cuda:"+self.local_rank.__str__()
         else:
             self.device="cpu"
-        print("设备是：",self.device)
+        # print("设备是：",self.device)
 
         worker_num = self.args.worker_num
         data_transforms = {
@@ -107,9 +107,9 @@ class ResNet_etal_class:
         
         self.model = self.model.to(self.device)
 
-        print("device :" + self.device)
+        # print("device :" + self.device)
         self.model = DDP(self.model, device_ids=[self.device], output_device=self.device)
-        print("model init end")
+        # print("model init end")
         
     def load_mode_data_analyze(self):
         if self.local_rank==0:
@@ -389,7 +389,7 @@ class ResNet_etal_class:
                 self.sync_er.set_value(2,True)
             # 每个epoch都有训练阶段
             for idx, (inputs, labels) in enumerate(self.dataloaders["train"]): #每个epoch首次进入当前代码需要加载数据，GPU利用率为0
-                recorder_queue.append("stage444: load model data")
+                # recorder_queue.append("stage444: load model data")
                 
                 if self.local_rank==0 and epoch==1 and idx==0:
                     self.sync_er.set_value(2,False)

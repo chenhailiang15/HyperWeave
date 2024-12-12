@@ -75,9 +75,8 @@ class WeaveSchedulor:
         self.master=master
         self.command_sender=command_sender
         self.strategy=strategy
-        self.gpu_list=[i for i in range(4)]
-        self.master_port=2000
-        self.worker_port=3000
+        self.gpu_list=[i for i in range(7)]
+        
     
     def do_schedule(self,job_list):
         if self.strategy=="random":

@@ -32,14 +32,15 @@ import queue
 class WeaveMaster:
     
     def __init__(self, print_flage=False):
-        self.clock_time_factor=10000
+        self.clock_time_factor=1000
         self.job_time_factor=1000
         self.schedule_interval=5
         self.schedule_strategy="random"
         self.model_name_list=["AlexNet","ResNet18","ResNet50","VGG16","MobileNetv2"]
         self.batch_size_list=[8,16,32,64,128]
         self.epoch_list=[5,10,15,20]
-        
+        self.master_port=2000
+        self.worker_port=3000
         
         self.analyze_2080_loader=AnalyzeDataLoader("Analyzer-NVIDIA_GeForce_RTX_2080.csv",print_flage)
         self.analyze_2080ti_loader=AnalyzeDataLoader("Analyzer-NVIDIA_GeForce_RTX_2080_Ti.csv",print_flage)
@@ -107,7 +108,7 @@ class WeaveMaster:
     
     def run_command(self,command):
         print("master start command:\n", command)
-        # os.system(command)
+        os.system(command)
     
 
     # def evok_executor(self,strategy_all):
@@ -130,7 +131,8 @@ class WeaveMaster:
     def execute_schedule(self,model_name, epoch, batch, select_gpu_list):
         world_size=len(select_gpu_list)
         master_gpu_id_list=[x for x in select_gpu_list if x <4]
-        worker_gpu_id_list=[x for x in select_gpu_list if x >= 4]
+        worker_gpu_id_list=[x-4 for x in select_gpu_list if x >= 4]
+        
         nprocs_list=[len(master_gpu_id_list), len(worker_gpu_id_list)]
         gpu_id_list=[master_gpu_id_list,worker_gpu_id_list]
         
@@ -146,7 +148,6 @@ class WeaveMaster:
         if len(worker_gpu_id_list)>0:
             command=self.generate_command(False, is_cross, world_size, nprocs_list, gpu_id_list, model_name, epoch, batch)
             self.command_sender.send(command)
-            
             
     def generate_command(self, is_master, is_cross, world_size, nprocs_list, gpu_id_list, model_name, total_epochs, batch_size, prior=False):
         if is_master:
@@ -171,7 +172,8 @@ class WeaveMaster:
         worker_num=4
         squad_data_size=1000
         sample_interval=0.1
-        
+        nprocs_list=nprocs_list.__str__().replace(" ","")
+        gpu_id_list=gpu_id_list.__str__().replace(" ","")
         # max_sync_num=strategy["max_sync_num"]
         # shm_name_list=strategy["shm_name_list"]
         # shm_name_list=f"{shm_name_list}".replace(" ", "")
@@ -180,7 +182,7 @@ class WeaveMaster:
         command=f"python WeaveExecutor.py --MASTER_ADDR {MASTER_ADDR} --MASTER_PORT {MASTER_PORT} --net_card {net_card}  --model_name {model_name} --node_rank {node_rank} \
         --world_size {world_size} --nprocs_list {nprocs_list} --gpu_id_list {gpu_id_list} --layer_num {layer_num} --layer_feature {layer_feature} \
         --batch_size {batch_size} --total_epochs {total_epochs} --worker_num {worker_num} --squad_data_size {squad_data_size} \
-        --sample_interval {sample_interval} --record_flage --print_flage"
+        --sample_interval {sample_interval}"
         if prior:
             command=command+" --prior"
         return command

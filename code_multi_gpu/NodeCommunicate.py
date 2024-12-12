@@ -19,8 +19,8 @@ class NodeMessageReceiver:
                     if not instruct:
                         break
                     func(instruct)
-                    back_info=input("返回信息：")
-                    conn.send(back_info.encode("gbk"))
+                    # back_info=input("返回信息：")
+                    # conn.send(back_info.encode("gbk"))
 
 
 
@@ -36,8 +36,8 @@ class NodeMessageSender:
     def send(self,message):
         #发送数据
         self.tcp_socket.send(message.encode("gbk")) 
-        back_data=self.tcp_socket.recv(1024).decode("gbk")
-        print("接收到消息：",back_data )
+        # back_data=self.tcp_socket.recv(1024).decode("gbk")
+        # print("接收到消息：",back_data )
     
     def close(self):
         #关闭连接

@@ -102,8 +102,8 @@ def Run_model_training(args_t,dataset_dir):
 
 
 if __name__=="__main__":
-    
-    os.environ["NCCL_DEBUG"]="INFO"
+    print("//////////////////////////////////////////////start one job!///////////////////////////////////////////////")
+    # os.environ["NCCL_DEBUG"]="INFO"
 
     parser = argparse.ArgumentParser(description='simple distributed training job')
     #优先级参数
@@ -206,4 +206,4 @@ if __name__=="__main__":
         event.set()
         subTread_record.join()
         
-    print("process end!")
+    print("//////////////////////////////////////////////complete one job!///////////////////////////////////////////////")
