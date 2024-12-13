@@ -2,8 +2,8 @@ from NodeCommunicate import CommunicateClient
 import json
 import threading
 import os
-
-
+from Job import Job
+import time
 
 
 class WeaveWorker:
@@ -16,13 +16,20 @@ class WeaveWorker:
         
     def message_receive(self,message):
         print("master receive:\n", message)
-        sub_thread=threading.Thread(target=self.run_command,args=(message,))
+        job=Job()
+        job.load_string(message)
+        job.set_start_time(time.time())
+        
+        sub_thread=threading.Thread(target=self.run_command,args=(job, job.command,))
         sub_thread.start()
         
         
-    def run_command(self,message):
+        
+    def run_command(self,job, message):
         print("worker receive message:\n",message)
-        # os.system(command)
+        back=os.system(message)
+        print("命令执行返回结果：",back)
+
 
 if __name__=="__main__":
     print_level=10

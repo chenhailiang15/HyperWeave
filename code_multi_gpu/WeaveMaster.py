@@ -80,7 +80,7 @@ class WeaveMaster:
         init_time=self.analyze_2080_loader.get_value(model_info,"stage_init","time")
         epoch_time=self.analyze_2080_loader.get_value(model_info,"stage_sample","time")+self.analyze_2080_loader.get_value(model_info,"stage_train","time")
         cal_epoch=math.ceil((ali_trace["plan_gpu"]/self.job_time_factor-init_time)/epoch_time)
-        total_epochs=cal_epoch if cal_epoch>5 else 5
+        total_epochs=cal_epoch if cal_epoch<5 else 5
         
         plan_cpu=ali_trace["plan_cpu"]/ali_trace["cpu_usage"]*self.analyze_2080_loader.get_value(model_info,"stage_sample","cpu")
         plan_mem=ali_trace["plan_mem"]/ali_trace["avg_mem"]*self.analyze_2080_loader.get_value(model_info,"stage_sample","mem")
@@ -131,7 +131,7 @@ class WeaveMaster:
     def send_job_to_worker(self,job_f):
         if self.print_level>5:
             print("send job to worker:{job_f.job_name} ...")
-        self.communicator.send(job_f.to_string())
+        self.communicator.send(job_f.to_string()+"--end")
         
     #任务本地执行
     def execute_job_in_master(self, job_f):
@@ -142,17 +142,24 @@ class WeaveMaster:
 
     #任务具体运行
     def run_command(self,command):
-        print("master start command:\n", command)
-        # os.system(command)
+        if self.print_level>5:
+            print("master start command:\n", command)
+        back=os.system(command)
+        print("执行完成后的返回值：",back)
     
     
     def close(self):
         self.communicator.close()
-    
- 
+import random
+
+random.seed(1)
+
 if __name__=="__main__":
     print_level=10
     weave_master=WeaveMaster(print_level)
+    # for i in range(10):
+    #     mess="aijf"*10
+    #     weave_master.communicator.send(mess+"--end")
     weave_master.job_come()
     weave_master.close()
 

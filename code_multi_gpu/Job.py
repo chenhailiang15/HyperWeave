@@ -61,7 +61,7 @@ class Job:
         
         self.command=f"python WeaveExecutor.py --MASTER_ADDR {MASTER_ADDR} --MASTER_PORT {MASTER_PORT} --net_card {net_card}  --node_rank {node_rank} \
             --world_size {world_size} --nprocs_list {nprocs_list_c} --gpu_id_list {gpu_id_list_c} --model_name {self.model_name} --batch_size {self.batch_size} \
-            --total_epochs {self.total_epochs} --worker_num {self.worker_num}--layer_num {self.layer_num} --layer_feature {self.layer_feature} \
+            --total_epochs {self.total_epochs} --worker_num {self.worker_num} --layer_num {self.layer_num} --layer_feature {self.layer_feature} \
             --squad_data_size {self.squad_data_size} --max_sync_num {max_sync_num} --shm_name_list {shm_name_list_c}"
         if prior:
             self.command=self.command+" --prior"

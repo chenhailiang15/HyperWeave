@@ -5,11 +5,18 @@ import ast
 import argparse
 import string 
 import secrets
+import psutil
 
 
 
 
 
+def is_port_in_use(port):
+    for proc in psutil.process_iter():
+        for con in proc.net_connections():
+            if con.status == 'LISTEN' and con.laddr.port == port:
+                return True
+    return False
 
 
 

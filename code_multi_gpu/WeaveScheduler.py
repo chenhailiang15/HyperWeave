@@ -144,6 +144,12 @@ class WeaveSchedulor:
             MASTER_PORT=self.master.worker_port
             self.master.worker_port+=1
         
+        if is_cross:
+            while is_port_in_use(MASTER_PORT):
+                if self.print_level>9:
+                    print("change port")
+                MASTER_PORT+=100
+            
         job.set_execute_info(MASTER_ADDR, MASTER_PORT, net_card, node_rank,world_size ,nprocs_list, gpu_id_list)
         
     

@@ -16,6 +16,7 @@ from models.Model_ResNet_etal import ResNet_etal_class
 from models.Model_Bert import Bert_class
 from models.Model_GCN import GCN_class
 from models.Model_GraphSage import GraphSage_class
+from util import *
 
 def ddp_setup(local_rank, args):
     """
@@ -99,8 +100,6 @@ def Run_model_training(args_t,dataset_dir):
     mp.spawn(single_training, args=(args_t,model), nprocs=args_t.nprocs_list[args_t.node_rank])
 
 
-
-
 if __name__=="__main__":
     print("//////////////////////////////////////////////start one job!///////////////////////////////////////////////")
     # os.environ["NCCL_DEBUG"]="INFO"
@@ -141,17 +140,24 @@ if __name__=="__main__":
     parser.add_argument("--MASTER_ADDR",default="localhost")
     parser.add_argument("--MASTER_PORT",default="12355")
     parser.add_argument("--net_card",default="eno1")
+    parser.add_argument("--print_level",default=0, type=int)
 
     args = parser.parse_args()
-    #设置
-    
+    #单机情况下，调整port，如果是跨机器，在master上调整。
+    port=args.MASTER_PORT
+    if args.world_size==args.nprocs_list[0] or args.world_size==args.nprocs_list[1]:
+        while is_port_in_use(port):
+            if args.print_level>9:
+                print("change port")
+            port+=100
+            
     os.environ["MASTER_ADDR"]=args.MASTER_ADDR
-    os.environ["MASTER_PORT"]=args.MASTER_PORT
+    os.environ["MASTER_PORT"]=port
     os.environ["NCCL_SOCKET_IFNAME"]=args.net_card
-    print("addr:",args.MASTER_ADDR,"port:",args.MASTER_PORT,"netcard:",args.net_card)
+    # print("addr:",args.MASTER_ADDR,"port:",port,"netcard:",args.net_card)
     
-    version="v4"
-    print("code version:"+version)
+    # version="v4"
+    # print("code version:"+version)
 
     # 数据集路径
     # 获取当前文件所在目录的上级目录
@@ -162,7 +168,7 @@ if __name__=="__main__":
 
     
 
-    print("record flage:",args.record_flage)
+    # print("record flage:",args.record_flage)
     if args.record_flage:
         
         # 获取当前时间
