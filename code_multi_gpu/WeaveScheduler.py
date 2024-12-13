@@ -71,10 +71,12 @@ def get_strategy():
 
 
 class WeaveSchedulor:
-    def __init__(self,master, strategy):
+    def __init__(self,master, strategy,print_level=0):
+        
         self.master=master
         self.strategy=strategy
         self.gpu_list=[i for i in range(7)]
+        self.print_level=print_level
         
     
     def do_schedule(self,job_list):
@@ -86,6 +88,8 @@ class WeaveSchedulor:
         return rest_job
     
     def schedule_random(self, job_list):
+        if self.print_level>2:
+            print("start schedule ...")
         for job in job_list:
             gpu_num=math.ceil(job.plan_gpu)
             select_gpu=random.sample(self.gpu_list, gpu_num)
@@ -121,7 +125,7 @@ class WeaveSchedulor:
             
         if len(worker_gpu_id_list)>0:
             self.job_set_execute_info(job, False, is_cross, world_size, nprocs_list, gpu_id_list )
-            self.master.sesend_job_to_workernd(job)
+            self.master.send_job_to_worker(job)
             
     def job_set_execute_info(self, job, is_master, is_cross, world_size, nprocs_list, gpu_id_list):
         if is_master:
@@ -133,12 +137,12 @@ class WeaveSchedulor:
         
         if is_cross or is_master:
             MASTER_ADDR="10.26.128.115"
-            MASTER_PORT=self.master_port
-            self.master_port+=1
+            MASTER_PORT=self.master.master_port
+            self.master.master_port+=1
         elif (not is_cross) and (not is_master):
             MASTER_ADDR="10.26.128.51"
-            MASTER_PORT=self.worker_port
-            self.worker_port+=1
+            MASTER_PORT=self.master.worker_port
+            self.master.worker_port+=1
         
         job.set_execute_info(MASTER_ADDR, MASTER_PORT, net_card, node_rank,world_size ,nprocs_list, gpu_id_list)
         

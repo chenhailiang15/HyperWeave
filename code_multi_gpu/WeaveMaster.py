@@ -33,7 +33,7 @@ class WeaveMaster:
     
     def __init__(self, print_level=0):
         self.print_level=print_level
-        self.clock_time_factor=1000
+        self.clock_time_factor=10000
         self.job_time_factor=1000
         self.schedule_interval=5
         self.schedule_strategy="random"
@@ -43,16 +43,15 @@ class WeaveMaster:
         self.master_port=2000
         self.worker_port=3000
         
-        self.analyze_2080_loader=AnalyzeDataLoader("Analyzer-NVIDIA_GeForce_RTX_2080.csv",print_level)
-        self.analyze_2080ti_loader=AnalyzeDataLoader("Analyzer-NVIDIA_GeForce_RTX_2080_Ti.csv",print_level)
-        
         #通讯器，初始化和启动监听。
         self.communicator=CommunicateServer(print_level=self.print_level)
         self.communicator.start_connect()
         self.communicator.start_listening(self.message_receive)
 
+        self.analyze_2080_loader=AnalyzeDataLoader("Analyzer-NVIDIA_GeForce_RTX_2080.csv",print_level)
+        self.analyze_2080ti_loader=AnalyzeDataLoader("Analyzer-NVIDIA_GeForce_RTX_2080_Ti.csv",print_level)
         
-        self.scheduler=WeaveSchedulor(self, self.schedule_strategy)
+        self.scheduler=WeaveSchedulor(self, self.schedule_strategy, print_level=self.print_level)
         self.load_ali_trace("ali_trace_job_info.csv")
 
         
@@ -130,10 +129,14 @@ class WeaveMaster:
     
     #将任务发送给worker执行
     def send_job_to_worker(self,job_f):
-        self.communicator(job_f.to_string())
+        if self.print_level>5:
+            print("send job to worker:{job_f.job_name} ...")
+        self.communicator.send(job_f.to_string())
         
     #任务本地执行
     def execute_job_in_master(self, job_f):
+        if self.print_level>5:
+            print("master execute job:{job_f.job_name} ...")
         sub_thread=threading.Thread(target=self.run_command,args=(job_f.command,))
         sub_thread.start()
 
@@ -151,6 +154,7 @@ if __name__=="__main__":
     print_level=10
     weave_master=WeaveMaster(print_level)
     weave_master.job_come()
+    weave_master.close()
 
     # start_time=time.time()
     # strategy_all=get_strategy()
