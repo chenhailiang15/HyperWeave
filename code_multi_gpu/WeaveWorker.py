@@ -1,4 +1,4 @@
-from NodeCommunicate import NodeMessageReceiver
+from NodeCommunicate import CommunicateClient
 import json
 import threading
 import os
@@ -7,22 +7,22 @@ import os
 
 
 class WeaveWorker:
-    def __init__(self):
-        node_message_receiver=NodeMessageReceiver(8000)
-        node_message_receiver.start_listening(self.do_action)
+    def __init__(self,print_level):
+        self.print_level=print_level
+        self.comunicator=CommunicateClient("10.26.128.115")
+        self.comunicator.start_listening(self.message_receive)
 
-    def do_action(self, command):
         
-        sub_thread=threading.Thread(target=self.run_command,args=(command,))
+    def message_receive(self,message):
+        print("master receive:\n", message)
+        sub_thread=threading.Thread(target=self.run_command,args=(message,))
         sub_thread.start()
         
         
-        
-        
-        
-    def run_command(self,command):
-        print("worker receive command:\n",command)
-        os.system(command)
+    def run_command(self,message):
+        print("worker receive message:\n",message)
+        # os.system(command)
 
 if __name__=="__main__":
-    WeaveWorker()
+    print_level=10
+    WeaveWorker(print_level=print_level)

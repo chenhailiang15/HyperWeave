@@ -88,9 +88,9 @@ class WeaveSchedulor:
     
     def schedule_random(self, job_list):
         for job in job_list:
-            gpu_num=math.ceil(job[4])
+            gpu_num=math.ceil(job.plan_gpu)
             select_gpu=random.sample(self.gpu_list, gpu_num)
-            self.execute_schedule(job[1],job[2],job[3],select_gpu)
+            self.execute_schedule(job,select_gpu)
         return []
     
     def schedule_weave_over_sharing(self):
@@ -106,40 +106,25 @@ class WeaveSchedulor:
     
     
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    def execute_schedule(self,model_name, epoch, batch, select_gpu_list):
+    def execute_schedule(self,job, select_gpu_list):
         world_size=len(select_gpu_list)
         master_gpu_id_list=[x for x in select_gpu_list if x <4]
         worker_gpu_id_list=[x-4 for x in select_gpu_list if x >= 4]
         
         nprocs_list=[len(master_gpu_id_list), len(worker_gpu_id_list)]
         gpu_id_list=[master_gpu_id_list,worker_gpu_id_list]
-        
-        
+
         is_cross=True if len(master_gpu_id_list)>0 and len(worker_gpu_id_list)>0 else False
-        
+
         if len(master_gpu_id_list)>0:
+            self.job_set_execute_info(job, True, is_cross, world_size, nprocs_list, gpu_id_list )
+            self.master.execute_job_in_master(job)
             
-            command=self.generate_command(True, is_cross, world_size, nprocs_list, gpu_id_list, model_name, epoch, batch)
-            print(command)
-            sub_thread=threading.Thread(target=self.run_command,args=(command,))
-            sub_thread.start()
         if len(worker_gpu_id_list)>0:
-            command=self.generate_command(False, is_cross, world_size, nprocs_list, gpu_id_list, model_name, epoch, batch)
-            self.command_sender.send(command)
+            self.job_set_execute_info(job, False, is_cross, world_size, nprocs_list, gpu_id_list )
+            self.master.sesend_job_to_workernd(job)
             
-    def generate_command(self, is_master, is_cross, world_size, nprocs_list, gpu_id_list, model_name, total_epochs, batch_size, prior=False):
+    def job_set_execute_info(self, job, is_master, is_cross, world_size, nprocs_list, gpu_id_list):
         if is_master:
             node_rank=0
             net_card="eno2"
@@ -156,26 +141,8 @@ class WeaveSchedulor:
             MASTER_PORT=self.worker_port
             self.worker_port+=1
         
-        layer_num=10
-        layer_feature=10
+        job.set_execute_info(MASTER_ADDR, MASTER_PORT, net_card, node_rank,world_size ,nprocs_list, gpu_id_list)
         
-        worker_num=4
-        squad_data_size=1000
-        sample_interval=0.1
-        nprocs_list=nprocs_list.__str__().replace(" ","")
-        gpu_id_list=gpu_id_list.__str__().replace(" ","")
-        # max_sync_num=strategy["max_sync_num"]
-        # shm_name_list=strategy["shm_name_list"]
-        # shm_name_list=f"{shm_name_list}".replace(" ", "")
-        
-        
-        command=f"python WeaveExecutor.py --MASTER_ADDR {MASTER_ADDR} --MASTER_PORT {MASTER_PORT} --net_card {net_card}  --model_name {model_name} --node_rank {node_rank} \
-        --world_size {world_size} --nprocs_list {nprocs_list} --gpu_id_list {gpu_id_list} --layer_num {layer_num} --layer_feature {layer_feature} \
-        --batch_size {batch_size} --total_epochs {total_epochs} --worker_num {worker_num} --squad_data_size {squad_data_size} \
-        --sample_interval {sample_interval}"
-        if prior:
-            command=command+" --prior"
-        return command
     
     
     

@@ -14,7 +14,7 @@ class Job:
             
             
     #模型信息        
-    def set_model_info(self,job_name, model_name,total_epochs, batch_size, worker_num=4, layer_num=10, layer_feature=10 ):
+    def set_model_info(self,job_name, model_name,total_epochs, batch_size, worker_num=4, layer_num=10, layer_feature=10,squad_data_size=1000 ):
         self.job_name=job_name
         self.model_name=model_name
         self.total_epochs=total_epochs
@@ -22,6 +22,7 @@ class Job:
         self.worker_num=worker_num
         self.layer_num=layer_num
         self.layer_feature=layer_feature
+        self.squad_data_size=squad_data_size
     
     #计划资源
     def set_plan_resource(self, plan_cpu, plan_mem, plan_gpu):
@@ -76,6 +77,7 @@ class Job:
         json_dict["worker_num"]=self.worker_num
         json_dict["layer_num"]=self.layer_num
         json_dict["layer_feature"]=self.layer_feature
+        json_dict["squad_data_size"]=self.squad_data_size
         
         json_dict["MASTER_ADDR"]=self.MASTER_ADDR
         json_dict["MASTER_PORT"]=self.MASTER_PORT
@@ -111,6 +113,8 @@ class Job:
         self.worker_num=json_dict["worker_num"]
         self.layer_num=json_dict["layer_num"]
         self.layer_feature=json_dict["layer_feature"]
+        self.squad_data_size=json_dict["squad_data_size"]
+
         
         self.MASTER_ADDR=json_dict["MASTER_ADDR"]
         self.MASTER_PORT=json_dict["MASTER_PORT"]

@@ -1,5 +1,5 @@
 import time
-from NodeCommunicate import NodeMessageSender,NodeMessageReceiver
+from NodeCommunicate import CommunicateServer
 from WeaveAnalyzer import AnalyzeDataLoader
 import json
 import secrets
@@ -46,18 +46,26 @@ class WeaveMaster:
         self.analyze_2080_loader=AnalyzeDataLoader("Analyzer-NVIDIA_GeForce_RTX_2080.csv",print_level)
         self.analyze_2080ti_loader=AnalyzeDataLoader("Analyzer-NVIDIA_GeForce_RTX_2080_Ti.csv",print_level)
         
-        self.command_sender=NodeMessageSender(aim_node_ip="10.26.128.51")
-        self.info_receiver=NodeMessageReceiver(port=8001)
+        #通讯器，初始化和启动监听。
+        self.communicator=CommunicateServer(print_level=self.print_level)
+        self.communicator.start_connect()
+        self.communicator.start_listening(self.message_receive)
+
         
-        self.scheduler=WeaveSchedulor(self, self.command_sender, self.schedule_strategy)
-        ali_trace_pd=self.load_csv("ali_trace_job_info.csv",header=0)
+        self.scheduler=WeaveSchedulor(self, self.schedule_strategy)
+        self.load_ali_trace("ali_trace_job_info.csv")
+
+        
+        
+    def message_receive(self,message):
+        print("master receive:\n", message)
+
+    def load_ali_trace(self,file_name):
+        ali_trace_pd=self.load_csv(file_name,header=0)
         min_start_time=ali_trace_pd["start_time_j"].min()
         ali_trace_pd["start_time"]=(ali_trace_pd["start_time_j"]-min_start_time)/self.clock_time_factor
         self.ali_trace_pd=ali_trace_pd.sort_values(by="start_time")
-        
-        print(ali_trace_pd)
-        
-        
+
     def load_csv(self, file_name,header=None):
         dataset_dir=get_dataset_dir()
         data_pd=pd.read_csv(dataset_dir+"cluster_exp_data"+"/"+file_name,header=header)
@@ -122,7 +130,7 @@ class WeaveMaster:
     
     #将任务发送给worker执行
     def send_job_to_worker(self,job_f):
-        self.command_sender(job_f.to_string())
+        self.communicator(job_f.to_string())
         
     #任务本地执行
     def execute_job_in_master(self, job_f):
@@ -132,17 +140,13 @@ class WeaveMaster:
     #任务具体运行
     def run_command(self,command):
         print("master start command:\n", command)
-        os.system(command)
+        # os.system(command)
     
     
+    def close(self):
+        self.communicator.close()
     
-    
-    
-# worker_ip="10.26.128.51"
-# worker_port=8000
-# node_message_sender=NodeMessageSender(worker_ip,worker_port)
- #可以修改为根据阿里数据集计算得到，后续修改
-    
+ 
 if __name__=="__main__":
     print_level=10
     weave_master=WeaveMaster(print_level)
