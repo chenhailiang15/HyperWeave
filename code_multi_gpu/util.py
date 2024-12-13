@@ -6,17 +6,17 @@ import argparse
 import string 
 import secrets
 import psutil
-
+import socket
 
 
 
 
 def is_port_in_use(port):
-    for proc in psutil.process_iter():
-        for con in proc.net_connections():
-            if con.status == 'LISTEN' and con.laddr.port == port:
-                return True
-    return False
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        # 尝试绑定到指定的主机和端口
+        
+        result = sock.connect_ex(("localhost", int(port)))
+        return result == 0
 
 
 

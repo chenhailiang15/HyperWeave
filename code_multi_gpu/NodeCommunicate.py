@@ -72,6 +72,7 @@ class CommunicateClient:
     def start_listening(self, func):
         sub_thread=threading.Thread(target=self.__listening,args=(func,))
         sub_thread.start()
+        return sub_thread
     
     
     def __listening(self,func):
