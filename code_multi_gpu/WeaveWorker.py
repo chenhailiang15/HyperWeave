@@ -35,6 +35,7 @@ class WeaveWorker:
         
     def run_command(self,job, message):
         print("worker receive message:\n",message)
+        job.set_start_time(time.time())
         back=os.system(message)
         if back==0:
             job.succeed()
@@ -45,8 +46,17 @@ class WeaveWorker:
         self.comunicator.send(job.to_string()+"--end")
             
         print("命令执行返回结果：",back)
-
+        
+    def sub_thread_join(self):
+        while self.sub_thread_queue.qsize()>0:
+            sub_thread=self.sub_thread_queue.get()
+            sub_thread.join()
+        return
+        
+        
 
 if __name__=="__main__":
     print_level=10
-    WeaveWorker(print_level=print_level)
+    weave_worker=WeaveWorker(print_level=print_level)
+    weave_worker.sub_thread_join()
+    print("The whole process end (by worker)!")

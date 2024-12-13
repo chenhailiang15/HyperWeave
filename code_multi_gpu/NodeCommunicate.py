@@ -7,6 +7,7 @@ class CommunicateServer:
     def __init__(self, port=8000, print_level=0):
         self.port=port
         self.print_level=print_level
+        self.lock=threading.Lock()
         return
     
     def start_connect(self):
@@ -38,6 +39,7 @@ class CommunicateServer:
 
     def send(self,message):
         if self.connect_flage:
+            with self.lock:
             self.server_socket.send(message.encode("gbk"))
         
         
@@ -56,6 +58,7 @@ class CommunicateClient:
         self.ip=ip
         self.port=port
         self.print_level=print_level
+        self.lock=threading.Lock()
 
     def start_connect(self):
         # 1.创建套接字
@@ -84,7 +87,8 @@ class CommunicateClient:
     def send(self,message):
         if self.connect_flage:
             #发送数据
-            self.client_socket.send(message.encode("gbk")) 
+            with self.lock:
+                self.client_socket.send(message.encode("gbk")) 
         # back_data=self.tcp_socket.recv(1024).decode("gbk")
         # print("接收到消息：",back_data )
 

@@ -33,7 +33,7 @@ class ResNet_etal_class:
         self.sync_er=Synchronizer(shm_name, shm_size=4*np.dtype(np.int8).itemsize)
 
     def load_mode_data(self):
-        # print("start load_mode_data")
+        print("start load_mode_data")
         if torch.cuda.is_available():
             if len(self.args.gpu_id_list[self.args.node_rank]) != 0:
                 self.device = "cuda:"+self.args.gpu_id_list[self.args.node_rank][self.local_rank].__str__()
@@ -41,7 +41,7 @@ class ResNet_etal_class:
                 self.device = "cuda:"+self.local_rank.__str__()
         else:
             self.device="cpu"
-        # print("设备是：",self.device)
+        print(f"load model and data with device {self.device} ...")
 
         worker_num = self.args.worker_num
         data_transforms = {
@@ -107,9 +107,9 @@ class ResNet_etal_class:
         
         self.model = self.model.to(self.device)
 
-        # print("device :" + self.device)
+        print("start ddp model..." )
         self.model = DDP(self.model, device_ids=[self.device], output_device=self.device)
-        # print("model init end")
+        print("end ddp model...")
         
     def load_mode_data_analyze(self):
         if self.local_rank==0:

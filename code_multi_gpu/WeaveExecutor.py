@@ -140,7 +140,7 @@ if __name__=="__main__":
     parser.add_argument("--MASTER_ADDR",default="localhost")
     parser.add_argument("--MASTER_PORT",default="12355")
     parser.add_argument("--net_card",default="eno1")
-    parser.add_argument("--print_level",default=0, type=int)
+    parser.add_argument("--print_level",default=10, type=int)
 
     args = parser.parse_args()
     #单机情况下，调整port，如果是跨机器，在master上调整。
@@ -154,7 +154,8 @@ if __name__=="__main__":
     os.environ["MASTER_ADDR"]=args.MASTER_ADDR
     os.environ["MASTER_PORT"]=port
     os.environ["NCCL_SOCKET_IFNAME"]=args.net_card
-    # print("addr:",args.MASTER_ADDR,"port:",port,"netcard:",args.net_card)
+    if args.print_level>0:
+        print("addr:",args.MASTER_ADDR,"port:",port,"netcard:",args.net_card)
     
     # version="v4"
     # print("code version:"+version)

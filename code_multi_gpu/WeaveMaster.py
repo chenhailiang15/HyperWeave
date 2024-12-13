@@ -161,7 +161,12 @@ if __name__=="__main__":
     #     mess="aijf"*10
     #     weave_master.communicator.send(mess+"--end")
     weave_master.job_come()
+    
+
+
     weave_master.close()
+
+    print("The whole process end (by master)!")
 
     # start_time=time.time()
     # strategy_all=get_strategy()
