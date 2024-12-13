@@ -133,7 +133,7 @@ def offline_analyze():
     
     
 class AnalyzeDataLoader:
-    def __init__(self,file_name, print_flage=False):
+    def __init__(self,file_name, print_level=0):
         self.index={}
         self.index["cpu"]=0
         self.index["mem"]=1
@@ -143,7 +143,7 @@ class AnalyzeDataLoader:
         
         self.data={}
         self.load_csv(file_name)
-        if print_flage:
+        if print_level>=1:
             print(f"AnalyzeDataLoader init over: {file_name}")
         
     def load_csv(self, file_name,header=None):
@@ -161,7 +161,7 @@ class AnalyzeDataLoader:
             temp_dict["stage_train"]=stage_train_cost
             self.data[model_info]=temp_dict
             
-    def get_value(self, model_info, stage_info="stage_train_cost", resource_kind="gpu"):
+    def get_value(self, model_info, stage_info="stage_train", resource_kind="gpu"):
         return self.data[model_info][stage_info][self.index[resource_kind]]
 
         

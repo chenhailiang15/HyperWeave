@@ -1,25 +1,47 @@
 import json
-
+import time
 
 
 
 
 
 class Job:
+    def __init__(self):
+        self.arrive_time=0
+        self.start_time=0
+        self.end_time=0
+        self.succeed_flage=None
+            
+            
+    #模型信息        
+    def set_model_info(self,job_name, model_name,total_epochs, batch_size, worker_num=4, layer_num=10, layer_feature=10 ):
+        self.job_name=job_name
+        self.model_name=model_name
+        self.total_epochs=total_epochs
+        self.batch_size=batch_size
+        self.worker_num=worker_num
+        self.layer_num=layer_num
+        self.layer_feature=layer_feature
     
-    def __init__(self,job_name=None, model_name=None,total_epochs=None, batch_size=None, worker_num=4, layer_num=10, layer_feature=10):
-        if job_name == None:
-            return
-        else:
-            self.job_name=job_name
-            self.model_name=model_name
-            self.total_epochs=total_epochs
-            self.batch_size=batch_size
-            self.worker_num=worker_num
-            self.layer_num=layer_num
-            self.layer_feature=layer_feature
-        
-        
+    #计划资源
+    def set_plan_resource(self, plan_cpu, plan_mem, plan_gpu):
+        self.plan_cpu=plan_cpu
+        self.plan_mem=plan_mem
+        self.plan_gpu=plan_gpu
+    
+    #时间信息
+    def set_arrive_time(self, arrive_time):
+        self.arrive_time=arrive_time
+    def set_start_time(self, start_time):
+        self.start_time=start_time
+    def set_end_time(self, end_time):
+        self.end_time=end_time
+    
+    def succeed(self):
+        self.succeed_flage=True
+    def failed(self):
+        self.succeed_flage=False
+    
     def set_execute_info(self,MASTER_ADDR, MASTER_PORT, net_card, node_rank,world_size ,nprocs_list, gpu_id_list, prior=False, max_sync_num=0, shm_name_list=[]):
         self.MASTER_ADDR=MASTER_ADDR
         self.MASTER_PORT=MASTER_PORT
@@ -45,7 +67,7 @@ class Job:
         
     
     
-    def to_json(self):
+    def to_string(self):
         json_dict={}
         json_dict["job_name"]=self.job_name
         json_dict["model_name"]=self.model_name
@@ -67,11 +89,20 @@ class Job:
         json_dict["shm_name_list"]=self.shm_name_list
         json_dict["command"]=self.command
         
+        json_dict["plan_cpu"]=self.plan_cpu
+        json_dict["plan_mem"]=self.plan_mem
+        json_dict["plan_gpu"]=self.plan_gpu
+        
+        json_dict["arrive_time"]=self.arrive_time
+        json_dict["start_time"]=self.start_time
+        json_dict["end_time"]=self.end_time
+        json_dict["succeed_flage"]=self.succeed_flage
+        
         return json.dumps(json_dict)
     
     
-    def load_from_json(self, aim_json):
-        json_dict=json.loads(aim_json)
+    def load_string(self, json_string):
+        json_dict=json.loads(json_string)
         
         self.job_name=json_dict["job_name"]
         self.model_name=json_dict["model_name"]
@@ -92,3 +123,18 @@ class Job:
         self.max_sync_num=json_dict["max_sync_num"]
         self.shm_name_list=json_dict["shm_name_list"]
         self.command=json_dict["command"]
+        
+        self.plan_cpu=json_dict["plan_cpu"]
+        self.plan_mem=json_dict["plan_mem"]
+        self.plan_gpu=json_dict["plan_gpu"]
+        
+        self.arrive_time=json_dict["arrive_time"]
+        self.start_time=json_dict["start_time"]
+        self.end_time=json_dict["end_time"]
+        self.succeed_flage=json_dict["succeed_flage"]
+        
+        
+        
+        
+    def get_key_job_info(self):
+        return f"jn:{self.job_name}-mn:{self.model_name}-tep:{self.total_epochs}-bts:{self.batch_size}-gpu:{self.plan_gpu}"
