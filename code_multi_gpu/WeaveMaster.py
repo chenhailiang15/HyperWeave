@@ -12,18 +12,7 @@ import random
 import math
 from WeaveScheduler import WeaveSchedulor
 import queue
-from Job import Job
-
-
-# if __name__=="__main__":
-#     worker_ip="10.26.128.51"
-#     worker_port=8000
-#     node_message_sender=NodeMessageSender(worker_ip,worker_port)
-#     while True:
-#         send_info=input("发送数据：")
-#         node_message_sender.send(send_info)
-        
-        
+from Job import Job 
 
 
 
@@ -42,6 +31,11 @@ class WeaveMaster:
         self.epoch_list=[5,10,15,20]
         self.master_port=2000
         self.worker_port=3000
+        #正在处理的job数量用于控制程序结束
+        self.dealing_job_num=0
+        #用于socket包去粘包
+        self.buffer=""
+        self.end_event=threading.Event()
         
         #通讯器，初始化和启动监听。
         self.communicator=CommunicateServer(print_level=self.print_level)
@@ -57,6 +51,16 @@ class WeaveMaster:
         
         
     def message_receive(self,message):
+        self.buffer+=message
+        buffer_list=self.buffer.split("--end")
+        if len(buffer_list)>1:
+            for i in range(len(buffer_list)-1):
+                job=Job()
+                job.load_string(buffer_list[i])
+                self.statistic_end_job(job,by_master=False)
+                
+            self.buffer=buffer_list[len(buffer_list)-1]
+            
         print("master receive:\n", message)
 
     def load_ali_trace(self,file_name):
@@ -125,34 +129,61 @@ class WeaveMaster:
                 # a=1
         self.schedule_flage=False
         sub_thread_schedule.join()
+        
+        
         return
     
     #将任务发送给worker执行
     def send_job_to_worker(self,job_f):
         if self.print_level>5:
             print("send job to worker:{job_f.job_name} ...")
+            
+        #判断是否仅在worker运行，避免跨机器任务重复计数
+        if job_f.world_size==job_f.nprocs_list[1]:
+            self.dealing_job_num+=1
         self.communicator.send(job_f.to_string()+"--end")
         
     #任务本地执行
     def execute_job_in_master(self, job_f):
         if self.print_level>5:
             print("master execute job:{job_f.job_name} ...")
-        sub_thread=threading.Thread(target=self.run_command,args=(job_f.command,))
+            
+        self.dealing_job_num+=1
+        
+        sub_thread=threading.Thread(target=self.run_command,args=(job_f,job_f.command,))
         sub_thread.start()
 
     #任务具体运行
-    def run_command(self,command):
+    def run_command(self,job, command):
         if self.print_level>5:
             print("master start command:\n", command)
+        job.set_start_time(time.time())
         back=os.system(command)
+        if back==0:
+            job.succeed()
+        else:
+            job.failed()
+            
+        job.set_end_time(time.time())
+        #这里很重要，对于资源的回收，结果的统计，都在这里进行
+        self.statistic_end_job(job,by_master=True)
         print("执行完成后的返回值：",back)
     
+    def statistic_end_job(self,job, by_master):
+        print("end a job:", job.job_name)
+        if by_master or job.world_size ==job.nprocs_list[1] :
+            self.dealing_job_num-=1
+            if self.dealing_job_num==0:
+                self.end_event.set()
     
+    def wait(self):
+        self.end_event.wait()
+        
     def close(self):
         self.communicator.close()
 import random
 
-random.seed(1)
+random.seed(30)
 
 if __name__=="__main__":
     print_level=10
@@ -161,9 +192,7 @@ if __name__=="__main__":
     #     mess="aijf"*10
     #     weave_master.communicator.send(mess+"--end")
     weave_master.job_come()
-    
-
-
+    weave_master.wait()
     weave_master.close()
 
     print("The whole process end (by master)!")

@@ -11,9 +11,10 @@ class WeaveWorker:
         self.print_level=print_level
         self.comunicator=CommunicateClient("10.26.128.115",print_level=print_level)
         self.comunicator.start_connect()
-        self.comunicator.start_listening(self.message_receive)
+        sub_thread=self.comunicator.start_listening(self.message_receive)
         self.sub_thread_queue=queue.Queue()
         self.buffer=""
+        sub_thread.join()
         
     def message_receive(self,message):
         self.buffer+=message
@@ -22,7 +23,6 @@ class WeaveWorker:
             for i in range(len(buffer_list)-1):
                 job=Job()
                 job.load_string(buffer_list[i])
-                job.set_start_time(time.time())
                 
                 sub_thread=threading.Thread(target=self.run_command,args=(job, job.command,))
                 sub_thread.start()

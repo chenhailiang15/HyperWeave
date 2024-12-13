@@ -40,7 +40,7 @@ class CommunicateServer:
     def send(self,message):
         if self.connect_flage:
             with self.lock:
-            self.server_socket.send(message.encode("gbk"))
+                self.server_socket.send(message.encode("gbk"))
         
         
     def close(self):

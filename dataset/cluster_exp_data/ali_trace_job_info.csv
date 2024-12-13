@@ -1,2 +1,2 @@
 job_name,task_name,inst_num,gpu_type,start_time_j,cpu_usage,gpu_wrk_util,avg_mem,avg_gpu_wrk_mem,plan_cpu,plan_gpu,plan_mem,duration_s
-6ecff7d70916e32c3d403911,worker,50.0,MISC,1539222.0,6.205170291341814,0.0,3.657704429219648,5.5302734375,400.0,200.0,29.296875,1310.0
+6ecff7d70916e32c3d403911,worker,50.0,MISC,1539222.0,6.205170291341814,0.0,3.657704429219648,5.5302734375,400.0,100.0,29.296875,1310.0
