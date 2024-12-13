@@ -28,7 +28,7 @@ class CommunicateServer:
     def __listening(self,func):
         while self.connect_flage:
             message=self.server_socket.recv(1024).decode("gbk")
-            if message=="socket_close":
+            if message=="socket_close"  or not message:
                 print("关闭socket")
                 self.in_close()
                 self.connect_flage=False
@@ -74,7 +74,7 @@ class CommunicateClient:
     def __listening(self,func):
         while self.connect_flage:
             message=self.client_socket.recv(1024).decode("gbk")
-            if message=="socket_close":
+            if message=="socket_close" or not message:
                 print("关闭 socket")
                 self.in_close()
                 self.connect_flage=False

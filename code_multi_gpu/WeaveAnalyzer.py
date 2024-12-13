@@ -15,10 +15,10 @@ import numpy as np
 
 
 from Recorder import Record
-from Model_ResNet_etal import ResNet_etal_class
-from Model_Bert import Bert_class
-from Model_GCN import GCN_class
-from Model_GraphSage import GraphSage_class
+from models.Model_ResNet_etal import ResNet_etal_class
+from models.Model_Bert import Bert_class
+from models.Model_GCN import GCN_class
+from models.Model_GraphSage import GraphSage_class
 from util import *
 
 

@@ -10,6 +10,7 @@ class WeaveWorker:
     def __init__(self,print_level):
         self.print_level=print_level
         self.comunicator=CommunicateClient("10.26.128.115")
+        self.comunicator.start_connect()
         self.comunicator.start_listening(self.message_receive)
 
         

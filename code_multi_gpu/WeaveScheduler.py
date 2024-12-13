@@ -71,9 +71,8 @@ def get_strategy():
 
 
 class WeaveSchedulor:
-    def __init__(self,master, command_sender, strategy):
+    def __init__(self,master, strategy):
         self.master=master
-        self.command_sender=command_sender
         self.strategy=strategy
         self.gpu_list=[i for i in range(7)]
         
