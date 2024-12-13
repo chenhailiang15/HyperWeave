@@ -22,7 +22,7 @@ class WeaveWorker:
         
     def run_command(self,command):
         print("worker receive command:\n",command)
-        # os.system(command)
+        os.system(command)
 
 if __name__=="__main__":
     WeaveWorker()

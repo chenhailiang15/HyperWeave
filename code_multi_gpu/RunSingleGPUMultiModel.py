@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 ## -*- coding: utf-8 -*-
 from Recorder import Record
-from Model_ResNet_etal import ResNet_etal_class
+from models.Model_ResNet_etal import ResNet_etal_class
 import argparse
 import os
 import time

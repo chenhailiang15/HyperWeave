@@ -93,6 +93,10 @@ class WeaveSchedulor:
             self.master.execute_schedule(job[1],job[2],job[3],select_gpu)
         return []
     
+    def schedule_weave_over_sharing(self):
+
+        return []
+    
     
     
     
