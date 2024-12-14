@@ -10,15 +10,12 @@ import socket
 
 
 
-
-def is_port_in_use(port):
+#判断端口是否被使用
+def is_port_in_use(ip, port):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         # 尝试绑定到指定的主机和端口
-        
-        result = sock.connect_ex(("localhost", int(port)))
+        result = sock.connect_ex((ip, int(port)))
         return result == 0
-
-
 
 #生成共享内存名字
 def generate_shm_name(length=10):

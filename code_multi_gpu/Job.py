@@ -1,6 +1,6 @@
 import json
 import time
-
+import math
 
 
 
@@ -29,6 +29,7 @@ class Job:
         self.plan_cpu=plan_cpu
         self.plan_mem=plan_mem
         self.plan_gpu=plan_gpu
+        self.parallel_num=math.ceil(plan_gpu/100)
     
     #时间信息
     def set_arrive_time(self, arrive_time):
@@ -140,5 +141,33 @@ class Job:
         
         
         
-    def get_key_job_info(self):
+    def job_key_info(self):
         return f"jn:{self.job_name}-mn:{self.model_name}-tep:{self.total_epochs}-bts:{self.batch_size}-gpu:{self.plan_gpu}"
+    
+    def get_name_batchsize_epoch(self):
+        return f"{self.model_name}={self.batch_size}-{self.parallel_num}"
+    
+    
+    def is_only_master(self):
+        if self.world_size==self.nprocs_list[0]:
+            return True
+        else:
+            return False
+        
+    def is_only_worker(self):
+        if self.world_size==self.nprocs_list[1]:
+            return True
+        else:
+            return False 
+        
+    def is_cross(self):
+        if self.nprocs_list[0]!=0 and self.nprocs_list[1]!=0:
+            return True
+        else:
+            return False
+        
+    def is_multi_gpu(self):
+        if self.plan_gpu>100:
+            return True
+        else:
+            return False

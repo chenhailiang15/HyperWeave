@@ -8,8 +8,11 @@ import queue
 
 class WeaveWorker:
     def __init__(self,print_level):
+        self.master_ip="10.26.128.115"
+        self.master_port=8000
         self.print_level=print_level
-        self.comunicator=CommunicateClient("10.26.128.115",print_level=print_level)
+        
+        self.comunicator=CommunicateClient(ip=self.master_ip,port=self.master_port,print_level=print_level)
         self.comunicator.start_connect()
         sub_thread=self.comunicator.start_listening(self.message_receive)
         self.sub_thread_queue=queue.Queue()

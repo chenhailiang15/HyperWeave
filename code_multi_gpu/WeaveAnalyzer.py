@@ -163,6 +163,16 @@ class AnalyzeDataLoader:
             
     def get_value(self, model_info, stage_info="stage_train", resource_kind="gpu"):
         return self.data[model_info][stage_info][self.index[resource_kind]]
+    
+    def get_job_value(self, job, stage_info, resource_kind):
+        return self.data[job.get_name_batchsize_epoch()][stage_info][self.index[resource_kind]]
+    def get_job_values(self, job, stage_info):
+        cpu=self.get_job_value(job,stage_info, "cpu")
+        mem=self.get_job_value(job,stage_info, "mem")
+        gpu=self.get_job_value(job,stage_info, "gpu")
+        gmem=self.get_job_value(job,stage_info, "gmem")
+        time=self.get_job_value(job,stage_info, "time")
+        return [cpu, mem, gpu, gmem, time]
 
         
     

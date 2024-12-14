@@ -29,8 +29,12 @@ class WeaveMaster:
         self.model_name_list=["AlexNet","ResNet18","ResNet50","VGG16","MobileNetv2"]
         self.batch_size_list=[8,16,32,64,128]
         self.epoch_list=[5,10,15,20]
+        
+        self.master_ip="10.26.128.115"
         self.master_port=2000
+        self.worker_ip="10.26.128.51"
         self.worker_port=3000
+        
         #正在处理的job数量用于控制程序结束
         self.dealing_job_num=0
         #用于socket包去粘包
@@ -76,24 +80,26 @@ class WeaveMaster:
 
     def generate_job(self, ali_trace):
         job_name=ali_trace["job_name"]
+        
+        plan_cpu=ali_trace["plan_cpu"]/ali_trace["cpu_usage"]*self.analyze_2080_loader.get_value(model_info,"stage_sample","cpu")
+        plan_mem=ali_trace["plan_mem"]/ali_trace["avg_mem"]*self.analyze_2080_loader.get_value(model_info,"stage_sample","mem")
+        plan_gpu=ali_trace["plan_gpu"]
+        
         model_name=random.choice(self.model_name_list)
         batch_size=random.choice(self.batch_size_list)
-        parrallel_num=ali_trace["plan_gpu"]/100 if ali_trace["plan_gpu"]<=400 else 4
+        parrallel_num=plan_gpu/100 if plan_gpu<=400 else 4
         
         model_info=model_name+"-"+str(batch_size)+"-"+str(int(math.ceil(parrallel_num)))
         init_time=self.analyze_2080_loader.get_value(model_info,"stage_init","time")
         epoch_time=self.analyze_2080_loader.get_value(model_info,"stage_sample","time")+self.analyze_2080_loader.get_value(model_info,"stage_train","time")
-        cal_epoch=math.ceil((ali_trace["plan_gpu"]/self.job_time_factor-init_time)/epoch_time)
+        cal_epoch=math.ceil((ali_trace["duration_s"]/self.job_time_factor-init_time)/epoch_time)
         total_epochs=cal_epoch if cal_epoch<5 else 5
         
-        plan_cpu=ali_trace["plan_cpu"]/ali_trace["cpu_usage"]*self.analyze_2080_loader.get_value(model_info,"stage_sample","cpu")
-        plan_mem=ali_trace["plan_mem"]/ali_trace["avg_mem"]*self.analyze_2080_loader.get_value(model_info,"stage_sample","mem")
         arrive_time=time.time()
-        
         
         job=Job()
         job.set_model_info(job_name, model_name,total_epochs, batch_size)
-        job.set_plan_resource(plan_cpu, plan_mem, parrallel_num)
+        job.set_plan_resource(plan_cpu, plan_mem, plan_gpu)
         job.set_arrive_time(arrive_time)
         return job
         

@@ -80,32 +80,107 @@ class WeaveSchedulor:
         
     
     def do_schedule(self,job_list):
+        if self.print_level>2:
+            print(f"start schedule ({self.strategy})...")
         if self.strategy=="random":
             rest_job=self.schedule_random(job_list)
+        elif self.strategy=="over_sharing":
+            rest_job=self.schedule_weave_over_sharing(job_list)
         else:
             print("strategy wrong!")
             exit(-1)
         return rest_job
     
     def schedule_random(self, job_list):
-        if self.print_level>2:
-            print("start schedule ...")
+        
         for job in job_list:
             gpu_num=math.ceil(job.plan_gpu)
             select_gpu=random.sample(self.gpu_list, gpu_num)
             self.execute_schedule(job,select_gpu)
         return []
     
-    def schedule_weave_over_sharing(self):
-
+    def schedule_weave_over_sharing(self,job_list):
+        multi_gpu_jobs, single_gpu_jobs=self.__over_sharing_get_multi_gpu_jobs(job_list)
+        matched_jobs_list=self.__over_sharing_match_multi_gpu_jobs(multi_gpu_jobs)
+        
+        
+        
+        # for job in job_list:
+            
+            
+            
         return []
     
     
     
     
+    def __over_sharing_get_multi_gpu_jobs(self,job_list):
+        multi_gpu_jobs=[]
+        single_gpu_jobs=[]
+        for job in job_list:
+            if job.is_multi_gpu():
+                multi_gpu_jobs.append(job)
+            else:
+                single_gpu_jobs.append(job)
+        return multi_gpu_jobs, single_gpu_jobs
     
+    def __over_sharing_match_multi_gpu_jobs(self, multi_gpu_jobs):
+        matched_job_name=set()
+        complete_match_list=[]
+        out_matched_jobs_list=[]
+        for i_index in range(len(multi_gpu_jobs)):
+            for j_index in range(i_index+1, len(multi_gpu_jobs)):
+                job1=multi_gpu_jobs[i_index]
+                job2=multi_gpu_jobs[j_index]
+                epoch1=job1.total_epochs
+                [cpu11, mem11, gpu11, gmem11,time11]=self.master.analyze_2080_loader.get_job_values(job1,"stage_sample")
+                [cpu12, mem12, gpu12, gmem12,time12]=self.master.analyze_2080_loader.get_job_values(job1,"stage_train")
+
+                epoch2=job2.total_epochs
+                [cpu21, mem21, gpu21, gmem21,time21]=self.master.analyze_2080_loader.get_job_values(job2,"stage_sample")
+                [cpu22, mem22, gpu22, gmem22,time22]=self.master.analyze_2080_loader.get_job_values(job2,"stage_train")
+                
+                epoch_factor=self.__over_sharing_cal_similarity(epoch1,epoch2)
+                cpu_factor=self.__over_sharing_cal_similarity(cpu11+cpu22,cpu12+cpu21)
+                mem_factor=self.__over_sharing_cal_similarity(mem11+mem22,mem12+mem21)
+                gpu_factor=self.__over_sharing_cal_similarity(gpu11+gpu22,gpu12+gpu21)
+                gmem_factor=self.__over_sharing_cal_similarity(gmem11+gmem22,gmem12+gmem21)
+                time_factor=self.__over_sharing_cal_similarity(time11+time22,time12+time21)
+                
+                simimlarity=epoch_factor+cpu_factor+mem_factor+gpu_factor+gmem_factor+time_factor
+                complete_match_list.append([simimlarity,job1,job2])
+        #按照匹配值高低进行提取
+        complete_match_list.sort(key=lambda x:x[0], reverse=True)
+        for i in range(len(complete_match_list)):
+            job1=complete_match_list[i][1]
+            job2=complete_match_list[i][2]
+            if job1.job_name not in matched_job_name and job2.job_name not in matched_job_name:
+                matched_job_name.add(job1.job_name)
+                matched_job_name.add(job2.job_name)
+                out_matched_jobs_list.append([job1,job2])
+                continue
+                
+            if i == len(complete_match_list):
+                if job1.job_name not in matched_job_name:
+                    matched_job_name.add(job1.job_name)
+                    out_matched_jobs_list.append([job1])
+                if job2.job_name not in matched_job_name:
+                    matched_job_name.add(job2.job_name)
+                    out_matched_jobs_list.append([job2])
+        #判断输出是否包含所有jobs
+        if len(matched_job_name) != multi_gpu_jobs:
+            print("__over_sharing_match_multi_gpu_jobs wrong!")
+            exit(256)
+        return out_matched_jobs_list
+                
+                
+    def __over_sharing_cal_similarity(self, var1, var2):
+        return 1-(abs(var1-var2)/max(var1,var2))
+        
     
-    
+    def __over_sharing_select_gpu_for_multi_gpu_jobs(self, matched_jobs_list):
+        for matched_jobs in matched_jobs_list:
+            
     
     
     
