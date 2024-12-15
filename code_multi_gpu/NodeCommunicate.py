@@ -4,7 +4,7 @@ import threading
 
 
 class CommunicateServer:
-    def __init__(self, port=8000, print_level=0):
+    def __init__(self, port=8888, print_level=0):
         self.port=port
         self.print_level=print_level
         self.lock=threading.Lock()

@@ -64,7 +64,7 @@ class Node:
                 satisfy_gpu_id_list.append([i,ave_per])
                 satisfy_score+=ave_per
                 
-        satisfy_gpu_id_list.sorted(key=lambda x:x[1], reverse=True)
+        satisfy_gpu_id_list.sort(key=lambda x:x[1], reverse=True)
         return satisfy_gpu_id_list, satisfy_score
     
     

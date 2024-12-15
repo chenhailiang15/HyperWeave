@@ -148,17 +148,17 @@ class WeaveSchedulor:
                 job1=jobs_list[i_index]
                 job2=jobs_list[j_index]
                 epoch1=job1.total_epochs
-                parrallel1=job1.parrallel_num
+                parallel1=job1.parallel_num
                 [cpu11, mem11, gpu11, gmem11,time11]=self.master.analyze_2080_loader.get_job_values(job1,"stage_sample")
                 [cpu12, mem12, gpu12, gmem12,time12]=self.master.analyze_2080_loader.get_job_values(job1,"stage_train")
 
                 epoch2=job2.total_epochs
-                parrallel2=job2.parrallel_num
+                parallel2=job2.parallel_num
                 [cpu21, mem21, gpu21, gmem21,time21]=self.master.analyze_2080_loader.get_job_values(job2,"stage_sample")
                 [cpu22, mem22, gpu22, gmem22,time22]=self.master.analyze_2080_loader.get_job_values(job2,"stage_train")
                 
                 epoch_factor=self.__over_sharing_cal_similarity(epoch1,epoch2)
-                parrallel_factor=self.__over_sharing_cal_similarity(parrallel1,parrallel2)
+                parallel_factor=self.__over_sharing_cal_similarity(parallel1,parallel2)
                 cpu_factor=self.__over_sharing_cal_similarity(cpu11+cpu22,cpu12+cpu21)
                 mem_factor=self.__over_sharing_cal_similarity(mem11+mem22,mem12+mem21)
                 gpu_factor=self.__over_sharing_cal_similarity(gpu11+gpu22,gpu12+gpu21)
@@ -167,7 +167,7 @@ class WeaveSchedulor:
                 
                 pack_resource=[max(cpu11+cpu22,cpu12+cpu21 ), max(mem11+mem22, mem12+mem21), max(gpu11+gpu22, gpu12+gpu21), max(gmem11+gmem22, gmem12+gmem21) ]
                 
-                simimlarity=epoch_factor+parrallel_factor+cpu_factor+mem_factor+gpu_factor+gmem_factor+time_factor
+                simimlarity=epoch_factor+parallel_factor+cpu_factor+mem_factor+gpu_factor+gmem_factor+time_factor
                 
                 complete_match_list.append([simimlarity,job1,job2,pack_resource])
       
@@ -233,31 +233,31 @@ class WeaveSchedulor:
                 #调整优先级，score原始是GPU剩余量百分比的和
                 satisfy_gpu_list_new.append([node_index, score, temp_gpu_list])
                 all_satisfy_gpu_num+=len(temp_gpu_list)
-            satisfy_gpu_list_new.sorted(key=lambda x:x[1], reverse=True)
+            satisfy_gpu_list_new.sort(key=lambda x:x[1], reverse=True)
             
             
             if job2 == None :
                 
-                max_parallel=job1.parrallel
+                max_parallel=job1.parallel_num
                 if all_satisfy_gpu_num<max_parallel:
                     rest_job.append(job1)
                     continue
-                job1_rest_gpu=job1.parrallel
+                job1_rest_gpu=job1.parallel_num
                 
                 job1_gpu_id_list, _, _= self.get_aim_gpu_id(job1_rest_gpu, 0, satisfy_gpu_list_new)
-                scheduled_jobs.append([job1, job1_gpu_id_list, shm_name_dict])
+                scheduled_jobs.append([job1, job1_gpu_id_list, {}])
                 
                 self.master.monitor.alloc_resource(job1, job1_gpu_id_list, pack_resource)
                 # self.execute_schedule(job1, job1_gpu_id_list, shm_name_dict)
                     
             else:
-                max_parallel=max(job1.parrallel, job2.parrallel)
+                max_parallel=max(job1.parallel_num, job2.parallel_num)
                 if all_satisfy_gpu_num<max_parallel:
                     rest_job.append(job1)
                     rest_job.append(job2)
                     continue
-                job1_rest_gpu=job1.parrallel
-                job2_rest_gpu=job2.parrallel
+                job1_rest_gpu=job1.parallel_num
+                job2_rest_gpu=job2.parallel_num
                 
                 job1_gpu_id_list,job2_gpu_id_list,shm_name_dict= self.get_aim_gpu_id(job1_rest_gpu, job2_rest_gpu, satisfy_gpu_list_new)
                 scheduled_jobs.append([job1, job1_gpu_id_list, shm_name_dict])
@@ -309,8 +309,8 @@ class WeaveSchedulor:
             
     def execute_schedule(self, job, select_gpu_list, shm_name_dict):
         world_size=0
-        nprocs_list=[0]*len(self.master.node_num)
-        gpu_id_list=[]*len(self.master.node_num)
+        nprocs_list=[0]*self.master.node_num
+        gpu_id_list=[ [] for i in range(self.master.node_num)]
 
         for [node_index, gpu_list] in select_gpu_list:
             world_size+=len(gpu_list)
@@ -418,8 +418,8 @@ class WeaveSchedulor:
     # # def is_worker_satisfy()
           
     # def is_worker_prior(self,master_satisfy, worker_satisfy, max_parallel ):
-    #         master_satisfy.sorted(key=lambda x: x[1], reverse=True)
-    #         worker_satisfy.sorted(key=lambda x: x[1], reverse=True)
+    #         master_satisfy.sort(key=lambda x: x[1], reverse=True)
+    #         worker_satisfy.sort(key=lambda x: x[1], reverse=True)
     #         master_v=0
     #         worker_v=0
     #         for i in range(max_parallel):
@@ -451,7 +451,7 @@ class WeaveSchedulor:
     #         worker_info[0]=worker_info[0]+4
     #         all_satisfy.append(worker_info)
             
-    #     all_satisfy.sorted(key =lambda x : x[1], reverse=True)
+    #     all_satisfy.sort(key =lambda x : x[1], reverse=True)
     #     out_gpu_id=[]
     #     for i in range(select_num):
     #         out_gpu_id.append(master_satisfy[i][0])

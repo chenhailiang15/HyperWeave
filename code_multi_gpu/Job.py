@@ -179,7 +179,7 @@ class Job:
         return f"jn:{self.job_name}-mn:{self.model_name}-tep:{self.total_epochs}-bts:{self.batch_size}-gpu:{self.plan_gpu}"
     
     def get_name_batchsize_epoch(self):
-        return f"{self.model_name}={self.batch_size}-{self.parallel_num}"
+        return f"{self.model_name}-{self.batch_size}-{self.parallel_num}"
     
     
     

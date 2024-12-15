@@ -19,17 +19,12 @@ class WeaveMonitor:
         [cpu, mem, gpu, gmem]=pack_resource
         for [node_index, gpu_id_list] in job_gpu_id_list:
             self.nodes[node_index].alloc_resource(cpu, mem, gpu, gmem, gpu_id_list)
-        else:
-            print("(Monitor) node_index wrong!")
-            exit(256)
+        
                 
     def takeback_resource(self,job, job_gpu_id_list,pack_resource):
         [cpu, mem, gpu, gmem]=pack_resource
         for [node_index, gpu_id_list] in job_gpu_id_list:
             self.nodes[node_index].takeback_resource(cpu, mem, gpu, gmem, gpu_id_list)
-        else:
-            print("(Monitor) node_index wrong!")
-            exit(256)
         
             
                 
@@ -40,7 +35,7 @@ class WeaveMonitor:
             temp_gpu_list, score=self.nodes[i].get_satisfy_gpu_id(pack_resource)
             satisfy_gpu_list.append([i, score, temp_gpu_list])  #GPU数量最优先
         
-        # satisfy_gpu_list.sorted(key=lambda x:x[1], reverse=True)#
+        # satisfy_gpu_list.sort(key=lambda x:x[1], reverse=True)#
 
         return satisfy_gpu_list
     

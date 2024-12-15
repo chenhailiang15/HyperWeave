@@ -9,7 +9,7 @@ import queue
 class WeaveWorker:
     def __init__(self,print_level):
         self.master_ip="10.26.128.51"
-        self.master_port=8000
+        self.master_port=8888
         self.print_level=print_level
         
         self.comunicator=CommunicateClient(ip=self.master_ip,port=self.master_port,print_level=print_level)
