@@ -44,7 +44,7 @@ class Job:
     def failed(self):
         self.succeed_flage=False
     
-    def set_execute_info(self,MASTER_ADDR, MASTER_PORT, net_card, node_rank,world_size ,nprocs_list, gpu_id_list, prior=False, max_sync_num=0, shm_name_list=[]):
+    def set_execute_info(self,MASTER_ADDR, MASTER_PORT, net_card, node_rank,world_size ,nprocs_list, gpu_id_list, prior=False, shm_name_list={}):
         self.MASTER_ADDR=MASTER_ADDR
         self.MASTER_PORT=MASTER_PORT
         self.net_card=net_card
@@ -53,17 +53,16 @@ class Job:
         self.nprocs_list=nprocs_list
         self.gpu_id_list=gpu_id_list
         self.prior=prior
-        self.max_sync_num=max_sync_num
         self.shm_name_list=shm_name_list
         
         nprocs_list_c=nprocs_list.__str__().replace(" ","")
         gpu_id_list_c=gpu_id_list.__str__().replace(" ","")
-        shm_name_list_c=shm_name_list.__str__().replace(" ", "")
+        shm_name_list_c=json.dumps(shm_name_list)
         
         self.command=f"python WeaveExecutor.py --MASTER_ADDR {MASTER_ADDR} --MASTER_PORT {MASTER_PORT} --net_card {net_card}  --node_rank {node_rank} \
             --world_size {world_size} --nprocs_list {nprocs_list_c} --gpu_id_list {gpu_id_list_c} --model_name {self.model_name} --batch_size {self.batch_size} \
             --total_epochs {self.total_epochs} --worker_num {self.worker_num} --layer_num {self.layer_num} --layer_feature {self.layer_feature} \
-            --squad_data_size {self.squad_data_size} --max_sync_num {max_sync_num} --shm_name_list {shm_name_list_c}"
+            --squad_data_size {self.squad_data_size} --shm_name_list {shm_name_list_c}"
         if prior:
             self.command=self.command+" --prior"
         
@@ -88,7 +87,6 @@ class Job:
         json_dict["nprocs_list"]=self.nprocs_list
         json_dict["gpu_id_list"]=self.gpu_id_list
         json_dict["prior"]=self.prior
-        json_dict["max_sync_num"]=self.max_sync_num
         json_dict["shm_name_list"]=self.shm_name_list
         json_dict["command"]=self.command
         
@@ -126,7 +124,6 @@ class Job:
         self.nprocs_list=json_dict["nprocs_list"]
         self.gpu_id_list=json_dict["gpu_id_list"]
         self.prior=json_dict["prior"]
-        self.max_sync_num=json_dict["max_sync_num"]
         self.shm_name_list=json_dict["shm_name_list"]
         self.command=json_dict["command"]
         

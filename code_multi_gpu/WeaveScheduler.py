@@ -285,7 +285,28 @@ class WeaveSchedulor:
                 break
         return job1_gpu_id_list,job2_gpu_id_list,shm_name_dict
             
-                
+    def execute_schedule(self, job, select_gpu_list, shm_name_dict):
+        world_size=0
+        nprocs_list=[0]*len(self.master.node_num)
+        gpu_id_list=[]*len(self.master.node_num)
+
+        for [node_index, gpu_list] in select_gpu_list:
+            world_size+=len(gpu_list)
+            nprocs_list[node_index]=len(gpu_list)
+            gpu_id_list[node_index]=gpu_list
+            
+        
+        main_ip=None
+        main_temp_port=None
+        for [node_index, gpu_list] in select_gpu_list:
+            if main_ip == None:
+                main_ip=self.master.nodes[node_index].ip
+                main_temp_port=self.master.nodes[node_index].get_idle_port()
+            net_card=self.master.nodes[node_index].net_card
+            job.set_execute_info(main_ip, main_temp_port, net_card, node_index, world_size ,nprocs_list, gpu_id_list, shm_name_list=shm_name_dict)
+            self.master.send_job_to_execution(job)
+            
+        
             
                 
         #     execute_node=None
@@ -354,126 +375,66 @@ class WeaveSchedulor:
         # return rest_job
     
     
-    def is_master_satisfy(self, master_satisfy_gpu_list, max_parrallel, job_num):
-        if max_parrallel==1 :
-            if len(master_satisfy_gpu_list)>0:
-                return True
-            else:
-                return False
+    # def is_master_satisfy(self, master_satisfy_gpu_list, max_parrallel, job_num):
+    #     if max_parrallel==1 :
+    #         if len(master_satisfy_gpu_list)>0:
+    #             return True
+    #         else:
+    #             return False
         
-        if len(master_satisfy_gpu_list)>= max_parrallel and self.master.monitor.cross_master_gpu_num+job_num <= self.master.max_cross_gpu:
-            return True
-        else:
-            return False
+    #     if len(master_satisfy_gpu_list)>= max_parrallel and self.master.monitor.cross_master_gpu_num+job_num <= self.master.max_cross_gpu:
+    #         return True
+    #     else:
+    #         return False
 
-    # def is_worker_satisfy()
+    # # def is_worker_satisfy()
           
-    def is_worker_prior(self,master_satisfy, worker_satisfy, max_parallel ):
-            master_satisfy.sorted(key=lambda x: x[1], reverse=True)
-            worker_satisfy.sorted(key=lambda x: x[1], reverse=True)
-            master_v=0
-            worker_v=0
-            for i in range(max_parallel):
-                master_v+=master_satisfy[i][1]
-                worker_v+=worker_satisfy[i][1]
-            if worker_v>master_v:
-                return True
-            else:
-                return False
+    # def is_worker_prior(self,master_satisfy, worker_satisfy, max_parallel ):
+    #         master_satisfy.sorted(key=lambda x: x[1], reverse=True)
+    #         worker_satisfy.sorted(key=lambda x: x[1], reverse=True)
+    #         master_v=0
+    #         worker_v=0
+    #         for i in range(max_parallel):
+    #             master_v+=master_satisfy[i][1]
+    #             worker_v+=worker_satisfy[i][1]
+    #         if worker_v>master_v:
+    #             return True
+    #         else:
+    #             return False
                     
-    def can_execute(self,master_satisfy, worker_satisfy, job1,job2):
-        sync_name_dict={}
-        selected1_gpu=self.select_proir_gpu(master_satisfy, worker_satisfy, job1)
-        if job2 != None:
-            selected2_gpu=self.select_proir_gpu(master_satisfy, worker_satisfy, job2)
-            for gpu_id in selected2_gpu:
-                if gpu_id in selected1_gpu:
-                    shm_name=generate_shm_name()
-                    sync_name_dict[gpu_id]=shm_name
-            self.execute_schedule(job2, selected2_gpu, sync_name_dict)
-        self.execute_schedule(job1, selected1_gpu, sync_name_dict)
+    # def can_execute(self,master_satisfy, worker_satisfy, job1,job2):
+    #     sync_name_dict={}
+    #     selected1_gpu=self.select_proir_gpu(master_satisfy, worker_satisfy, job1)
+    #     if job2 != None:
+    #         selected2_gpu=self.select_proir_gpu(master_satisfy, worker_satisfy, job2)
+    #         for gpu_id in selected2_gpu:
+    #             if gpu_id in selected1_gpu:
+    #                 shm_name=generate_shm_name()
+    #                 sync_name_dict[gpu_id]=shm_name
+    #         self.execute_schedule(job2, selected2_gpu, sync_name_dict)
+    #     self.execute_schedule(job1, selected1_gpu, sync_name_dict)
         
                     
                     
             
-    def select_proir_gpu(master_satisfy,worker_satisfy, select_num):
-        all_satisfy=master_satisfy[:]
-        for worker_info in worker_satisfy:
-            worker_info[0]=worker_info[0]+4
-            all_satisfy.append(worker_info)
+    # def select_proir_gpu(master_satisfy,worker_satisfy, select_num):
+    #     all_satisfy=master_satisfy[:]
+    #     for worker_info in worker_satisfy:
+    #         worker_info[0]=worker_info[0]+4
+    #         all_satisfy.append(worker_info)
             
-        all_satisfy.sorted(key =lambda x : x[1], reverse=True)
-        out_gpu_id=[]
-        for i in range(select_num):
-            out_gpu_id.append(master_satisfy[i][0])
-        return out_gpu_id
+    #     all_satisfy.sorted(key =lambda x : x[1], reverse=True)
+    #     out_gpu_id=[]
+    #     for i in range(select_num):
+    #         out_gpu_id.append(master_satisfy[i][0])
+    #     return out_gpu_id
         
             
             
     
     
     
-    def execute_schedule(self, job, select_gpu_list, shm_name_dict):
-        world_size=0
-        for [node_index, gpu_list] in select_gpu_list:
-            world_size+=len(gpu_list)
-        
-        for [node_index, gpu_list] in select_gpu_list:
-            
-            
-            
-            
-            
-        master_gpu_id_list=[x for x in select_gpu_list if x <4]
-        worker_gpu_id_list=[x-4 for x in select_gpu_list if x >= 4]
-        
-        nprocs_list=[len(master_gpu_id_list), len(worker_gpu_id_list)]
-        gpu_id_list=[master_gpu_id_list,worker_gpu_id_list]
-
-        is_cross=True if len(master_gpu_id_list)>0 and len(worker_gpu_id_list)>0 else False
-
-        if len(master_gpu_id_list)>0:
-            self.job_set_execute_info(job, True, is_cross, world_size, nprocs_list, gpu_id_list )
-            self.master.execute_job_in_master(job)
-            
-        if len(worker_gpu_id_list)>0:
-            self.job_set_execute_info(job, False, is_cross, world_size, nprocs_list, gpu_id_list )
-            self.master.send_job_to_worker(job)
-            
-            
-    def job_set_execute_info(self, job, is_master, is_cross, world_size, nprocs_list, gpu_id_list):
-        if is_master:
-            node_rank=0
-            net_card="eno2"
-        else:
-            node_rank=1
-            net_card="eno1"
-        
-
-        if is_cross and is_master:
-            while is_port_in_use(self.master.master_port):
-                if self.print_level>9:
-                    print("change port")
-                self.master.master_port+=1
-
-
-        if is_cross or is_master:
-            MASTER_ADDR="10.26.128.115"
-            if is_master:
-                MASTER_PORT=self.master.master_port
-                self.master.master_port+=1
-            else:
-                MASTER_PORT=self.master.master_port-1
-            
-        elif (not is_cross) and (not is_master):
-            MASTER_ADDR="10.26.128.51"
-            MASTER_PORT=self.master.worker_port
-            self.master.worker_port+=1
-        
-            
-            
-        job.set_execute_info(MASTER_ADDR, MASTER_PORT, net_card, node_rank,world_size ,nprocs_list, gpu_id_list)
-        
+    
     
     
     

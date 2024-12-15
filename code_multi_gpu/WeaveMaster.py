@@ -78,9 +78,10 @@ class WeaveMaster:
         
         
     def init_node(self):
-        master_node=Node(node_id="master", ip="10.26.128.115", overshared_factor=self.overshared_factor, max_cross_gpu_job_num=self.max_gpu_cross, print_level=self.print_level)
+        self.node_num=2
+        master_node=Node(node_id="master", ip="10.26.128.115", net_card="eno2", overshared_factor=self.overshared_factor, max_cross_gpu_job_num=self.max_gpu_cross, print_level=self.print_level)
         master_node.set_init_resouce(48*100, 62*1024, 4, 8*1024)
-        worker_node=Node(node_id="worker", ip="10.26.128.51", overshared_factor=self.overshared_factor, max_cross_gpu_job_num=self.max_gpu_cross, print_level=self.print_level)
+        worker_node=Node(node_id="worker", ip="10.26.128.51", net_card="eno1", overshared_factor=self.overshared_factor, max_cross_gpu_job_num=self.max_gpu_cross, print_level=self.print_level)
         worker_node.set_init_resouce(48*100,125*1024, 3, 11*1024)
         self.nodes=[master_node, worker_node]
         
@@ -169,6 +170,12 @@ class WeaveMaster:
         
         return
     
+    
+    def send_job_to_execution(self, job_f):
+        if job_f.node_rank==0:
+            self.execute_job_in_master(job_f)
+        else:
+            self.send_job_to_worker(job_f)
     #将任务发送给worker执行
     def send_job_to_worker(self,job_f):
         if self.print_level>5:

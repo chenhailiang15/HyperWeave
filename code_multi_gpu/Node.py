@@ -3,7 +3,7 @@ import numpy as np
 
 
 class Node:
-    def __init__(self, node_id, ip,overshared_factor, max_cross_gpu_job_num, print_level):
+    def __init__(self, node_id, ip, net_card, overshared_factor, max_cross_gpu_job_num, print_level):
         self.node_id=node_id
         self.overshared_factor=overshared_factor
         self.max_cross_gpu_job_num=max_cross_gpu_job_num
@@ -11,6 +11,7 @@ class Node:
         self.cross_gpu_job_num=0
         self.current_port=2000
         self.ip=ip
+        self.net_card=net_card
         
     def set_init_resouce(self, cpu, mem, gpu_num, gmem):
         self.cpu=cpu

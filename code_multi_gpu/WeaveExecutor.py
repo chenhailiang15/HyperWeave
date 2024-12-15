@@ -50,8 +50,10 @@ def single_training(local_rank,args,model):
     model.set_local_rank(local_rank)
     
     #判断要不要启动同步器
-    if local_rank<args.max_sync_num:
-        model.set_shm_name(args.prior, args.shm_name_list[local_rank])
+    if args.node_rank in args.shm_name_list:
+        gpu_id=args.gpu_id_list[args.node_rank][local_rank]
+        if gpu_id in args.shm_name_list[args.node_rank]:
+            model.set_shm_name(args.prior, args.shm_name_list[args.node_rank][gpu_id])
     else:
         model.set_shm_name(args.prior, "", enable_flage=False)
     # Load the necessary training objects - dataset, model, and optimizer.
@@ -133,8 +135,8 @@ if __name__=="__main__":
     parser.add_argument("--print_flage", action='store_true')
     
     #同步参数
-    parser.add_argument("--max_sync_num",default=0,type=int)
-    parser.add_argument("--shm_name_list",default="[]",type=parse_list_shm)
+    # parser.add_argument("--max_sync_num",default=0,type=int)
+    parser.add_argument("--shm_name_list",default="{}",type=parse_dict_shm)
     
     #其他参数
     parser.add_argument("--MASTER_ADDR",default="localhost")

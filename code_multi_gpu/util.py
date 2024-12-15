@@ -7,7 +7,7 @@ import string
 import secrets
 import psutil
 import socket
-
+import json
 
 
 #判断端口是否被使用
@@ -25,13 +25,14 @@ def generate_shm_name(length=10):
     secure_random_string = ''.join(secrets.choice(characters) for i in range(length))
     return secure_random_string
 
-#解析输入参数为list 特定
-def parse_list_shm(list_arg):
-    list_arg=list_arg.replace("]","").replace("[","").split(",")
-    shm_list=[]
-    for shm in list_arg:
-        shm_list.append(shm)
-    return shm_list
+#解析输入参数为dict
+def parse_dict_shm(dict_arg):
+    shm_dict=json.loads(dict_arg)
+    # list_arg=list_arg.replace("]","").replace("[","").split(",")
+    # shm_list=[]
+    # for shm in list_arg:
+    #     shm_list.append(shm)
+    return shm_dict
     
 #解析输入参数为list 普遍
 def parse_list_arg(list_arg):
