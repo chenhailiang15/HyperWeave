@@ -100,21 +100,26 @@ class WeaveSchedulor:
         return []
     
     def schedule_weave_over_sharing(self,job_list):
-        multi_gpu_jobs, single_gpu_jobs=self.__over_sharing_get_multi_gpu_jobs(job_list)
-        matched_jobs_list=self.__over_sharing_match_multi_gpu_jobs(multi_gpu_jobs)
-        self.__over_sharing_select_gpu_for_multi_gpu_jobs(matched_jobs_list)
+        multi_gpu_jobs, single_gpu_jobs=self.__over_sharing_classify_jobs(job_list)
         
+        matched_jobs_list=self.__over_sharing_match_jobs(multi_gpu_jobs)
+        rest_jobs1, scheduled_jobs1=self.__over_sharing_select_gpu(matched_jobs_list, is_multi=True)
         
-        # for job in job_list:
-            
-            
-            
-        return []
+        matched_jobs_list=self.__over_sharing_match_jobs(single_gpu_jobs)
+        rest_jobs2, scheduled_jobs2=self.__over_sharing_select_gpu(matched_jobs_list, is_multi=False)
+
+        scheduled_jobs=scheduled_jobs1+scheduled_jobs2
+        
+        for job_info in scheduled_jobs:
+            self.execute_schedule(job_info[0], job_info[1], job_info[2])
+        
+        rest_job=rest_jobs1+rest_jobs2
+        return rest_job
     
     
     
     
-    def __over_sharing_get_multi_gpu_jobs(self,job_list):
+    def __over_sharing_classify_jobs(self,job_list):
         multi_gpu_jobs=[]
         single_gpu_jobs=[]
         for job in job_list:
@@ -124,14 +129,14 @@ class WeaveSchedulor:
                 single_gpu_jobs.append(job)
         return multi_gpu_jobs, single_gpu_jobs
     
-    def __over_sharing_match_multi_gpu_jobs(self, multi_gpu_jobs):
+    def __over_sharing_match_jobs(self, jobs_list):
         matched_job_name=set()
         complete_match_list=[]
         out_matched_jobs_list=[]
-        for i_index in range(len(multi_gpu_jobs)):
-            for j_index in range(i_index+1, len(multi_gpu_jobs)):
-                job1=multi_gpu_jobs[i_index]
-                job2=multi_gpu_jobs[j_index]
+        for i_index in range(len(jobs_list)):
+            for j_index in range(i_index+1, len(jobs_list)):
+                job1=jobs_list[i_index]
+                job2=jobs_list[j_index]
                 epoch1=job1.total_epochs
                 parrallel1=job1.parrallel_num
                 [cpu11, mem11, gpu11, gmem11,time11]=self.master.analyze_2080_loader.get_job_values(job1,"stage_sample")
@@ -183,7 +188,7 @@ class WeaveSchedulor:
 
                     out_matched_jobs_list.append([job2, [max(cpu21,cpu22), max(mem21,mem22), max(gpu21,gpu22), max(gmem21,gmem22)]])
         #判断输出是否包含所有jobs
-        if len(matched_job_name) != multi_gpu_jobs:
+        if len(matched_job_name) != len(jobs_list):
             print("__over_sharing_match_multi_gpu_jobs wrong!")
             exit(256)
         return out_matched_jobs_list
@@ -193,8 +198,9 @@ class WeaveSchedulor:
         return 1-(abs(var1-var2)/max(var1,var2))
         
     
-    def __over_sharing_select_gpu_for_multi_gpu_jobs(self, matched_jobs_list):
+    def __over_sharing_select_gpu(self, matched_jobs_list, is_multi):
         #matched_jobs_list = [job1, job2, [cpu, mem, gpu, gmem] ] or [job1, [cpu, mem, gpu, gmem] ] 
+        rest_job=[]
         for matched_jobs in matched_jobs_list:
             if len(matched_jobs) == 3:
                 job1=matched_jobs[0]
@@ -204,14 +210,220 @@ class WeaveSchedulor:
                 job1=matched_jobs[0]
                 job2=None
                 pack_resource=matched_jobs[1]
+            #[[gpu_id, average_rest_resource], ...]
+            satisfy_gpu_list=self.master.monitor.get_satisfy_gpu(pack_resource)
+            #对优先级进行排序
+            satisfy_gpu_list_new=[]
+            all_satisfy_gpu_num=0
+            for [node_index, score, temp_gpu_list] in satisfy_gpu_list:
+                score=score+len(temp_gpu_list)*10-self.master.nodes[node_index].get_over_corss_num()*10
+                #调整优先级，score原始是GPU剩余量百分比的和
+                satisfy_gpu_list_new.append([node_index, score, temp_gpu_list])
+                all_satisfy_gpu_num+=len(temp_gpu_list)
+            satisfy_gpu_list_new.sorted(key=lambda x:x[1], reverse=True)
             
+            
+            if job2 == None :
+                
+                max_parallel=job1.parrallel
+                if all_satisfy_gpu_num<max_parallel:
+                    rest_job.append(job1)
+                    continue
+                job1_rest_gpu=job1.parrallel
+                
+                job1_gpu_id_list, _, _= self.get_aim_gpu_id(job1_rest_gpu, 0, satisfy_gpu_list_new)
+                self.execute_schedule(job1, job1_gpu_id_list, shm_name_dict)
+                    
+            else:
+                max_parallel=max(job1.parrallel, job2.parrallel)
+                if all_satisfy_gpu_num<max_parallel:
+                    rest_job.append(job1)
+                    rest_job.append(job2)
+                    continue
+                job1_rest_gpu=job1.parrallel
+                job2_rest_gpu=job2.parrallel
+                
+                job1_gpu_id_list,job2_gpu_id_list,shm_name_dict= self.get_aim_gpu_id(job1_rest_gpu, job2_rest_gpu, satisfy_gpu_list_new)
+                self.execute_schedule(job1, job1_gpu_id_list, shm_name_dict)
+                self.execute_schedule(job2, job2_gpu_id_list, shm_name_dict)
+
+                            
+                
+                
+    def get_aim_gpu_id(self, job1_rest_gpu, job2_rest_gpu, satisfy_gpu_list_new) :
+        job1_gpu_id_list=[]
+        job2_gpu_id_list=[]
+        shm_name_dict={}
+        for [node_index, score, temp_gpu_list] in satisfy_gpu_list_new:
+            job1_temp_gpu_id_list=[]
+            job2_temp_gpu_id_list=[]
+            shm_name_dict_temp={}
+            for [gpu_index, ave_per] in temp_gpu_list:
+                if job1_rest_gpu>0 and job2_rest_gpu>0:
+                    shm_name=generate_shm_name()
+                    shm_name_dict_temp[gpu_index]=shm_name
+                    job1_temp_gpu_id_list.append(gpu_index)
+                    job2_temp_gpu_id_list.append(gpu_index)
+                    job1_rest_gpu-=1
+                    job2_rest_gpu-=1
+                elif job1_rest_gpu>0 and job2_rest_gpu==0:
+                    job1_temp_gpu_id_list.append(gpu_index)
+                    job1_rest_gpu-=1
+                elif job1_rest_gpu==0 and job2_rest_gpu>0:
+                    job2_temp_gpu_id_list.append(gpu_index)
+                    job2_rest_gpu-=1
+                elif job1_rest_gpu==0 and job2_rest_gpu==0:
+                    break
+                else:
+                    print("(monitor) wrong!")
+                    exit(256)
+            
+            job1_gpu_id_list.append([node_index, job1_temp_gpu_id_list])
+            job2_gpu_id_list.append([node_index, job2_temp_gpu_id_list])
+            shm_name_dict[node_index]=shm_name_dict_temp
+            if job1_rest_gpu==0 and job2_rest_gpu==0:
+                break
+        return job1_gpu_id_list,job2_gpu_id_list,shm_name_dict
+            
+                
+            
+                
+        #     execute_node=None
+            
+        #     is_master_satisfy=
+        #     #下面很多种情况，分开处理
+        #     #两个node总和都无法完成任务
+        #     if max_parallel>len(master_satisfy)+len(worker_satisfy):
+        #         rest_job.append(job1)
+        #         if job2 != None:
+        #             rest_job.append(job2)
+        #         continue
+        #     #仅两个node合作可以完成
+        #     if max_parallel<=len(master_satisfy)+len(worker_satisfy) and max_parallel>len(master_satisfy) and max_parallel>len(worker_satisfy):
+        #         if self.master.monitor.cross_num>=self.master.max_cross:
+        #             rest_job.append(job1)
+        #             if job2 != None:
+        #                 rest_job.append(job2)
+        #             continue
+        #         else:
+        #             self.can_execute(master_satisfy, worker_satisfy, job1,job2)
+        #             self.master.monitor.cross_num +=2
+        #     #master上可以执行
+        #     if max_parallel<=len(master_satisfy) and max_parallel>len(worker_satisfy):
+        #         if self.master.monitor.cross_master_gpu_num>= self.master.max_gpu_cross:
+        #             rest_job.append(job1)
+        #             if job2 != None:
+        #                 rest_job.append(job2)
+        #             continue
+        #         else:
+        #             self.can_execute(master_satisfy, [], job1,job2)
+        #             self.master.monitor.cross_master_gpu_num +=2
+        #     #worker上可以执行
+        #     if max_parallel>len(master_satisfy) and max_parallel<=len(worker_satisfy):
+        #         if self.master.monitor.cross_worker_gpu_num>= self.master.max_gpu_cross:
+        #             rest_job.append(job1)
+        #             if job2 != None:
+        #                 rest_job.append(job2)
+        #             continue
+        #         else:
+        #             self.can_execute([], worker_satisfy, job1,job2)
+        #             self.master.monitor.cross_worker_gpu_num +=2
+            
+            
+        #     #两个都可以执行，需要选择
+        #     if max_parallel<=len(master_satisfy) and max_parallel<=len(worker_satisfy):
+        #         is_execute_master=True
+        #         if self.master.monitor.cross_master_gpu_num >= self.master.max_gpu_cross and \
+        #             self.master.monitor.cross_worker_gpu_num >= self.master.max_gpu_cross:
+        #             rest_job.append(job1)
+        #             if job2 != None:
+        #                 rest_job.append(job2)
+        #             continue
+        #         elif self.master.monitor.cross_master_gpu_num >= self.master.max_gpu_cross:
+        #             is_execute_master=False
+        #         elif self.master.monitor.cross_worker_gpu_num < self.master.max_gpu_cross and\
+        #             self.is_worker_proir(master_satisfy, worker_satisfy, max_parallel):
+        #             is_execute_master=False
+                
+        #         if is_execute_master:
+        #             self.can_execute(master_satisfy, [], job1,job2)
+        #             self.master.monitor.cross_master_gpu_num +=2
+        #         else:
+        #             self.can_execute([], worker_satisfy, job1,job2)
+        #             self.master.monitor.cross_worker_gpu_num +=2
+        # return rest_job
+    
+    
+    def is_master_satisfy(self, master_satisfy_gpu_list, max_parrallel, job_num):
+        if max_parrallel==1 :
+            if len(master_satisfy_gpu_list)>0:
+                return True
+            else:
+                return False
+        
+        if len(master_satisfy_gpu_list)>= max_parrallel and self.master.monitor.cross_master_gpu_num+job_num <= self.master.max_cross_gpu:
+            return True
+        else:
+            return False
+
+    # def is_worker_satisfy()
+          
+    def is_worker_prior(self,master_satisfy, worker_satisfy, max_parallel ):
+            master_satisfy.sorted(key=lambda x: x[1], reverse=True)
+            worker_satisfy.sorted(key=lambda x: x[1], reverse=True)
+            master_v=0
+            worker_v=0
+            for i in range(max_parallel):
+                master_v+=master_satisfy[i][1]
+                worker_v+=worker_satisfy[i][1]
+            if worker_v>master_v:
+                return True
+            else:
+                return False
+                    
+    def can_execute(self,master_satisfy, worker_satisfy, job1,job2):
+        sync_name_dict={}
+        selected1_gpu=self.select_proir_gpu(master_satisfy, worker_satisfy, job1)
+        if job2 != None:
+            selected2_gpu=self.select_proir_gpu(master_satisfy, worker_satisfy, job2)
+            for gpu_id in selected2_gpu:
+                if gpu_id in selected1_gpu:
+                    shm_name=generate_shm_name()
+                    sync_name_dict[gpu_id]=shm_name
+            self.execute_schedule(job2, selected2_gpu, sync_name_dict)
+        self.execute_schedule(job1, selected1_gpu, sync_name_dict)
+        
+                    
+                    
+            
+    def select_proir_gpu(master_satisfy,worker_satisfy, select_num):
+        all_satisfy=master_satisfy[:]
+        for worker_info in worker_satisfy:
+            worker_info[0]=worker_info[0]+4
+            all_satisfy.append(worker_info)
+            
+        all_satisfy.sorted(key =lambda x : x[1], reverse=True)
+        out_gpu_id=[]
+        for i in range(select_num):
+            out_gpu_id.append(master_satisfy[i][0])
+        return out_gpu_id
+        
             
             
     
     
     
-    def execute_schedule(self,job, select_gpu_list):
-        world_size=len(select_gpu_list)
+    def execute_schedule(self, job, select_gpu_list, shm_name_dict):
+        world_size=0
+        for [node_index, gpu_list] in select_gpu_list:
+            world_size+=len(gpu_list)
+        
+        for [node_index, gpu_list] in select_gpu_list:
+            
+            
+            
+            
+            
         master_gpu_id_list=[x for x in select_gpu_list if x <4]
         worker_gpu_id_list=[x-4 for x in select_gpu_list if x >= 4]
         
@@ -227,6 +439,7 @@ class WeaveSchedulor:
         if len(worker_gpu_id_list)>0:
             self.job_set_execute_info(job, False, is_cross, world_size, nprocs_list, gpu_id_list )
             self.master.send_job_to_worker(job)
+            
             
     def job_set_execute_info(self, job, is_master, is_cross, world_size, nprocs_list, gpu_id_list):
         if is_master:

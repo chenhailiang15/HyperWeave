@@ -11,11 +11,14 @@ import pandas as pd
 import random
 import math
 from WeaveScheduler import WeaveSchedulor
+from WeaveMonitor import WeaveMonitor
 import queue
 from Job import Job 
+from Node import Node
 
 
-
+#cpu, gpu 按照百分比表示需求和剩余，即1个GPU 表示为100
+#mem, gmem按照存储单位表示，本平台中使用MB
 
 
 class WeaveMaster:
@@ -41,18 +44,45 @@ class WeaveMaster:
         self.buffer=""
         self.end_event=threading.Event()
         
-        #通讯器，初始化和启动监听。
-        self.communicator=CommunicateServer(print_level=self.print_level)
-        self.communicator.start_connect()
-        self.communicator.start_listening(self.message_receive)
-
+        self.max_cross=1
+        self.max_gpu_cross=4
+        self.overshared_factor=4
+        
+        self.init_node()
+        
+        if self.print_level>0:
+            print("master load ali trace...")
+        self.load_ali_trace("ali_trace_job_info.csv")
+        
+        if self.print_level>0:
+            print("master init analyze loader...")
         self.analyze_2080_loader=AnalyzeDataLoader("Analyzer-NVIDIA_GeForce_RTX_2080.csv",print_level)
         self.analyze_2080ti_loader=AnalyzeDataLoader("Analyzer-NVIDIA_GeForce_RTX_2080_Ti.csv",print_level)
         
-        self.scheduler=WeaveSchedulor(self, self.schedule_strategy, print_level=self.print_level)
-        self.load_ali_trace("ali_trace_job_info.csv")
-
+        #资源监视器
+        if self.print_level>0:
+            print("master init monitor...")
+        self.monitor=WeaveMonitor(self.nodes, self.print_level)
         
+    
+        if self.print_level>0:
+            print("master init scheduler...")
+        self.scheduler=WeaveSchedulor(self, self.schedule_strategy, print_level=self.print_level)
+        
+        #通讯器，初始化和启动监听。
+        if self.print_level>0:
+            print("master init communicator...")
+        self.communicator=CommunicateServer(print_level=self.print_level)
+        self.communicator.start_connect()
+        self.communicator.start_listening(self.message_receive)
+        
+        
+    def init_node(self):
+        master_node=Node(node_id="master", ip="10.26.128.115", overshared_factor=self.overshared_factor, max_cross_gpu_job_num=self.max_gpu_cross, print_level=self.print_level)
+        master_node.set_init_resouce(48*100, 62*1024, 4, 8*1024)
+        worker_node=Node(node_id="worker", ip="10.26.128.51", overshared_factor=self.overshared_factor, max_cross_gpu_job_num=self.max_gpu_cross, print_level=self.print_level)
+        worker_node.set_init_resouce(48*100,125*1024, 3, 11*1024)
+        self.nodes=[master_node, worker_node]
         
     def message_receive(self,message):
         self.buffer+=message
