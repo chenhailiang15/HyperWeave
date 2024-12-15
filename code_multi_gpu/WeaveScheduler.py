@@ -3,7 +3,7 @@ import random
 import os
 import threading
 from util import *
-
+import copy
 
 def get_strategy():
     strategy_all={}
@@ -201,6 +201,7 @@ class WeaveSchedulor:
     def __over_sharing_select_gpu(self, matched_jobs_list, is_multi):
         #matched_jobs_list = [job1, job2, [cpu, mem, gpu, gmem] ] or [job1, [cpu, mem, gpu, gmem] ] 
         rest_job=[]
+        scheduled_jobs=[]
         for matched_jobs in matched_jobs_list:
             if len(matched_jobs) == 3:
                 job1=matched_jobs[0]
@@ -232,7 +233,10 @@ class WeaveSchedulor:
                 job1_rest_gpu=job1.parrallel
                 
                 job1_gpu_id_list, _, _= self.get_aim_gpu_id(job1_rest_gpu, 0, satisfy_gpu_list_new)
-                self.execute_schedule(job1, job1_gpu_id_list, shm_name_dict)
+                scheduled_jobs.append([job1, job1_gpu_id_list, shm_name_dict])
+                
+                self.master.monitor.alloc_resource(job1, job1_gpu_id_list, pack_resource)
+                # self.execute_schedule(job1, job1_gpu_id_list, shm_name_dict)
                     
             else:
                 max_parallel=max(job1.parrallel, job2.parrallel)
@@ -244,8 +248,14 @@ class WeaveSchedulor:
                 job2_rest_gpu=job2.parrallel
                 
                 job1_gpu_id_list,job2_gpu_id_list,shm_name_dict= self.get_aim_gpu_id(job1_rest_gpu, job2_rest_gpu, satisfy_gpu_list_new)
-                self.execute_schedule(job1, job1_gpu_id_list, shm_name_dict)
-                self.execute_schedule(job2, job2_gpu_id_list, shm_name_dict)
+                scheduled_jobs.append([job1, job1_gpu_id_list, shm_name_dict])
+                scheduled_jobs.append([job2, job2_gpu_id_list, shm_name_dict])
+                self.master.monitor.alloc_resource(job1, job1_gpu_id_list, pack_resource)
+                self.master.monitor.alloc_resource(job2, job2_gpu_id_list, pack_resource)
+                # self.execute_schedule(job1, job1_gpu_id_list, shm_name_dict)
+                # self.execute_schedule(job2, job2_gpu_id_list, shm_name_dict)
+                
+        return rest_job, scheduled_jobs
 
                             
                 
@@ -295,16 +305,22 @@ class WeaveSchedulor:
             nprocs_list[node_index]=len(gpu_list)
             gpu_id_list[node_index]=gpu_list
             
-        
+        main_flage=True
         main_ip=None
         main_temp_port=None
+        job_t=copy.deepcopy(job)
         for [node_index, gpu_list] in select_gpu_list:
-            if main_ip == None:
+            if main_flage:
+                job_t.set_is_main(True)
+                main_flage=False
                 main_ip=self.master.nodes[node_index].ip
                 main_temp_port=self.master.nodes[node_index].get_idle_port()
+            else:
+                job_t.set_is_main(False)
+            job_t.set_gpu_list(select_gpu_list)
             net_card=self.master.nodes[node_index].net_card
-            job.set_execute_info(main_ip, main_temp_port, net_card, node_index, world_size ,nprocs_list, gpu_id_list, shm_name_list=shm_name_dict)
-            self.master.send_job_to_execution(job)
+            job_t.set_execute_info(main_ip, main_temp_port, net_card, node_index, world_size ,nprocs_list, gpu_id_list, shm_name_list=shm_name_dict)
+            self.master.send_job_to_execution(job_t)
             
         
             

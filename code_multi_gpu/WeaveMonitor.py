@@ -4,7 +4,6 @@ import numpy as np
 class WeaveMonitor:
     def __init__(self,nodes, print_level):
         self.print_level=print_level
-        self.lock=threading.Lock()
         self.nodes=nodes
         self.node_num=len(self.nodes)
         self.cross_maxtrix=np.zeros((self.node_num, self.node_num))
@@ -16,22 +15,22 @@ class WeaveMonitor:
 
         
         
-    def alloc_resource(self,node_index, cpu, mem, gpu, gmem, gpu_id_list):
-        with self.lock:
-            if node_index<len(self.nodes):
-                self.nodes[node_index].alloc_resource(cpu, mem, gpu, gmem, gpu_id_list)
-            else:
-                print("(Monitor) node_index wrong!")
-                exit(256)
+    def alloc_resource(self, job, job_gpu_id_list,pack_resource):
+        [cpu, mem, gpu, gmem]=pack_resource
+        for [node_index, gpu_id_list] in job_gpu_id_list:
+            self.nodes[node_index].alloc_resource(cpu, mem, gpu, gmem, gpu_id_list)
+        else:
+            print("(Monitor) node_index wrong!")
+            exit(256)
                 
-    def takeback_resource(self,node_index, cpu, mem, gpu, gmem, gpu_id_list):
-        with self.lock:
-            
-            if node_index<len(self.nodes):
-                self.nodes[node_index].takeback_resource(cpu, mem, gpu, gmem, gpu_id_list)
-            else:
-                print("(Monitor) node_index wrong!")
-                exit(256)
+    def takeback_resource(self,job, job_gpu_id_list,pack_resource):
+        [cpu, mem, gpu, gmem]=pack_resource
+        for [node_index, gpu_id_list] in job_gpu_id_list:
+            self.nodes[node_index].takeback_resource(cpu, mem, gpu, gmem, gpu_id_list)
+        else:
+            print("(Monitor) node_index wrong!")
+            exit(256)
+        
             
                 
                 

@@ -1,5 +1,7 @@
 from util import *
 import numpy as np
+import threading
+
 
 
 class Node:
@@ -12,6 +14,7 @@ class Node:
         self.current_port=2000
         self.ip=ip
         self.net_card=net_card
+        self.lock=threading.Lock()
         
     def set_init_resouce(self, cpu, mem, gpu_num, gmem):
         self.cpu=cpu
@@ -26,18 +29,20 @@ class Node:
         self.gmem_rest=np.array([gmem for i in range(gpu_num)])
         
     def alloc_resource(self, cpu, mem, gpu, gmem, gpu_id_list):
-        self.cpu_rest-=cpu
-        self.mem_rest-=mem
-        for gpu_id in gpu_id_list:
-            self.gpu_rest[gpu_id]=self.gpu_rest[gpu_id]-gpu
-            self.gmem_rest[gpu_id]=self.gmem_rest[gpu_id]-gmem
+        with self.lock:
+            self.cpu_rest-=cpu
+            self.mem_rest-=mem
+            for gpu_id in gpu_id_list:
+                self.gpu_rest[gpu_id]=self.gpu_rest[gpu_id]-gpu
+                self.gmem_rest[gpu_id]=self.gmem_rest[gpu_id]-gmem
         
     def takeback_resource(self, cpu, mem, gpu, gmem, gpu_id_list):
-        self.cpu_rest+=cpu
-        self.mem_rest+=mem
-        for gpu_id in gpu_id_list:
-            self.gpu_rest[gpu_id]=self.gpu_rest[gpu_id]+gpu
-            self.gmem_rest[gpu_id]=self.gmem_rest[gpu_id]+gmem
+        with self.lock:
+            self.cpu_rest+=cpu
+            self.mem_rest+=mem
+            for gpu_id in gpu_id_list:
+                self.gpu_rest[gpu_id]=self.gpu_rest[gpu_id]+gpu
+                self.gmem_rest[gpu_id]=self.gmem_rest[gpu_id]+gmem
             
     def get_satisfy_gpu_id(self,pack_resource):
         cpu_need=pack_resource[0]

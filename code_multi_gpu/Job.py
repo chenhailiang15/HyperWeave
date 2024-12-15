@@ -11,8 +11,9 @@ class Job:
         self.start_time=0
         self.end_time=0
         self.succeed_flage=None
-            
-            
+        
+    
+        
     #模型信息        
     def set_model_info(self,job_name, model_name,total_epochs, batch_size, worker_num=4, layer_num=10, layer_feature=10,squad_data_size=1000 ):
         self.job_name=job_name
@@ -30,6 +31,19 @@ class Job:
         self.plan_mem=plan_mem
         self.plan_gpu=plan_gpu
         self.parallel_num=math.ceil(plan_gpu/100)
+        
+    def set_pack_resource(self, pack_cpu, pack_mem, pack_gpu, pack_gmem, couple_job_name=None):
+        self.pack_cpu=pack_cpu
+        self.pack_mem=pack_mem
+        self.pack_gpu=pack_gpu
+        self.pack_gmem=pack_gmem
+        self.couple_job_name=couple_job_name
+        
+    def set_is_main(self, is_main):
+        self.is_main=is_main
+    
+    def set_gpu_list(self, gpu_list):
+        self.gpu_list=gpu_list
     
     #时间信息
     def set_arrive_time(self, arrive_time):
@@ -70,6 +84,8 @@ class Job:
     
     def to_string(self):
         json_dict={}
+        
+        
         json_dict["job_name"]=self.job_name
         json_dict["model_name"]=self.model_name
         json_dict["total_epochs"]=self.total_epochs
@@ -95,6 +111,15 @@ class Job:
         json_dict["plan_gpu"]=self.plan_gpu
         json_dict["parallel_num"]=self.parallel_num
         
+        json_dict["pack_cpu"]=self.pack_cpu
+        json_dict["pack_mem"]=self.pack_mem
+        json_dict["pack_gpu"]=self.pack_gpu
+        json_dict["pack_gmem"]=self.pack_gmem
+        json_dict["couple_job_name"]=self.couple_job_name
+        
+        json_dict["is_main"]=self.is_main
+        json_dict["gpu_list"]=self.gpu_list
+        
         json_dict["arrive_time"]=self.arrive_time
         json_dict["start_time"]=self.start_time
         json_dict["end_time"]=self.end_time
@@ -105,6 +130,7 @@ class Job:
     
     def load_string(self, json_string):
         json_dict=json.loads(json_string)
+        
         
         self.job_name=json_dict["job_name"]
         self.model_name=json_dict["model_name"]
@@ -131,6 +157,15 @@ class Job:
         self.plan_mem=json_dict["plan_mem"]
         self.plan_gpu=json_dict["plan_gpu"]
         self.parallel_num=json_dict["parallel_num"]
+        
+        self.pack_cpu=json_dict["pack_cpu"]
+        self.pack_mem=json_dict["pack_mem"]
+        self.pack_gpu=json_dict["pack_gpu"]
+        self.pack_gmem=json_dict["pack_gmem"]
+        self.couple_job_name=json_dict["couple_job_name"]
+        
+        self.is_main=json_dict["is_main"]
+        self.gpu_list=json_dict["gpu_list"]
         
         self.arrive_time=json_dict["arrive_time"]
         self.start_time=json_dict["start_time"]

@@ -28,7 +28,7 @@ class WeaveMaster:
         self.clock_time_factor=10000
         self.job_time_factor=1000
         self.schedule_interval=5
-        self.schedule_strategy="random"
+        self.schedule_strategy="over_sharing"
         self.model_name_list=["AlexNet","ResNet18","ResNet50","VGG16","MobileNetv2"]
         self.batch_size_list=[8,16,32,64,128]
         self.epoch_list=[5,10,15,20]
@@ -213,11 +213,21 @@ class WeaveMaster:
         print("执行完成后的返回值：",back)
     
     def statistic_end_job(self,job, by_master):
-        print("end a job:", job.job_name)
-        if by_master or job.world_size ==job.nprocs_list[1] :
+        if self.print_level>3:
+            print("end a job:", job.job_name)
+        
+        #回收资源
+        gpu_list=job.gpu_list
+        pack_resource=job.pack_resouce
+        self.monitor.takeback_resource(job, gpu_list, pack_resource)
+        
+        if job.is_main:
+            
             self.dealing_job_num-=1
             if self.dealing_job_num==0:
                 self.end_event.set()
+        
+            
     
     def wait(self):
         self.end_event.wait()
