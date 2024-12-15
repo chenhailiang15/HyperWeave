@@ -111,13 +111,11 @@ class WeaveMaster:
 
     def generate_job(self, ali_trace):
         job_name=ali_trace["job_name"]
-        
-        plan_cpu=ali_trace["plan_cpu"]/ali_trace["cpu_usage"]*self.analyze_2080_loader.get_value(model_info,"stage_sample","cpu")
-        plan_mem=ali_trace["plan_mem"]/ali_trace["avg_mem"]*self.analyze_2080_loader.get_value(model_info,"stage_sample","mem")
-        plan_gpu=ali_trace["plan_gpu"]
-        
+
         model_name=random.choice(self.model_name_list)
         batch_size=random.choice(self.batch_size_list)
+        
+        plan_gpu=ali_trace["plan_gpu"]
         parrallel_num=plan_gpu/100 if plan_gpu<=400 else 4
         
         model_info=model_name+"-"+str(batch_size)+"-"+str(int(math.ceil(parrallel_num)))
@@ -125,6 +123,9 @@ class WeaveMaster:
         epoch_time=self.analyze_2080_loader.get_value(model_info,"stage_sample","time")+self.analyze_2080_loader.get_value(model_info,"stage_train","time")
         cal_epoch=math.ceil((ali_trace["duration_s"]/self.job_time_factor-init_time)/epoch_time)
         total_epochs=cal_epoch if cal_epoch<5 else 5
+        
+        plan_cpu=ali_trace["plan_cpu"]/ali_trace["cpu_usage"]*self.analyze_2080_loader.get_value(model_info,"stage_sample","cpu")
+        plan_mem=ali_trace["plan_mem"]/ali_trace["avg_mem"]*self.analyze_2080_loader.get_value(model_info,"stage_sample","mem")
         
         arrive_time=time.time()
         
@@ -158,7 +159,7 @@ class WeaveMaster:
         for index in range(len(self.ali_trace_pd)):
             job=self.generate_job(self.ali_trace_pd.iloc[index,:])
             if self.print_level>=2:
-                print(f"{job.get_key_job_info()}")
+                print(f"{job.job_key_info()}")
             self.wait_schedule_queue.put(job)
             
             if index+1<len(self.ali_trace_pd):
@@ -209,10 +210,10 @@ class WeaveMaster:
             
         job.set_end_time(time.time())
         #这里很重要，对于资源的回收，结果的统计，都在这里进行
-        self.statistic_end_job(job,by_master=True)
+        self.statistic_end_job(job)
         print("执行完成后的返回值：",back)
     
-    def statistic_end_job(self,job, by_master):
+    def statistic_end_job(self,job):
         if self.print_level>3:
             print("end a job:", job.job_name)
         

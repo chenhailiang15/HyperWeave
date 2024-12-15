@@ -133,6 +133,9 @@ class WeaveSchedulor:
         matched_job_name=set()
         complete_match_list=[]
         out_matched_jobs_list=[]
+        
+        out_matched_jobs_list.append([job1, [max(cpu11,cpu12), max(mem11,mem12), max(gpu11,gpu12), max(gmem11,gmem12)]])
+        
         for i_index in range(len(jobs_list)):
             for j_index in range(i_index+1, len(jobs_list)):
                 job1=jobs_list[i_index]
@@ -160,6 +163,8 @@ class WeaveSchedulor:
                 simimlarity=epoch_factor+parrallel_factor+cpu_factor+mem_factor+gpu_factor+gmem_factor+time_factor
                 
                 complete_match_list.append([simimlarity,job1,job2,pack_resource])
+      
+                
         #按照匹配值高低进行提取
         complete_match_list.sort(key=lambda x:x[0], reverse=True)
         for i in range(len(complete_match_list)):
