@@ -8,7 +8,7 @@ import queue
 
 class WeaveWorker:
     def __init__(self,print_level):
-        self.master_ip="10.26.128.115"
+        self.master_ip="10.26.128.51"
         self.master_port=8000
         self.print_level=print_level
         

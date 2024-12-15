@@ -33,10 +33,10 @@ class WeaveMaster:
         self.batch_size_list=[8,16,32,64,128]
         self.epoch_list=[5,10,15,20]
         
-        self.master_ip="10.26.128.115"
-        self.master_port=2000
-        self.worker_ip="10.26.128.51"
-        self.worker_port=3000
+        self.master_ip="10.26.128.51"
+        # self.master_port=2000
+        self.worker_ip="10.26.128.115"
+        # self.worker_port=3000
         
         #正在处理的job数量用于控制程序结束
         self.dealing_job_num=0
@@ -79,10 +79,12 @@ class WeaveMaster:
         
     def init_node(self):
         self.node_num=2
-        master_node=Node(node_id="master", ip="10.26.128.115", net_card="eno2", overshared_factor=self.overshared_factor, max_cross_gpu_job_num=self.max_gpu_cross, print_level=self.print_level)
-        master_node.set_init_resouce(48*100, 62*1024, 4, 8*1024)
-        worker_node=Node(node_id="worker", ip="10.26.128.51", net_card="eno1", overshared_factor=self.overshared_factor, max_cross_gpu_job_num=self.max_gpu_cross, print_level=self.print_level)
-        worker_node.set_init_resouce(48*100,125*1024, 3, 11*1024)
+        master_node=Node(node_id="worker", ip="10.26.128.51", net_card="eno1", overshared_factor=self.overshared_factor, max_cross_gpu_job_num=self.max_gpu_cross, print_level=self.print_level)
+        master_node.set_init_resouce(48*100,125*1024, 3, 11*1024)
+        
+        worker_node=Node(node_id="master", ip="10.26.128.115", net_card="eno2", overshared_factor=self.overshared_factor, max_cross_gpu_job_num=self.max_gpu_cross, print_level=self.print_level)
+        worker_node.set_init_resouce(48*100, 62*1024, 4, 8*1024)
+        
         self.nodes=[master_node, worker_node]
         
     def message_receive(self,message):
