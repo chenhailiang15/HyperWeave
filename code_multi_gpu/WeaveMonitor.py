@@ -6,6 +6,9 @@ class WeaveMonitor:
         self.print_level=print_level
         self.lock=threading.Lock()
         self.overshared_factor=overshared_factor
+        self.cross_num=0
+        self.cross_master_gpu_num=0
+        self.cross_worker_gpu_num=0
     
     def set_master_resource(self,cpu, mem, gpu, gmem):
         self.master_cpu=cpu
@@ -49,4 +52,18 @@ class WeaveMonitor:
             else:
                 print("node kind wrong!")
                 exit(256)
+                
+                
+    def get_satisfy_gpu_id():
+        
+        
+        
+        
+        return [[(gpuid, )],[]]
+    
+    
+    
+    
+    
+    
     

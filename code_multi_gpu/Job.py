@@ -95,6 +95,7 @@ class Job:
         json_dict["plan_cpu"]=self.plan_cpu
         json_dict["plan_mem"]=self.plan_mem
         json_dict["plan_gpu"]=self.plan_gpu
+        json_dict["parallel_num"]=self.parallel_num
         
         json_dict["arrive_time"]=self.arrive_time
         json_dict["start_time"]=self.start_time
@@ -132,6 +133,7 @@ class Job:
         self.plan_cpu=json_dict["plan_cpu"]
         self.plan_mem=json_dict["plan_mem"]
         self.plan_gpu=json_dict["plan_gpu"]
+        self.parallel_num=json_dict["parallel_num"]
         
         self.arrive_time=json_dict["arrive_time"]
         self.start_time=json_dict["start_time"]
@@ -146,6 +148,8 @@ class Job:
     
     def get_name_batchsize_epoch(self):
         return f"{self.model_name}={self.batch_size}-{self.parallel_num}"
+    
+    
     
     
     def is_only_master(self):
