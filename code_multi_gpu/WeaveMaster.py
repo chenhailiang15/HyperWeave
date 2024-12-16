@@ -60,6 +60,9 @@ class WeaveMaster:
         
         self.succeed_job_num=0
         self.failed_job_num=0
+        
+        self.job_wait_time_list=[]
+        self.job_complete_time_list=[]
         #################################
         self.init_node()
         
@@ -132,6 +135,8 @@ class WeaveMaster:
         return data_pd
 
     def generate_job(self, ali_trace):
+        if ali_trace["cpu_usage"]==0 or ali_trace["avg_mem"]==0:
+            return None
         job_name=ali_trace["job_name"]
 
         model_name=random.choice(self.model_name_list)
@@ -146,8 +151,8 @@ class WeaveMaster:
         cal_epoch=math.ceil((ali_trace["duration_s"]/self.job_time_factor-init_time)/epoch_time)
         total_epochs=cal_epoch if cal_epoch<5 else 5
         
-        plan_cpu=ali_trace["plan_cpu"]/ali_trace["cpu_usage"]*self.analyze_2080_loader.get_value(model_info,"stage_sample","cpu")
-        plan_mem=ali_trace["plan_mem"]/ali_trace["avg_mem"]*self.analyze_2080_loader.get_value(model_info,"stage_sample","mem")
+        plan_cpu=min(ali_trace["plan_cpu"]/ali_trace["cpu_usage"]*self.analyze_2080_loader.get_value(model_info,"stage_sample","cpu"), 48*100)
+        plan_mem=min(ali_trace["plan_mem"]/ali_trace["avg_mem"]*self.analyze_2080_loader.get_value(model_info,"stage_sample","mem"),62*1024)
         
         arrive_time=time.time()
         
@@ -171,6 +176,7 @@ class WeaveMaster:
             rest_jobs=self.scheduler.do_schedule(wait_schedule_list)
             
             for job in rest_jobs:
+                print(f"wait for next scheduling:job name({job.job_name})")
                 self.wait_schedule_queue.put(job)
                 
             
@@ -183,6 +189,8 @@ class WeaveMaster:
         
         for index in range(len(self.ali_trace_pd)):
             job=self.generate_job(self.ali_trace_pd.iloc[index,:])
+            if job ==None: #由于数据原因，可能无法生成Job，因此跳过
+                continue
             if self.print_level>=2:
                 print(f"{job.job_key_info()}")
             self.wait_schedule_queue.put(job)
@@ -253,6 +261,8 @@ class WeaveMaster:
         self.command_end_num+=1
         
         if job.is_main:
+            self.job_wait_time_list.append(job.start_time-job.arrive_time)
+            self.job_complete_time_list.append(job.end_time-job.arrive_time)
             self.job_end_num+=1
             self.job_dealing_num-=1
             if job.succeed_flage:
@@ -270,11 +280,15 @@ class WeaveMaster:
         print(f"command start number:{self.command_start_num}\t command end number:{self.command_end_num}")
         print("************************************************************************************")
             
-    
+    def print_job_time_info(self):
+        size, _mean, _min, _max, per_50, per_90, per_95=analyze_datas(self.job_wait_time_list)
+        print(f"job wait time: size-{size}, mean-{_mean}, min-{_min}, max-{_max}, percentile50-{per_50}, percentile90-{per_90},percentile95-{per_95}")
+        size, _mean, _min, _max, per_50, per_90, per_95=analyze_datas(self.job_complete_time_list)
+        print(f"job complete time: size-{size}, mean-{_mean}, min-{_min}, max-{_max}, percentile50-{per_50}, percentile90-{per_90},percentile95-{per_95}")
     def wait(self):
-        print("wait end in ")
+        
         self.end_event.wait()
-        print("wait end out")
+
         
     def close(self):
         self.communicator.close()
@@ -287,6 +301,7 @@ if __name__=="__main__":
     weave_master=WeaveMaster(print_level)
     weave_master.job_come()
     weave_master.wait()
+    weave_master.print_job_time_info()
     weave_master.close()
 
     print("The whole process end (by master)!")

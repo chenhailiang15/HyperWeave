@@ -12,16 +12,16 @@
 #     net_card="eno1"
 # fi
 
-node_rank=1
+node_rank=0
 net_card="eno1"
 MASTER_ADDR="10.26.128.51"   # one node:localhost  multi node: master ip
 MASTER_PORT="12355"
 
 model_name="AlexNet"
 world_size=3
-nprocs_list=[2,1]
+nprocs_list=[3]
 
-gpu_id_list="[[1,2],[2]]"
+gpu_id_list="[[0,1,2],[]]"
 
 
 total_epochs=10
