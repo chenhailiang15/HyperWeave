@@ -45,10 +45,11 @@ def single_training(local_rank,args,model):
        Main training function for distributed data parallel (DDP) setup.
     """
     # Set up the distributed environment, including setting the master address, port, and backend.
+    print("ddp setup...")
     ddp_setup(local_rank, args)
     #set device for model and data
     model.set_local_rank(local_rank)
-    
+    print("model sync setup...")
     #判断要不要启动同步器
     if args.node_rank in args.shm_name_list:
         gpu_id=args.gpu_id_list[args.node_rank][local_rank]

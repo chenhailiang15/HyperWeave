@@ -172,6 +172,7 @@ class WeaveMaster:
             
             for job in rest_jobs:
                 self.wait_schedule_queue.put(job)
+                
             
     #job到来的函数，持续运行，直到读取的文件中的job结束
     def job_come(self):
@@ -189,8 +190,11 @@ class WeaveMaster:
             if index+1<len(self.ali_trace_pd):
                 time.sleep(self.ali_trace_pd.loc[index+1,"start_time"]-self.ali_trace_pd.loc[index,"start_time"])
 
+        print("job_come end1")
         self.job_come_flage=False
         sub_thread_schedule.join()
+        
+        print("job_come end2")
         
         
         return
@@ -256,8 +260,9 @@ class WeaveMaster:
             else:
                 self.failed_job_num+=1
                 
-            if self.job_come_flage==False and self.job_come_num == self.job_end_num and self.command_start_num == self.command_end_num:
-                self.end_event.set()
+        if self.job_come_flage==False and self.job_come_num == self.job_end_num and self.command_start_num == self.command_end_num:
+            print("event set")
+            self.end_event.set()
                 
         print("********************************** current status **********************************")
         print(f"job come number:{self.job_come_num}\tjob end number:{self.job_end_num}\tjob dealing number:{self.job_dealing_num}")
@@ -267,7 +272,9 @@ class WeaveMaster:
             
     
     def wait(self):
+        print("wait end in ")
         self.end_event.wait()
+        print("wait end out")
         
     def close(self):
         self.communicator.close()

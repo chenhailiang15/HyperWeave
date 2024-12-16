@@ -317,22 +317,21 @@ class WeaveSchedulor:
         nprocs_list=[0]*self.master.node_num
         gpu_id_list=[ [] for i in range(self.master.node_num)]
 
+        min_node_index=999    #选取最小的node index作为
         for [node_index, gpu_list] in select_gpu_list:
+            min_node_index=node_index if node_index<min_node_index else min_node_index
             world_size+=len(gpu_list)
             nprocs_list[node_index]=len(gpu_list)
             gpu_id_list[node_index]=gpu_list
             
         main_flage=True
-        main_ip=None
-        main_temp_port=None
+        main_ip=self.master.nodes[node_index].ip
+        main_temp_port=self.master.nodes[node_index].get_idle_port()
         
         for [node_index, gpu_list] in select_gpu_list:
             job_t=copy.deepcopy(job)
-            if main_flage:
+            if node_index == min_node_index:
                 job_t.set_is_main(True)
-                main_flage=False
-                main_ip=self.master.nodes[node_index].ip
-                main_temp_port=self.master.nodes[node_index].get_idle_port()
             else:
                 job_t.set_is_main(False)
             job_t.set_gpu_list(select_gpu_list)
