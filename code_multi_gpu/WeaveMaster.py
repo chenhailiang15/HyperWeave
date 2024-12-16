@@ -88,17 +88,24 @@ class WeaveMaster:
         self.nodes=[master_node, worker_node]
         
     def message_receive(self,message):
+        
         self.buffer+=message
         buffer_list=self.buffer.split("--end")
         if len(buffer_list)>1:
             for i in range(len(buffer_list)-1):
+                
                 job=Job()
                 job.load_string(buffer_list[i])
+                
+                if print_level>5:
+                    print("master receive back job:\t", job.job_name)
+                    
+                    
                 self.statistic_end_job(job)
                 
             self.buffer=buffer_list[len(buffer_list)-1]
             
-        print("master receive:\n", message)
+        
 
     def load_ali_trace(self,file_name):
         ali_trace_pd=self.load_csv(file_name,header=0)
@@ -117,10 +124,10 @@ class WeaveMaster:
         model_name=random.choice(self.model_name_list)
         batch_size=random.choice(self.batch_size_list)
         
-        plan_gpu=ali_trace["plan_gpu"]
-        parrallel_num=plan_gpu/100 if plan_gpu<=400 else 4
+        plan_gpu=ali_trace["plan_gpu"] if ali_trace["plan_gpu"]<=700 else 700
         
-        model_info=model_name+"-"+str(batch_size)+"-"+str(int(math.ceil(parrallel_num)))
+        parrallel_num=math.ceil(min(plan_gpu, 400)/100)
+        model_info=model_name+"-"+str(batch_size)+"-"+str(parrallel_num)
         init_time=self.analyze_2080_loader.get_value(model_info,"stage_init","time")
         epoch_time=self.analyze_2080_loader.get_value(model_info,"stage_sample","time")+self.analyze_2080_loader.get_value(model_info,"stage_train","time")
         cal_epoch=math.ceil((ali_trace["duration_s"]/self.job_time_factor-init_time)/epoch_time)
@@ -182,7 +189,7 @@ class WeaveMaster:
     #将任务发送给worker执行
     def send_job_to_worker(self,job_f):
         if self.print_level>5:
-            print("send job to worker:{job_f.job_name} ...")
+            print(f"send job to worker:{job_f.job_name} ...")
             
         #判断是否仅在worker运行，避免跨机器任务重复计数
         if job_f.world_size==job_f.nprocs_list[1]:
@@ -192,7 +199,7 @@ class WeaveMaster:
     #任务本地执行
     def execute_job_in_master(self, job_f):
         if self.print_level>5:
-            print("master execute job:{job_f.job_name} ...")
+            print(f"master execute job:{job_f.job_name} ...")
             
         self.dealing_job_num+=1
         

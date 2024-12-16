@@ -52,6 +52,7 @@ class Job:
         self.start_time=start_time
     def set_end_time(self, end_time):
         self.end_time=end_time
+        
     
     def succeed(self):
         self.succeed_flage=True
@@ -71,7 +72,7 @@ class Job:
         
         nprocs_list_c=nprocs_list.__str__().replace(" ","")
         gpu_id_list_c=gpu_id_list.__str__().replace(" ","")
-        shm_name_list_c=json.dumps(shm_name_list)
+        shm_name_list_c="\""+json.dumps(shm_name_list)+"\""
         
         self.command=f"python WeaveExecutor.py --MASTER_ADDR {MASTER_ADDR} --MASTER_PORT {MASTER_PORT} --net_card {net_card}  --node_rank {node_rank} \
             --world_size {world_size} --nprocs_list {nprocs_list_c} --gpu_id_list {gpu_id_list_c} --model_name {self.model_name} --batch_size {self.batch_size} \
@@ -179,7 +180,8 @@ class Job:
         return f"jn:{self.job_name}-mn:{self.model_name}-tep:{self.total_epochs}-bts:{self.batch_size}-gpu:{self.plan_gpu}"
     
     def get_name_batchsize_epoch(self):
-        return f"{self.model_name}-{self.batch_size}-{self.parallel_num}"
+        parallel_num=min(self.parallel_num, 4)# 后续可能需要调整
+        return f"{self.model_name}-{self.batch_size}-{parallel_num}"
     
     
     

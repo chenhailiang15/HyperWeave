@@ -27,7 +27,10 @@ def generate_shm_name(length=10):
 
 #解析输入参数为dict
 def parse_dict_shm(dict_arg):
+    
+    print("parse_dict_shm:",dict_arg)
     shm_dict=json.loads(dict_arg)
+    print("parse_dict_shm (out):",shm_dict)
     # list_arg=list_arg.replace("]","").replace("[","").split(",")
     # shm_list=[]
     # for shm in list_arg:

@@ -184,7 +184,7 @@ class WeaveSchedulor:
                 out_matched_jobs_list.append([job1,job2,pack_resource])
                 continue
                 
-            if i == len(complete_match_list):
+            if i == len(complete_match_list)-1:
                 if job1.job_name not in matched_job_name:
                     matched_job_name.add(job1.job_name)
                     [cpu11, mem11, gpu11, gmem11,time11]=self.master.analyze_2080_loader.get_job_values(job1,"stage_sample")
@@ -263,8 +263,8 @@ class WeaveSchedulor:
                 # scheduled_jobs.append([job1, job1_gpu_id_list, shm_name_dict])
                 # scheduled_jobs.append([job2, job2_gpu_id_list, shm_name_dict])
                 [cpu, mem, gpu, gmem] =pack_resource
-                job1.set_pack_resource(cpu, mem, gpu, gmem, job2.name )
-                job2.set_pack_resource(cpu, mem, gpu, gmem , job1.name)
+                job1.set_pack_resource(cpu, mem, gpu, gmem, job2.job_name )
+                job2.set_pack_resource(cpu, mem, gpu, gmem , job1.job_name)
                 self.execute_schedule(job1, job1_gpu_id_list, shm_name_dict)
                 self.execute_schedule(job2, job2_gpu_id_list, shm_name_dict)
                 self.master.monitor.alloc_resource(job1, job1_gpu_id_list, pack_resource)
