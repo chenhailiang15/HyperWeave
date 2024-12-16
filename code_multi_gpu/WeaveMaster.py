@@ -94,7 +94,7 @@ class WeaveMaster:
             for i in range(len(buffer_list)-1):
                 job=Job()
                 job.load_string(buffer_list[i])
-                self.statistic_end_job(job,by_master=False)
+                self.statistic_end_job(job)
                 
             self.buffer=buffer_list[len(buffer_list)-1]
             
@@ -219,7 +219,7 @@ class WeaveMaster:
         if self.print_level>3:
             print("end a job:", job.job_name)
         
-        #回收资源
+        #回收资源(需要修改，有配对的，在两个都结束后，再释放资源)
         gpu_list=job.gpu_list
         pack_resource=job.pack_resouce
         self.monitor.takeback_resource(job, gpu_list, pack_resource)

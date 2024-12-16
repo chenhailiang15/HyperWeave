@@ -103,15 +103,13 @@ class WeaveSchedulor:
         multi_gpu_jobs, single_gpu_jobs=self.__over_sharing_classify_jobs(job_list)
         
         matched_jobs_list=self.__over_sharing_match_jobs(multi_gpu_jobs)
-        rest_jobs1, scheduled_jobs1=self.__over_sharing_select_gpu(matched_jobs_list, is_multi=True)
+        rest_jobs1=self.__over_sharing_select_gpu_and_execute_schedule(matched_jobs_list)
         
         matched_jobs_list=self.__over_sharing_match_jobs(single_gpu_jobs)
-        rest_jobs2, scheduled_jobs2=self.__over_sharing_select_gpu(matched_jobs_list, is_multi=False)
+        rest_jobs2=self.__over_sharing_select_gpu_and_execute_schedule(matched_jobs_list)
 
-        scheduled_jobs=scheduled_jobs1+scheduled_jobs2
         
-        for job_info in scheduled_jobs:
-            self.execute_schedule(job_info[0], job_info[1], job_info[2])
+        
         
         rest_job=rest_jobs1+rest_jobs2
         return rest_job
@@ -210,10 +208,10 @@ class WeaveSchedulor:
         return 1-(abs(var1-var2)/max(var1,var2))
         
     
-    def __over_sharing_select_gpu(self, matched_jobs_list, is_multi):
+    def __over_sharing_select_gpu_and_execute_schedule(self, matched_jobs_list):
         #matched_jobs_list = [job1, job2, [cpu, mem, gpu, gmem] ] or [job1, [cpu, mem, gpu, gmem] ] 
         rest_job=[]
-        scheduled_jobs=[]
+        # scheduled_jobs=[]
         for matched_jobs in matched_jobs_list:
             if len(matched_jobs) == 3:
                 job1=matched_jobs[0]
@@ -245,8 +243,10 @@ class WeaveSchedulor:
                 job1_rest_gpu=job1.parallel_num
                 
                 job1_gpu_id_list, _, _= self.get_aim_gpu_id(job1_rest_gpu, 0, satisfy_gpu_list_new)
-                scheduled_jobs.append([job1, job1_gpu_id_list, {}])
-                
+                # scheduled_jobs.append([job1, job1_gpu_id_list, {}])
+                [cpu, mem, gpu, gmem] =pack_resource
+                job1.set_pack_resource(cpu, mem, gpu, gmem )
+                self.execute_schedule(job1, job1_gpu_id_list, {})
                 self.master.monitor.alloc_resource(job1, job1_gpu_id_list, pack_resource)
                 # self.execute_schedule(job1, job1_gpu_id_list, shm_name_dict)
                     
@@ -260,14 +260,19 @@ class WeaveSchedulor:
                 job2_rest_gpu=job2.parallel_num
                 
                 job1_gpu_id_list,job2_gpu_id_list,shm_name_dict= self.get_aim_gpu_id(job1_rest_gpu, job2_rest_gpu, satisfy_gpu_list_new)
-                scheduled_jobs.append([job1, job1_gpu_id_list, shm_name_dict])
-                scheduled_jobs.append([job2, job2_gpu_id_list, shm_name_dict])
+                # scheduled_jobs.append([job1, job1_gpu_id_list, shm_name_dict])
+                # scheduled_jobs.append([job2, job2_gpu_id_list, shm_name_dict])
+                [cpu, mem, gpu, gmem] =pack_resource
+                job1.set_pack_resource(cpu, mem, gpu, gmem, job2.name )
+                job2.set_pack_resource(cpu, mem, gpu, gmem , job1.name)
+                self.execute_schedule(job1, job1_gpu_id_list, shm_name_dict)
+                self.execute_schedule(job2, job2_gpu_id_list, shm_name_dict)
                 self.master.monitor.alloc_resource(job1, job1_gpu_id_list, pack_resource)
                 self.master.monitor.alloc_resource(job2, job2_gpu_id_list, pack_resource)
                 # self.execute_schedule(job1, job1_gpu_id_list, shm_name_dict)
                 # self.execute_schedule(job2, job2_gpu_id_list, shm_name_dict)
                 
-        return rest_job, scheduled_jobs
+        return rest_job
 
                             
                 

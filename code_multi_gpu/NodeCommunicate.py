@@ -54,7 +54,7 @@ class CommunicateServer:
         
 
 class CommunicateClient:
-    def __init__(self,ip, port=8000,print_level=0):
+    def __init__(self,ip, port=8888,print_level=0):
         self.ip=ip
         self.port=port
         self.print_level=print_level

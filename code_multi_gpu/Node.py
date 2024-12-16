@@ -75,7 +75,7 @@ class Node:
             return self.cross_gpu_job_num-self.max_cross_gpu_job_num+1
         
     def get_idle_port(self):
-        while is_port_in_use(self.current_port):
+        while is_port_in_use(self.ip, self.current_port):
             self.current_port+=1
         self.current_port+=1
         

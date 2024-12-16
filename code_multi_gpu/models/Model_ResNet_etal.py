@@ -3,7 +3,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.nn as nn
 from torchvision import datasets, transforms, models
 import torch.optim as optim
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, RandomSampler, BatchSampler, partial
 import torch
 import copy
 import os
@@ -61,7 +61,8 @@ class ResNet_etal_class:
         image_datasets = {x: datasets.ImageFolder(os.path.join(data_dir, x), data_transforms[x])
                           for x in ['train', 'val']}
 
-        self.dataloaders = {x: DataLoader(image_datasets[x], batch_size=self.args.batch_size, pin_memory=True, shuffle=False, sampler=DistributedSampler(image_datasets[x]), num_workers=worker_num)
+        self.dataloaders = {x: DataLoader(image_datasets[x], batch_size=self.args.batch_size, pin_memory=True, shuffle=False, \
+            sampler=DistributedSampler(image_datasets[x]), batch_sampler=partial(RandomSampler, num_samples=1000), num_workers=worker_num)
                             for x in ['train', 'val']}
 
         self.dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']}
