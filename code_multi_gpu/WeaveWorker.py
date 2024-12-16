@@ -26,6 +26,7 @@ class WeaveWorker:
             for i in range(len(buffer_list)-1):
                 job=Job()
                 job.load_string(buffer_list[i])
+                print("worker receive:\t",buffer_list[i])
                 
                 sub_thread=threading.Thread(target=self.run_command,args=(job, job.command,))
                 sub_thread.start()

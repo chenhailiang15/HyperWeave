@@ -30,7 +30,7 @@ class WeaveMaster:
         self.schedule_interval=5
         self.schedule_strategy="over_sharing"
         self.model_name_list=["AlexNet","ResNet18","ResNet50","VGG16","MobileNetv2"]
-        self.batch_size_list=[8,16,32,64,128]
+        self.batch_size_list=[64,128]
         self.epoch_list=[5,10,15,20]
         
         self.master_ip="10.26.128.51"
@@ -83,7 +83,7 @@ class WeaveMaster:
         master_node.set_init_resouce(48*100,125*1024, 3, 11*1024)
         
         worker_node=Node(node_id="master", ip="10.26.128.115", net_card="eno2", overshared_factor=self.overshared_factor, max_cross_gpu_job_num=self.max_gpu_cross, print_level=self.print_level)
-        worker_node.set_init_resouce(48*100, 62*1024, 4, 8*1024)
+        worker_node.set_init_resouce(48*100, 62*1024, 1, 8*1024)
         
         self.nodes=[master_node, worker_node]
         
@@ -124,7 +124,7 @@ class WeaveMaster:
         model_name=random.choice(self.model_name_list)
         batch_size=random.choice(self.batch_size_list)
         
-        plan_gpu=ali_trace["plan_gpu"] if ali_trace["plan_gpu"]<=700 else 700
+        plan_gpu=ali_trace["plan_gpu"] if ali_trace["plan_gpu"]<=400 else 400
         
         parrallel_num=math.ceil(min(plan_gpu, 400)/100)
         model_info=model_name+"-"+str(batch_size)+"-"+str(parrallel_num)
@@ -245,7 +245,7 @@ class WeaveMaster:
         self.communicator.close()
 import random
 
-random.seed(30)
+random.seed(3)
 
 if __name__=="__main__":
     print_level=10

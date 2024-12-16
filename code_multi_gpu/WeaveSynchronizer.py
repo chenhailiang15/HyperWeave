@@ -17,7 +17,7 @@ class Synchronizer:
                 
                 if self.load_share_memory():#为True，表示创建新的，需要初始化
                     self.boolean_array = np.ndarray((3,), dtype=np.int8, buffer=self.shm.buf)
-                    new_values = np.array([True, False,False], dtype=bool)
+                    new_values = np.array([True, False, False], dtype=bool)
                     self.boolean_array[:]=new_values.astype(np.int8)
                 else:
                     self.boolean_array = np.ndarray((3,), dtype=np.int8, buffer=self.shm.buf)
@@ -27,7 +27,7 @@ class Synchronizer:
             self.shm_size=shm_size
             if self.load_share_memory():#为True，表示创建新的，需要初始化
                 self.boolean_array = np.ndarray((4,), dtype=np.int8, buffer=self.shm.buf)
-                new_values = np.array([False, False,False,False], dtype=bool)
+                new_values = np.array([False, False, False, False], dtype=bool)
                 self.boolean_array[:]=new_values.astype(np.int8)
             else:
                 self.boolean_array = np.ndarray((4,), dtype=np.int8, buffer=self.shm.buf)
@@ -90,14 +90,14 @@ class Synchronizer:
         
         if self.boolean_array[2] == False:
             self.boolean_array[2]=True
+            self.shm.close()
+            print("shared memory close here!")
+            
         else:
-            try:
-                self.shm.close()
-                self.shm.unlink()
-                print("shared memory delete here!")
-                
-            except :
-                print("shared memory has deleted!")
+            # self.shm.unlink()
+            self.shm.close()
+            print("shared memory delete here!")
+            
     
     
     def set_value(self, index, value):

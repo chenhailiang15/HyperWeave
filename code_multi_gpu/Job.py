@@ -68,11 +68,13 @@ class Job:
         self.nprocs_list=nprocs_list
         self.gpu_id_list=gpu_id_list
         self.prior=prior
-        self.shm_name_list=shm_name_list
+        self.shm_name_list=shm_name_list  
         
         nprocs_list_c=nprocs_list.__str__().replace(" ","")
         gpu_id_list_c=gpu_id_list.__str__().replace(" ","")
-        shm_name_list_c="\""+json.dumps(shm_name_list)+"\""
+        shm_name_list_c=json.dumps(shm_name_list).replace(" ","")
+        shm_name_list_c="\""+str(shm_name_list)+"\""
+        # print("(job) shm_name_list_c dict:", shm_name_list_c)
         
         self.command=f"python WeaveExecutor.py --MASTER_ADDR {MASTER_ADDR} --MASTER_PORT {MASTER_PORT} --net_card {net_card}  --node_rank {node_rank} \
             --world_size {world_size} --nprocs_list {nprocs_list_c} --gpu_id_list {gpu_id_list_c} --model_name {self.model_name} --batch_size {self.batch_size} \
@@ -151,7 +153,7 @@ class Job:
         self.nprocs_list=json_dict["nprocs_list"]
         self.gpu_id_list=json_dict["gpu_id_list"]
         self.prior=json_dict["prior"]
-        self.shm_name_list=json_dict["shm_name_list"]
+        self.shm_name_list=json_dict["shm_name_list"]   #由于是字典，这里需要调整key的类型。从string转换为 int （暂时不影响，暂不修改）
         self.command=json_dict["command"]
         
         self.plan_cpu=json_dict["plan_cpu"]
