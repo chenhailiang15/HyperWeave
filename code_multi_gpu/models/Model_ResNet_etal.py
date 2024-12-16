@@ -3,7 +3,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.nn as nn
 from torchvision import datasets, transforms, models
 import torch.optim as optim
-from torch.utils.data import DataLoader, RandomSampler, BatchSampler, partial
+from torch.utils.data import DataLoader, RandomSampler, BatchSampler
 import torch
 import copy
 import os
@@ -57,12 +57,12 @@ class ResNet_etal_class:
 
         # 数据加载
         data_dir = self.dataset_dir + "tiny-ImageNet"  # 替换为你的ImageNet数据集路径
-
+        
         image_datasets = {x: datasets.ImageFolder(os.path.join(data_dir, x), data_transforms[x])
                           for x in ['train', 'val']}
 
         self.dataloaders = {x: DataLoader(image_datasets[x], batch_size=self.args.batch_size, pin_memory=True, shuffle=False, \
-            sampler=DistributedSampler(image_datasets[x]), batch_sampler=partial(RandomSampler, num_samples=1000), num_workers=worker_num)
+            sampler=DistributedSampler(image_datasets[x]) , num_workers=worker_num)
                             for x in ['train', 'val']}
 
         self.dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']}
@@ -355,7 +355,7 @@ class ResNet_etal_class:
     def run(self):
         self.model.train()# 设置模型为训练模式
         for epoch in range(self.args.total_epochs):
-            print("model name:",self.args.model_name,"\tepoch:",epoch)
+            print("model name:",self.args.model_name,"\tepoch:",epoch,"/",self.args.total_epochs-1)
             #进行同步操作 等待信号，方可继续执行，后方代码主要利用CPU加载数据（首次进入，先执行的，直接进入下面代码，另一个等待）
             self.sync_er.sync_in_start_epoch(epoch==0)
             # print("model name:",self.args.model_name,"\tend sync...")
@@ -366,7 +366,8 @@ class ResNet_etal_class:
                     self.sync_er.sync_in_batch()
                 if idx % 500 == 0 :
                     print(f'batch:{idx}/{len(self.dataloaders["train"])-1}')
-                    
+                if idx>20:
+                    continue
                 inputs = inputs.to(self.device)
                 labels = labels.to(self.device)
                 # 清除梯度
