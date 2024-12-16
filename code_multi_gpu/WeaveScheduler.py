@@ -325,8 +325,9 @@ class WeaveSchedulor:
         main_flage=True
         main_ip=None
         main_temp_port=None
-        job_t=copy.deepcopy(job)
+        
         for [node_index, gpu_list] in select_gpu_list:
+            job_t=copy.deepcopy(job)
             if main_flage:
                 job_t.set_is_main(True)
                 main_flage=False

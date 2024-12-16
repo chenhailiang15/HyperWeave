@@ -105,14 +105,7 @@ def Run_model_training(args_t,dataset_dir):
 if __name__=="__main__":
     print("//////////////////////////////////////////////start one job!///////////////////////////////////////////////")
     # os.environ["NCCL_DEBUG"]="INFO"
-    a={}
-    a[2]="djjs"
-    a["4"]="inej"
-    c={}
-    c[1]=a
-    c[3]=a
-    a_string= json.dumps(c)
-    print("test a:", a_string)
+    
     parser = argparse.ArgumentParser(description='simple distributed training job')
     #优先级参数
     parser.add_argument('--prior', action='store_true',help='A flage for label it is prior to run or not in Synchronizer')
@@ -143,7 +136,7 @@ if __name__=="__main__":
     
     #同步参数
     # parser.add_argument("--max_sync_num",default=0,type=int)
-    parser.add_argument("--shm_name_list",default="{}",type=parse_dict_shm)
+    parser.add_argument("--shm_name_list",default="{}",type=parse_list_arg)
     
     #其他参数
     parser.add_argument("--MASTER_ADDR",default="localhost")

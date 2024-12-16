@@ -25,19 +25,11 @@ def generate_shm_name(length=10):
     secure_random_string = ''.join(secrets.choice(characters) for i in range(length))
     return secure_random_string
 
-#解析输入参数为dict
-def parse_dict_shm(dict_arg):
-    print(f"parse_dict_shm origin*******:",dict_arg)
-    new_string=dict_arg.replace("'","\"")
-    print(f"parse_dict_shm update*******:",new_string)
-    
-    shm_dict=ast.literal_eval(dict_arg)
-    print("parse_dict_shm (out):",shm_dict)
-    # list_arg=list_arg.replace("]","").replace("[","").split(",")
-    # shm_list=[]
-    # for shm in list_arg:
-    #     shm_list.append(shm)
-    return shm_dict
+# #解析输入参数为dict
+# def parse_dict_shm(dict_arg):
+
+#     shm_dict=ast.literal_eval(dict_arg)
+#     return shm_dict
     
 #解析输入参数为list 普遍
 def parse_list_arg(list_arg):

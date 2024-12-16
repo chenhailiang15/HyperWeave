@@ -52,7 +52,7 @@ class Node:
         satisfy_gpu_id_list=[]
         satisfy_score=0
         if self.cpu_rest<cpu_need or self.mem_rest<mem_need:
-            return satisfy_gpu_id_list
+            return satisfy_gpu_id_list, satisfy_score
         cpu_rest_per=(self.cpu_rest-cpu_need)/self.cpu
         mem_rest_per=(self.mem_rest-mem_need)/self.mem
         
