@@ -55,6 +55,8 @@ def single_training(local_rank,args,model):
         gpu_id=args.gpu_id_list[args.node_rank][local_rank]
         if gpu_id in args.shm_name_list[args.node_rank]:
             model.set_shm_name(args.prior, args.shm_name_list[args.node_rank][gpu_id])
+        else:
+            model.set_shm_name(args.prior, "", enable_flage=False)
     else:
         model.set_shm_name(args.prior, "", enable_flage=False)
     # Load the necessary training objects - dataset, model, and optimizer.
