@@ -28,21 +28,35 @@ class Node:
         self.gpu_rest=np.array([100*self.overshared_factor for i in range(gpu_num)])
         self.gmem_rest=np.array([gmem for i in range(gpu_num)])
         
+    def print_node_resource(self):
+        print(f"node id {self.node_id}, cpu-{self.cpu_rest}, mem-{self.mem_rest}",end="")
+        for i in range(self.gpu_rest.shape[0]):
+            print(f"gpu_id-{i}-{self.gpu_rest[i]}",end="\t")
+        print("")
+        
     def alloc_resource(self, cpu, mem, gpu, gmem, gpu_id_list):
         with self.lock:
+            self.print_node_resource()
+            print(f"node id : {self.node_id} need resource cpu-{cpu} mem-{mem} gpu-{gpu} gmem-{gmem}, gpu id list-{gpu_id_list}")
             self.cpu_rest-=cpu
             self.mem_rest-=mem
+            
             for gpu_id in gpu_id_list:
                 self.gpu_rest[gpu_id]=self.gpu_rest[gpu_id]-gpu
                 self.gmem_rest[gpu_id]=self.gmem_rest[gpu_id]-gmem
+            self.print_node_resource()
         
     def takeback_resource(self, cpu, mem, gpu, gmem, gpu_id_list):
         with self.lock:
+            self.print_node_resource()
+            print(f"node id : {self.node_id} takeback resource cpu-{cpu} mem-{mem} gpu-{gpu} gmem-{gmem}, gpu id list-{gpu_id_list}")
             self.cpu_rest+=cpu
             self.mem_rest+=mem
             for gpu_id in gpu_id_list:
                 self.gpu_rest[gpu_id]=self.gpu_rest[gpu_id]+gpu
                 self.gmem_rest[gpu_id]=self.gmem_rest[gpu_id]+gmem
+            self.print_node_resource()
+            
             
     def get_satisfy_gpu_id(self,pack_resource):
         cpu_need=pack_resource[0]
@@ -77,9 +91,10 @@ class Node:
     def get_idle_port(self):
         while is_port_in_use(self.ip, self.current_port):
             self.current_port+=1
+        idle_port=self.current_port
         self.current_port+=1
         
-        return self.current_port
+        return idle_port
         
         
     

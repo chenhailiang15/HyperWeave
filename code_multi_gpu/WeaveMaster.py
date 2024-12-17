@@ -27,7 +27,7 @@ class WeaveMaster:
         self.print_level=print_level
         self.clock_time_factor=10000
         self.job_time_factor=1000
-        self.schedule_interval=5
+        self.schedule_interval=10
         self.schedule_strategy="over_sharing"
         self.model_name_list=["AlexNet","ResNet18","ResNet50","VGG16","MobileNetv2"]
         self.batch_size_list=[64,128]
@@ -44,8 +44,8 @@ class WeaveMaster:
         self.end_event=threading.Event()
         
         self.max_cross=1
-        self.max_gpu_cross=4
-        self.overshared_factor=4
+        self.max_gpu_cross=1
+        self.overshared_factor=1
         
         ############统计信息##############
         
@@ -103,23 +103,7 @@ class WeaveMaster:
         
         self.nodes=[master_node, worker_node]
         
-    def message_receive(self,message):
-        
-        self.buffer+=message
-        buffer_list=self.buffer.split("--end")
-        if len(buffer_list)>1:
-            for i in range(len(buffer_list)-1):
-                
-                job=Job()
-                job.load_string(buffer_list[i])
-                
-                if print_level>5:
-                    print("master receive back job:\t", job.job_name)
-                    
-                    
-                self.statistic_end_job(job)
-                
-            self.buffer=buffer_list[len(buffer_list)-1]
+    
             
         
 
@@ -176,7 +160,7 @@ class WeaveMaster:
             rest_jobs=self.scheduler.do_schedule(wait_schedule_list)
             
             for job in rest_jobs:
-                print(f"wait for next scheduling:job name({job.job_name})")
+                # print(f"wait for next scheduling:job name({job.job_name})")
                 self.wait_schedule_queue.put(job)
                 
             
@@ -192,19 +176,15 @@ class WeaveMaster:
             if job ==None: #由于数据原因，可能无法生成Job，因此跳过
                 continue
             if self.print_level>=2:
-                print(f"{job.job_key_info()}")
+                print(f"job ${job.job_name}$ come ( detailed info :{job.job_key_info()})")
             self.wait_schedule_queue.put(job)
             self.job_come_num+=1
             if index+1<len(self.ali_trace_pd):
                 time.sleep(self.ali_trace_pd.loc[index+1,"start_time"]-self.ali_trace_pd.loc[index,"start_time"])
-
-        print("job_come end1")
+ 
         self.job_come_flage=False
         sub_thread_schedule.join()
-        
-        print("job_come end2")
-        
-        
+
         return
     
     
@@ -214,28 +194,43 @@ class WeaveMaster:
             self.job_dealing_num+=1
             
         if job_f.node_rank==0:
+            if self.print_level>5:
+                print(f"master execute job:{job_f.job_name} ...")
             self.execute_job_in_master(job_f)
         else:
+            if self.print_level>5:
+                print(f"send job to worker:{job_f.job_name} ...")
             self.send_job_to_worker(job_f)
     #将任务发送给worker执行
     def send_job_to_worker(self,job_f):
-        if self.print_level>5:
-            print(f"send job to worker:{job_f.job_name} ...")
-        
         self.communicator.send(job_f.to_string()+"--end")
         
+    def message_receive(self,message):
+        
+        self.buffer+=message
+        buffer_list=self.buffer.split("--end")
+        if len(buffer_list)>1:
+            for i in range(len(buffer_list)-1):
+                
+                job=Job()
+                job.load_string(buffer_list[i])
+                
+                if print_level>5:
+                    print("master receive back job ${job.job_name}$" )
+
+                self.statistic_end_job(job)
+                
+            self.buffer=buffer_list[len(buffer_list)-1]
+            
     #任务本地执行
     def execute_job_in_master(self, job_f):
-        if self.print_level>5:
-            print(f"master execute job:{job_f.job_name} ...")
-            
         sub_thread=threading.Thread(target=self.run_command,args=(job_f,job_f.command,))
         sub_thread.start()
 
     #任务具体运行
     def run_command(self,job, command):
         if self.print_level>5:
-            print("master start command:\n", command)
+            print(f"******master start job ${job.job_name}$ with command:\t {command}")
         job.set_start_time(time.time())
         back=os.system(command)
         if back==0:
@@ -246,7 +241,7 @@ class WeaveMaster:
         job.set_end_time(time.time())
         #这里很重要，对于资源的回收，结果的统计，都在这里进行
         self.statistic_end_job(job)
-        print("执行完成后的返回值：",back)
+        print(f"******master end job ${job.job_name}$ with back code: {back}")
     
     def statistic_end_job(self,job):
         if self.print_level>3:

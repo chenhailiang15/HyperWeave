@@ -26,7 +26,6 @@ class WeaveWorker:
             for i in range(len(buffer_list)-1):
                 job=Job()
                 job.load_string(buffer_list[i])
-                print("worker receive:\t",buffer_list[i])
                 
                 sub_thread=threading.Thread(target=self.run_command,args=(job, job.command,))
                 sub_thread.start()
@@ -38,7 +37,7 @@ class WeaveWorker:
         
         
     def run_command(self,job, message):
-        print("worker receive message:\n",message)
+        print(f"******worker start job ${job.job_name}$ with command:\t",message)
         job.set_start_time(time.time())
         back=os.system(message)
         if back==0:
@@ -49,7 +48,7 @@ class WeaveWorker:
         job.set_end_time(time.time())
         self.comunicator.send(job.to_string()+"--end")
             
-        print("命令执行返回结果：",back)
+        print(f"******worker end job ${job.job_name}$ with back code: {back}")
         
     def sub_thread_join(self):
         while self.sub_thread_queue.qsize()>0:
