@@ -128,7 +128,7 @@ class WeaveSchedulor:
         return multi_gpu_jobs, single_gpu_jobs
     
     def __over_sharing_match_jobs(self, jobs_list):
-        matched_job_name=set()
+        
         complete_match_list=[]
         out_matched_jobs_list=[]
         if len(jobs_list)==0:
@@ -171,6 +171,9 @@ class WeaveSchedulor:
       
                 
         #按照匹配值高低进行提取
+        matched_job_name=set()
+        single_job=None
+        single_job_pack_resource=None
         complete_match_list.sort(key=lambda x:x[0], reverse=True)
         for i in range(len(complete_match_list)):
             job1=complete_match_list[i][1]
@@ -183,24 +186,25 @@ class WeaveSchedulor:
                 
                 out_matched_jobs_list.append([job1,job2,pack_resource])
                 continue
+            elif job1.job_name not in matched_job_name:
+                [cpu11, mem11, gpu11, gmem11,time11]=self.master.analyze_2080_loader.get_job_values(job1,"stage_sample")
+                [cpu12, mem12, gpu12, gmem12,time12]=self.master.analyze_2080_loader.get_job_values(job1,"stage_train")
+                single_job=job1
+                single_job_pack_resource=[max(cpu11,cpu12), max(mem11,mem12), max(gpu11,gpu12), max(gmem11,gmem12)]
+            elif job2.job_name not in matched_job_name:
+                [cpu21, mem21, gpu21, gmem21,time21]=self.master.analyze_2080_loader.get_job_values(job2,"stage_sample")
+                [cpu22, mem22, gpu22, gmem22,time22]=self.master.analyze_2080_loader.get_job_values(job2,"stage_train")
+                single_job=job2
+                single_job_pack_resource=[max(cpu21,cpu22), max(mem21,mem22), max(gpu21,gpu22), max(gmem21,gmem22)]
                 
-            if i == len(complete_match_list)-1:
-                if job1.job_name not in matched_job_name:
-                    matched_job_name.add(job1.job_name)
-                    [cpu11, mem11, gpu11, gmem11,time11]=self.master.analyze_2080_loader.get_job_values(job1,"stage_sample")
-                    [cpu12, mem12, gpu12, gmem12,time12]=self.master.analyze_2080_loader.get_job_values(job1,"stage_train")
-
-                    out_matched_jobs_list.append([job1, [max(cpu11,cpu12), max(mem11,mem12), max(gpu11,gpu12), max(gmem11,gmem12)]])
-                if job2.job_name not in matched_job_name:
-                    matched_job_name.add(job2.job_name)
-                    [cpu21, mem21, gpu21, gmem21,time21]=self.master.analyze_2080_loader.get_job_values(job2,"stage_sample")
-                    [cpu22, mem22, gpu22, gmem22,time22]=self.master.analyze_2080_loader.get_job_values(job2,"stage_train")
-
-                    out_matched_jobs_list.append([job2, [max(cpu21,cpu22), max(mem21,mem22), max(gpu21,gpu22), max(gmem21,gmem22)]])
+            
         #判断输出是否包含所有jobs
         if len(matched_job_name) != len(jobs_list):
-            print("__over_sharing_match_multi_gpu_jobs wrong!")
-            exit(256)
+            if single_job.job_name not in matched_job_name:
+                out_matched_jobs_list.append([single_job, single_job_pack_resource])
+            else:
+                print("__over_sharing_match_multi_gpu_jobs wrong!")
+                exit(256)
         return out_matched_jobs_list
                 
                 

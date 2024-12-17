@@ -11,6 +11,7 @@
 #     node_rank=1
 #     net_card="eno1"
 # fi
+conda activate torch_mp_chl
 
 node_rank=0
 net_card="eno1"
@@ -24,7 +25,7 @@ nprocs_list=[3]
 gpu_id_list="[[0,1,2],[]]"
 
 
-total_epochs=10
+total_epochs=3
 batch_size=16           #8 for Bert (default:16)
 worker_num=4
 
