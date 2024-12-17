@@ -187,7 +187,7 @@ class WeaveSchedulor:
                 [cpu, mem, gpu, gmem] =pack_resource
                 job1.set_pack_resource(cpu, mem, gpu, gmem )
                 self.execute_schedule(job1, job1_gpu_id_list, False, {})
-                self.master.monitor.alloc_resource(job1, job1_gpu_id_list, pack_resource)
+                self.master.monitor.alloc_resource(job1, None,job1_gpu_id_list)
                 # self.execute_schedule(job1, job1_gpu_id_list, shm_name_dict)
                     
             else:
@@ -207,8 +207,11 @@ class WeaveSchedulor:
                 job2.set_pack_resource(cpu, mem, gpu, gmem , job1.job_name)
                 self.execute_schedule(job1, job1_gpu_id_list, True, shm_name_dict)
                 self.execute_schedule(job2, job2_gpu_id_list, False,  shm_name_dict)
-                self.master.monitor.alloc_resource(job1, job1_gpu_id_list, pack_resource)
-                self.master.monitor.alloc_resource(job2, job2_gpu_id_list, pack_resource)
+                if job1.parallel_num>= job2.parallel_num:
+                    max_couple_job_gpu_id_list=job1_gpu_id_list
+                else:
+                    max_couple_job_gpu_id_list=job2_gpu_id_list
+                self.master.monitor.alloc_resource(job1, job2,max_couple_job_gpu_id_list)
                 # self.execute_schedule(job1, job1_gpu_id_list, shm_name_dict)
                 # self.execute_schedule(job2, job2_gpu_id_list, shm_name_dict)
                 
@@ -255,7 +258,7 @@ class WeaveSchedulor:
     def execute_schedule(self, job, select_gpu_list, prior, shm_name_dict):
         world_size=0
         nprocs_list=[0]*self.master.node_num
-        gpu_id_list=[ [] for i in range(self.master.node_num)]
+        gpu_id_list=[ [] for i in range(self.master.node_num)]  #需要有顺序
 
         min_node_index=999    #选取最小的node index作为
         for [node_index, gpu_list] in select_gpu_list:
@@ -274,7 +277,7 @@ class WeaveSchedulor:
                 job_t.set_is_main(True)
             else:
                 job_t.set_is_main(False)
-            job_t.set_gpu_list(select_gpu_list)
+            # job_t.set_gpu_list(select_gpu_list)
             net_card=self.master.nodes[node_index].net_card
             job_t.set_execute_info(main_ip, main_temp_port, net_card, node_index, world_size ,nprocs_list, gpu_id_list, prior=prior, shm_name_list=shm_name_dict)
             self.master.send_job_to_execution(job_t)

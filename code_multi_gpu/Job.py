@@ -42,8 +42,9 @@ class Job:
     def set_is_main(self, is_main):
         self.is_main=is_main
     
-    def set_gpu_list(self, gpu_list):
-        self.gpu_list=gpu_list
+    # def set_gpu_list(self, gpu_list):
+    #     self.gpu_list=gpu_list
+
     
     #时间信息
     def set_arrive_time(self, arrive_time):
@@ -121,12 +122,13 @@ class Job:
         json_dict["couple_job_name"]=self.couple_job_name
         
         json_dict["is_main"]=self.is_main
-        json_dict["gpu_list"]=self.gpu_list
+        # json_dict["gpu_list"]=self.gpu_list
         
         json_dict["arrive_time"]=self.arrive_time
         json_dict["start_time"]=self.start_time
         json_dict["end_time"]=self.end_time
         json_dict["succeed_flage"]=self.succeed_flage
+
         
         return json.dumps(json_dict)
     
@@ -168,13 +170,13 @@ class Job:
         self.couple_job_name=json_dict["couple_job_name"]
         
         self.is_main=json_dict["is_main"]
-        self.gpu_list=json_dict["gpu_list"]
+        # self.gpu_list=json_dict["gpu_list"]
         
         self.arrive_time=json_dict["arrive_time"]
         self.start_time=json_dict["start_time"]
         self.end_time=json_dict["end_time"]
         self.succeed_flage=json_dict["succeed_flage"]
-        
+
         
         
         

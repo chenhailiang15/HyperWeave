@@ -10,21 +10,40 @@ class WeaveMonitor:
         self.gpu_num_list=[]
         for i in range(self.node_num):
             self.gpu_num_list.append(self.nodes[i].gpu_num)
+            
+        self.end_job_name=set()
+        self.occupy_resource_gpu_id_list={}
         
     
 
         
         
-    def alloc_resource(self, job, job_gpu_id_list, pack_resource):
-        [cpu, mem, gpu, gmem]=pack_resource
-        for [node_index, gpu_id_list] in job_gpu_id_list:
-            self.nodes[node_index].alloc_resource(cpu, mem, gpu, gmem, gpu_id_list)
+    def alloc_resource(self, job1, job2, couple_job_gpu_id_list):
+        
+        self.occupy_resource_gpu_id_list[job1.job_name]=couple_job_gpu_id_list
+        if job2 !=None:
+            self.occupy_resource_gpu_id_list[job2.job_name]=couple_job_gpu_id_list
+        
+        for [node_index, gpu_id_list] in couple_job_gpu_id_list:
+            self.nodes[node_index].alloc_resource(job1.pack_cpu, job1.pack_mem, job1.pack_gpu, job1.pack_gmem, gpu_id_list)
         
                 
-    def takeback_resource(self,job, job_gpu_id_list, pack_resource):
-        [cpu, mem, gpu, gmem]=pack_resource
-        for [node_index, gpu_id_list] in job_gpu_id_list:
-            self.nodes[node_index].takeback_resource(cpu, mem, gpu, gmem, gpu_id_list)
+    def takeback_resource(self,job):
+        if job.is_main ==False:
+            return False
+        if job.couple_job_name == None:
+            for [node_index , gpu_id_list_t]in self.occupy_resource_gpu_id_list[job.job_name]:
+                self.nodes[node_index].takeback_resource(job.pack_cpu, job.pack_mem, job.pack_gpu, job.pack_gmem, gpu_id_list_t)
+            # del self.occupy_resource_gpu_id_list[job.job_name]
+            return
+        if job.couple_job_name in self.end_job_name:
+            for [node_index , gpu_id_list_t]in self.occupy_resource_gpu_id_list[job.job_name]:
+                self.nodes[node_index].takeback_resource(job.pack_cpu, job.pack_mem, job.pack_gpu, job.pack_gmem, gpu_id_list_t)
+            return
+        else:
+            self.end_job_name.add(job.job_name)
+        
+        
         
             
                 

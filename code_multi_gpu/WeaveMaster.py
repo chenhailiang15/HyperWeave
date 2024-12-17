@@ -248,8 +248,8 @@ class WeaveMaster:
             print("end a job:", job.job_name)
         
         #回收资源(需要修改，有配对的，在两个都结束后，再释放资源)
-        gpu_list=job.gpu_list
-        self.monitor.takeback_resource(job, gpu_list, [job.pack_cpu, job.pack_mem, job.pack_gpu, job.pack_gmem])
+
+        self.monitor.takeback_resource(job)
         
         
         #统计信息
