@@ -30,7 +30,7 @@ class ResNet_etal_class:
         self.sync_er=Synchronizer(shm_name,prior=prior, enable_flage=enable_flage)
         
     def set_shm_name_analyze(self,shm_name):
-        self.sync_er=Synchronizer(shm_name, shm_size=4*np.dtype(np.int8).itemsize)
+        self.sync_er=Synchronizer(shm_name, shm_size=4)
 
     def load_mode_data(self):
         print("start load_mode_data")

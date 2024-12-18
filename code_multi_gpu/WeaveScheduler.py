@@ -261,7 +261,8 @@ class WeaveSchedulor:
             
         main_ip=self.master.nodes[min_node_index].ip
         main_temp_port=self.master.nodes[min_node_index].get_idle_port()
-        
+        if job.job_name =="16703ff8c156f85a4c737651":
+            a=1
         for [node_index, gpu_list] in select_gpu_list:
             if len(gpu_list)==0:    #如果对应GPU list没有被选择，则不用将Job发送到Node，不然，会导致任务重复
                 continue

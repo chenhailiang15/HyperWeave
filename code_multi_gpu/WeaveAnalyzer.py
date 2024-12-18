@@ -95,27 +95,31 @@ def analyze_one_task(args_t,dataset_dir):
 
 def analyze_tasks(args,dataset_dir,queue):
     args.total_epochs=2
-    model_name_list=["AlexNet","ResNet18","ResNet50","VGG16","MobileNetv2"]
-    batch_size_list=[8,16,32,64,128]
-    max_parrallel=3
+    args.gpu_id_list=[[0,1,2,3]]
+    args.node_rank=0
+    model_name_list=["VGG16"]#"AlexNet","ResNet18","ResNet50",,"MobileNetv2"
+    batch_size_list=[128]
+    max_parrallel=1
     for model_name in model_name_list:
         for batch_size in batch_size_list:
             for parrallel in range(1,max_parrallel+1):
-                try:
-                    print("start analyze: ", model_name+"-"+batch_size.__str__()+"-"+parrallel.__str__())
-                    queue.put(model_name+"-"+batch_size.__str__()+"-"+parrallel.__str__())
-                    args.model_name=model_name
-                    args.batch_size=batch_size
-                    args.nprocs_per_node=parrallel
-                    analyze_one_task(args,dataset_dir)
-                except Exception:
-                    print("wrong:",model_name+"-"+batch_size.__str__()+"-"+parrallel.__str__()) 
+                # try:
+                print("start analyze: ", model_name+"-"+batch_size.__str__()+"-"+parrallel.__str__())
+                queue.put(model_name+"-"+batch_size.__str__()+"-"+parrallel.__str__())
+                args.model_name=model_name
+                args.batch_size=batch_size
+                args.nprocs_per_node=parrallel
+                
+                analyze_one_task(args,dataset_dir)
+                # except Exception:
+                #     print("wrong:",model_name+"-"+batch_size.__str__()+"-"+parrallel.__str__()) 
     return
 
 
 def offline_analyze():
 
     args=args_weave()
+    
     shm_name=generate_shm_name()
     args.set_shm_name(shm_name)
     my_queue=queue.Queue()
@@ -177,8 +181,8 @@ class AnalyzeDataLoader:
         
     
 if __name__=="__main__":
-    # offline_analyze()
-    analyze_data=AnalyzeDataLoader("Analyzer-NVIDIA_GeForce_RTX_2080.csv")
+    offline_analyze()
+    # analyze_data=AnalyzeDataLoader("Analyzer-NVIDIA_GeForce_RTX_2080.csv")
     
     
     

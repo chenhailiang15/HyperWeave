@@ -29,7 +29,7 @@ class Node:
         self.gmem_rest=np.array([gmem for i in range(gpu_num)])
         
     def print_node_resource(self):
-        print(f"node id {self.node_id}, cpu-{self.cpu_rest}, mem-{self.mem_rest}",end="")
+        print(f"@@@@@@node id: {self.node_id}\tcpu-{self.cpu_rest}\tmem-{self.mem_rest}",end="\t")
         for i in range(self.gpu_rest.shape[0]):
             print(f"gpu_id-{i}-{self.gpu_rest[i]}-{self.gmem_rest[i]}",end="\t")
         print("")
@@ -37,7 +37,7 @@ class Node:
     def alloc_resource(self, cpu, mem, gpu, gmem, gpu_id_list):
         with self.lock:
             self.print_node_resource()
-            print(f"node id : {self.node_id} need resource cpu-{cpu} mem-{mem} gpu-{gpu} gmem-{gmem}, gpu id list-{gpu_id_list}")
+            print(f"      node id: {self.node_id} need resource cpu-{cpu}\tmem-{mem}\tgpu-{gpu}\tgmem-{gmem}\tgpu id list-{gpu_id_list}")
             self.cpu_rest-=cpu
             self.mem_rest-=mem
             
@@ -49,7 +49,7 @@ class Node:
     def takeback_resource(self, cpu, mem, gpu, gmem, gpu_id_list):
         with self.lock:
             self.print_node_resource()
-            print(f"node id : {self.node_id} takeback resource cpu-{cpu} mem-{mem} gpu-{gpu} gmem-{gmem}, gpu id list-{gpu_id_list}")
+            print(f"      node id: {self.node_id} takeback resource cpu-{cpu} mem-{mem} gpu-{gpu} gmem-{gmem}, gpu id list-{gpu_id_list}")
             self.cpu_rest+=cpu
             self.mem_rest+=mem
             for gpu_id in gpu_id_list:

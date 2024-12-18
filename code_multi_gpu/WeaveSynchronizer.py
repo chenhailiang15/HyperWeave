@@ -5,8 +5,8 @@ import multiprocessing
 import numpy as np
 
 class Synchronizer:
-    def __init__(self,shm_name,shm_size=3*np.dtype(np.int8).itemsize,prior=True,enable_flage=True):
-        if shm_size==3*np.dtype(np.int8).itemsize:
+    def __init__(self,shm_name,shm_size=3,prior=True,enable_flage=True):
+        if shm_size==3:
             self.cpu_index=0
             self.gpu_index=1
             self.prior=prior
@@ -22,7 +22,7 @@ class Synchronizer:
                 else:
                     self.boolean_array = np.ndarray((3,), dtype=np.int8, buffer=self.shm.buf)
         
-        elif shm_size==4*np.dtype(np.int8).itemsize:
+        elif shm_size==4:
             self.shm_name=shm_name
             self.shm_size=shm_size
             if self.load_share_memory():#为True，表示创建新的，需要初始化
@@ -43,7 +43,7 @@ class Synchronizer:
             return False
         except FileNotFoundError:
             self.shm=shared_memory.SharedMemory(name=self.shm_name, create=True, size=self.shm_size)
-            print(f"共享内存 '{self.shm_name}' 不存在，现在创建。")
+            print(f"共享内存 '{self.shm_name}' 不存在，现在创建。size ={self.shm_size}")
             return True
         
         

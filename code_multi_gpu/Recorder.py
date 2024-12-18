@@ -74,7 +74,7 @@ class Record:
     #用于分析运行，记录各个阶段的资源数据
     def run_analyze(self,queue, shm_name):
         self.gpu_id_analyze=0
-        self.sync_er=Synchronizer(shm_name)
+        self.sync_er=Synchronizer(shm_name,shm_size=4)
         file=open(self.out_dir+self.out_file_name,"w")
         
         self.cpu=[]

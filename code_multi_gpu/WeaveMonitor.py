@@ -29,7 +29,9 @@ class WeaveMonitor:
         
                 
     def takeback_resource(self,job):
-        if job.is_main ==False:
+        if job.job_name =="16703ff8c156f85a4c737651":
+            a=1
+        if job.is_main == False:
             return False
         if job.couple_job_name == None:
             for [node_index , gpu_id_list_t]in self.occupy_resource_gpu_id_list[job.job_name]:
