@@ -31,7 +31,7 @@ class Node:
     def print_node_resource(self):
         print(f"node id {self.node_id}, cpu-{self.cpu_rest}, mem-{self.mem_rest}",end="")
         for i in range(self.gpu_rest.shape[0]):
-            print(f"gpu_id-{i}-{self.gpu_rest[i]}",end="\t")
+            print(f"gpu_id-{i}-{self.gpu_rest[i]}-{self.gmem_rest[i]}",end="\t")
         print("")
         
     def alloc_resource(self, cpu, mem, gpu, gmem, gpu_id_list):
@@ -77,8 +77,8 @@ class Node:
                 ave_per=(cpu_rest_per+mem_rest_per+gpu_rest_per+gmem_rest_per)/4
                 satisfy_gpu_id_list.append([i,ave_per])
                 satisfy_score+=ave_per
-                
-        satisfy_gpu_id_list.sort(key=lambda x:x[1], reverse=True)
+        if len(satisfy_gpu_id_list)>0:
+            satisfy_gpu_id_list.sort(key=lambda x:x[1], reverse=True)  #进行排序，降序
         return satisfy_gpu_id_list, satisfy_score
     
     

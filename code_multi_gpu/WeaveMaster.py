@@ -96,10 +96,10 @@ class WeaveMaster:
     def init_node(self):
         self.node_num=2
         master_node=Node(node_id="worker", ip="10.26.128.51", net_card="eno1", overshared_factor=self.overshared_factor, max_cross_gpu_job_num=self.max_gpu_cross, print_level=self.print_level)
-        master_node.set_init_resouce(48*100,125*1024, 3, 11*1024)
+        master_node.set_init_resouce(48*100,125*1024, 3, 10*1024)
         
         worker_node=Node(node_id="master", ip="10.26.128.115", net_card="eno2", overshared_factor=self.overshared_factor, max_cross_gpu_job_num=self.max_gpu_cross, print_level=self.print_level)
-        worker_node.set_init_resouce(48*100, 62*1024, 4, 8*1024)
+        worker_node.set_init_resouce(48*100, 62*1024, 4, 7*1024)
         
         self.nodes=[master_node, worker_node]
         
@@ -189,6 +189,7 @@ class WeaveMaster:
     
     
     def send_job_to_execution(self, job_f):
+        #记录统计数据
         self.command_start_num+=1
         if job_f.is_main:
             self.job_dealing_num+=1

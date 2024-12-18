@@ -54,9 +54,9 @@ class WeaveMonitor:
             temp_gpu_list, score=self.nodes[i].get_satisfy_gpu_id(pack_resource)
             satisfy_gpu_list.append([i, score, temp_gpu_list])  #GPU数量最优先
         
-        # satisfy_gpu_list.sort(key=lambda x:x[1], reverse=True)#
+        satisfy_gpu_list.sort(key=lambda x:x[1], reverse=True)    #对满足的node相关信息，进行排序，降序
 
-        return satisfy_gpu_list
+        return satisfy_gpu_list        #[[node_index, score, [[gpu_id, score],...]],...]
     
     def __get_satisfy_gpu_node(self,node_kind, pack_resource):
         cpu_need=pack_resource[0]

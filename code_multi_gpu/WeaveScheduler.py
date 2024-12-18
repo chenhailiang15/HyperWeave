@@ -35,25 +35,18 @@ class WeaveSchedulor:
             self.execute_schedule(job,select_gpu)
         return []
     
+    #over share 调度主线
     def schedule_weave_over_sharing(self,job_list):
-        multi_gpu_jobs, single_gpu_jobs=self.__over_sharing_classify_jobs(job_list)
-        
-        matched_jobs_list=self.__over_sharing_match_jobs(multi_gpu_jobs)
-        rest_jobs1=self.__over_sharing_select_gpu_and_execute_schedule(matched_jobs_list)
-        
-        matched_jobs_list=self.__over_sharing_match_jobs(single_gpu_jobs)
-        rest_jobs2=self.__over_sharing_select_gpu_and_execute_schedule(matched_jobs_list)
-
-        
-        
-        
-        rest_job=rest_jobs1+rest_jobs2
+        multi_gpu_jobs, single_gpu_jobs=self.__over_sharing_classify_jobs(job_list)         #job 根据其并行数量（GPU数量）分类为多GPU任务和单GPU任务
+        matched_jobs_list=self.__over_sharing_match_jobs(multi_gpu_jobs)                    #对多GPU任务进行匹配
+        rest_jobs1=self.__over_sharing_select_gpu_and_execute_schedule(matched_jobs_list)   #对多GPU任务， 选择GPU，并放到机器执行
+        matched_jobs_list=self.__over_sharing_match_jobs(single_gpu_jobs)                   #对单GPU任务进行匹配
+        rest_jobs2=self.__over_sharing_select_gpu_and_execute_schedule(matched_jobs_list)   #对单GPU任务， 选择GPU，并放到机器执行
+        rest_job=rest_jobs1+rest_jobs2                                                      #对未调度的任务，合并，并返回进行重调度
         return rest_job
     
-    
-    
-    
-    def __over_sharing_classify_jobs(self,job_list):
+    #任务分类 单GPU和多GPU任务
+    def __over_sharing_classify_jobs(self,job_list):     
         multi_gpu_jobs=[]
         single_gpu_jobs=[]
         for job in job_list:
@@ -63,8 +56,8 @@ class WeaveSchedulor:
                 single_gpu_jobs.append(job)
         return multi_gpu_jobs, single_gpu_jobs
     
+    #任务匹配
     def __over_sharing_match_jobs(self, jobs_list):
-        
         complete_match_list=[]
         out_matched_jobs_list=[]
         if len(jobs_list)==0:
@@ -77,6 +70,7 @@ class WeaveSchedulor:
             out_matched_jobs_list.append([job1, [max(cpu11,cpu12), max(mem11,mem12), max(gpu11,gpu12), max(gmem11,gmem12)]])
             return out_matched_jobs_list
         
+        #计算两两的匹配值
         for i_index in range(len(jobs_list)):
             for j_index in range(i_index+1, len(jobs_list)):
                 job1=jobs_list[i_index]
@@ -99,12 +93,9 @@ class WeaveSchedulor:
                 gmem_factor=self.__over_sharing_cal_similarity(gmem11+gmem22,gmem12+gmem21)
                 time_factor=self.__over_sharing_cal_similarity(time11+time22,time12+time21)
                 
-                pack_resource=[max(cpu11+cpu22,cpu12+cpu21 ), max(mem11+mem22, mem12+mem21), max(gpu11+gpu22, gpu12+gpu21), max(gmem11+gmem22, gmem12+gmem21) ]
-                
+                pack_resource=[max(cpu11+cpu22,cpu12+cpu21 ), max(mem11+mem22, mem12+mem21), max(gpu11+gpu22, gpu12+gpu21), max(gmem11+gmem22, gmem12+gmem21)]
                 simimlarity=epoch_factor+parallel_factor+cpu_factor+mem_factor+gpu_factor+gmem_factor+time_factor
-                
-                complete_match_list.append([simimlarity,job1,job2,pack_resource])
-      
+                complete_match_list.append([simimlarity,job1,job2,pack_resource])          #存储匹配值，后续用于匹配
                 
         #按照匹配值高低进行提取
         matched_job_name=set()
@@ -143,11 +134,11 @@ class WeaveSchedulor:
                 exit(256)
         return out_matched_jobs_list
                 
-                
+    #匹配值计算的子函数，匹配效果越好，值越接近1
     def __over_sharing_cal_similarity(self, var1, var2):
         return 1-(abs(var1-var2)/max(var1,var2))
         
-    
+    #选择合适的GPU，并发送Job执行
     def __over_sharing_select_gpu_and_execute_schedule(self, matched_jobs_list):
         #matched_jobs_list = [job1, job2, [cpu, mem, gpu, gmem] ] or [job1, [cpu, mem, gpu, gmem] ] 
         rest_job=[]
@@ -161,7 +152,7 @@ class WeaveSchedulor:
                 job1=matched_jobs[0]
                 job2=None
                 pack_resource=matched_jobs[1]
-            #[[gpu_id, average_rest_resource], ...]
+            #[[node_index, score, [[gpu_id, score],...]],...]
             satisfy_gpu_list=self.master.monitor.get_satisfy_gpu(pack_resource)
             #对优先级进行排序
             satisfy_gpu_list_new=[]
@@ -180,9 +171,9 @@ class WeaveSchedulor:
                 if all_satisfy_gpu_num<max_parallel:
                     rest_job.append(job1)
                     continue
-                job1_rest_gpu=job1.parallel_num
+                job1_rest_parallel_num=job1.parallel_num
                 
-                job1_gpu_id_list, _, _= self.get_aim_gpu_id(job1_rest_gpu, 0, satisfy_gpu_list_new)
+                job1_gpu_id_list, _, _= self.__over_sharing_select_gpu(job1_rest_parallel_num, 0, satisfy_gpu_list_new)   
                 # scheduled_jobs.append([job1, job1_gpu_id_list, {}])
                 [cpu, mem, gpu, gmem] =pack_resource
                 job1.set_pack_resource(cpu, mem, gpu, gmem )
@@ -199,7 +190,7 @@ class WeaveSchedulor:
                 job1_rest_gpu=job1.parallel_num
                 job2_rest_gpu=job2.parallel_num
                 
-                job1_gpu_id_list,job2_gpu_id_list,shm_name_dict= self.get_aim_gpu_id(job1_rest_gpu, job2_rest_gpu, satisfy_gpu_list_new)
+                job1_gpu_id_list,job2_gpu_id_list,shm_name_dict= self.__over_sharing_select_gpu(job1_rest_gpu, job2_rest_gpu, satisfy_gpu_list_new)
                 # scheduled_jobs.append([job1, job1_gpu_id_list, shm_name_dict])
                 # scheduled_jobs.append([job2, job2_gpu_id_list, shm_name_dict])
                 [cpu, mem, gpu, gmem] =pack_resource
@@ -220,7 +211,7 @@ class WeaveSchedulor:
                             
                 
                 
-    def get_aim_gpu_id(self, job1_rest_gpu, job2_rest_gpu, satisfy_gpu_list_new) :
+    def __over_sharing_select_gpu(self, job1_rest_gpu, job2_rest_gpu, satisfy_gpu_list_new) :
         job1_gpu_id_list=[]
         job2_gpu_id_list=[]
         shm_name_dict={}
@@ -247,7 +238,6 @@ class WeaveSchedulor:
                 else:
                     print("(monitor) wrong!")
                     exit(256)
-            
             job1_gpu_id_list.append([node_index, job1_temp_gpu_id_list])
             job2_gpu_id_list.append([node_index, job2_temp_gpu_id_list])
             shm_name_dict[node_index]=shm_name_dict_temp
@@ -262,22 +252,25 @@ class WeaveSchedulor:
 
         min_node_index=999    #选取最小的node index作为
         for [node_index, gpu_list] in select_gpu_list:
-            min_node_index=node_index if node_index<min_node_index else min_node_index
+            
             world_size+=len(gpu_list)
             nprocs_list[node_index]=len(gpu_list)
             gpu_id_list[node_index]=gpu_list
+            if len(gpu_list)>0:
+                min_node_index=node_index if node_index<min_node_index else min_node_index
             
-        main_flage=True
-        main_ip=self.master.nodes[node_index].ip
-        main_temp_port=self.master.nodes[node_index].get_idle_port()
+        main_ip=self.master.nodes[min_node_index].ip
+        main_temp_port=self.master.nodes[min_node_index].get_idle_port()
         
         for [node_index, gpu_list] in select_gpu_list:
+            if len(gpu_list)==0:    #如果对应GPU list没有被选择，则不用将Job发送到Node，不然，会导致任务重复
+                continue
             job_t=copy.deepcopy(job)
             if node_index == min_node_index:
                 job_t.set_is_main(True)
             else:
                 job_t.set_is_main(False)
-            # job_t.set_gpu_list(select_gpu_list)
+
             net_card=self.master.nodes[node_index].net_card
             job_t.set_execute_info(main_ip, main_temp_port, net_card, node_index, world_size ,nprocs_list, gpu_id_list, prior=prior, shm_name_list=shm_name_dict)
             self.master.send_job_to_execution(job_t)
