@@ -39,10 +39,8 @@ def ddp_setup(local_rank, args):
 
     # Set the current CUDA device to the specified device (identified by rank).
     # This ensures that each process uses a different GPU in a multi-GPU setup.
-    if len(args.gpu_id_list)!=0:
-        torch.cuda.set_device(args.gpu_id_list[local_rank])
-    else:
-        torch.cuda.set_device(local_rank)
+    
+    torch.cuda.set_device(local_rank)
     
 
 def single_training(local_rank,args,model):
@@ -95,7 +93,7 @@ def analyze_one_task(args_t,dataset_dir):
 
 def analyze_tasks(args,dataset_dir,queue):
     args.total_epochs=2
-    args.gpu_id_list=[[0,1,2,3]]
+    # args.gpu_id_list=[0,1,2,3]
     args.node_rank=0
     model_name_list=["VGG16"]#"AlexNet","ResNet18","ResNet50",,"MobileNetv2"
     batch_size_list=[128]
@@ -144,6 +142,7 @@ class AnalyzeDataLoader:
         self.index["gpu"]=2
         self.index["gmem"]=3
         self.index["time"]=4
+        self.expand=1.2
         
         self.data={}
         self.load_csv(file_name)
@@ -166,10 +165,10 @@ class AnalyzeDataLoader:
             self.data[model_info]=temp_dict
             
     def get_value(self, model_info, stage_info="stage_train", resource_kind="gpu"):
-        return self.data[model_info][stage_info][self.index[resource_kind]]
+        return self.data[model_info][stage_info][self.index[resource_kind]]*self.expand
     
     def get_job_value(self, job, stage_info, resource_kind):
-        return self.data[job.get_name_batchsize_epoch()][stage_info][self.index[resource_kind]]
+        return self.data[job.get_name_batchsize_epoch()][stage_info][self.index[resource_kind]]*self.expand
     def get_job_values(self, job, stage_info):
         cpu=self.get_job_value(job,stage_info, "cpu")
         mem=self.get_job_value(job,stage_info, "mem")

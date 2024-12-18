@@ -18,15 +18,15 @@ net_card="eno1"
 MASTER_ADDR="10.26.128.51"   # one node:localhost  multi node: master ip
 MASTER_PORT="12355"
 
-model_name="AlexNet"
-world_size=3
-nprocs_list=[3]
+model_name="VGG16"
+world_size=1
+nprocs_list=[1]
 
 gpu_id_list="[[0,1,2],[]]"
 
 
 total_epochs=3
-batch_size=16           #8 for Bert (default:16)
+batch_size=128           #8 for Bert (default:16)
 worker_num=4
 
 squad_data_size=1000

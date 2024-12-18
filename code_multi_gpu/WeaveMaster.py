@@ -24,12 +24,16 @@ from Node import Node
 class WeaveMaster:
     
     def __init__(self, print_level=0):
+        self.single_node_mode=True
+        self.schedule_strategy="over_sharing"
+        
+        
         self.print_level=print_level
         self.clock_time_factor=10000
         self.job_time_factor=1000
         self.schedule_interval=10
-        self.schedule_strategy="over_sharing"
-        self.model_name_list=["AlexNet","ResNet18","ResNet50","VGG16","MobileNetv2"]
+        
+        self.model_name_list=["AlexNet","ResNet18","ResNet50","MobileNetv2"]
         self.batch_size_list=[64,128]
         self.epoch_list=[5,10,15,20]
         
@@ -88,20 +92,27 @@ class WeaveMaster:
         #通讯器，初始化和启动监听。
         if self.print_level>0:
             print("master init communicator...")
-        self.communicator=CommunicateServer(print_level=self.print_level)
-        self.communicator.start_connect()
-        self.communicator.start_listening(self.message_receive)
+        if not self.single_node_mode:
+            self.communicator=CommunicateServer(print_level=self.print_level)
+            self.communicator.start_connect()
+            self.communicator.start_listening(self.message_receive)
         
         
     def init_node(self):
-        self.node_num=2
-        master_node=Node(node_id="master", ip="10.26.128.51", net_card="eno1", overshared_factor=self.overshared_factor, max_cross_gpu_job_num=self.max_gpu_cross, print_level=self.print_level)
-        master_node.set_init_resouce(48*100,125*1024, 3, 10*1024)
-        
-        worker_node=Node(node_id="worker", ip="10.26.128.115", net_card="eno2", overshared_factor=self.overshared_factor, max_cross_gpu_job_num=self.max_gpu_cross, print_level=self.print_level)
-        worker_node.set_init_resouce(48*100, 62*1024, 4, 7*1024)
-        
-        self.nodes=[master_node, worker_node]
+        if self.single_node_mode:
+            self.node_num=1
+            master_node=Node(node_id="master", ip="10.26.128.51", net_card="eno1", overshared_factor=self.overshared_factor, max_cross_gpu_job_num=self.max_gpu_cross, print_level=self.print_level)
+            master_node.set_init_resouce(48*100,125*1024, 3, 10*1024)
+            self.nodes=[master_node]
+        else:
+            self.node_num=2
+            master_node=Node(node_id="master", ip="10.26.128.51", net_card="eno1", overshared_factor=self.overshared_factor, max_cross_gpu_job_num=self.max_gpu_cross, print_level=self.print_level)
+            master_node.set_init_resouce(48*100,125*1024, 3, 10*1024)
+            
+            worker_node=Node(node_id="worker", ip="10.26.128.115", net_card="eno2", overshared_factor=self.overshared_factor, max_cross_gpu_job_num=self.max_gpu_cross, print_level=self.print_level)
+            worker_node.set_init_resouce(48*100, 62*1024, 4, 7*1024)
+            
+            self.nodes=[master_node, worker_node]
         
     
             
@@ -125,8 +136,10 @@ class WeaveMaster:
 
         model_name=random.choice(self.model_name_list)
         batch_size=random.choice(self.batch_size_list)
-        
-        plan_gpu=ali_trace["plan_gpu"] if ali_trace["plan_gpu"]<=700 else 700
+        if self.single_node_mode:
+            plan_gpu=ali_trace["plan_gpu"] if ali_trace["plan_gpu"]<=300 else 300
+        else:
+            plan_gpu=ali_trace["plan_gpu"] if ali_trace["plan_gpu"]<=500 else 500
         
         parrallel_num=math.ceil(min(plan_gpu, 400)/100)
         model_info=model_name+"-"+str(batch_size)+"-"+str(parrallel_num)
@@ -217,7 +230,7 @@ class WeaveMaster:
                 job.load_string(buffer_list[i])
                 
                 if print_level>5:
-                    print("master receive back job ${job.job_name}$" )
+                    print(f"master receive back job ${job.job_name}$" )
 
                 self.statistic_end_job(job)
                 
@@ -287,12 +300,14 @@ class WeaveMaster:
 
         
     def close(self):
-        self.communicator.close()
+        if not self.single_node_mode:
+            self.communicator.close()
 import random
 
 random.seed(3)
 
 if __name__=="__main__":
+    
     print_level=10
     weave_master=WeaveMaster(print_level)
     weave_master.job_come()

@@ -176,7 +176,7 @@ class WeaveSchedulor:
                 job1_gpu_id_list, _, _= self.__over_sharing_select_gpu(job1_rest_parallel_num, 0, satisfy_gpu_list_new)   
                 # scheduled_jobs.append([job1, job1_gpu_id_list, {}])
                 [cpu, mem, gpu, gmem] =pack_resource
-                job1.set_pack_resource(cpu, mem, gpu, gmem )
+                job1.set_pack_resource(math.ceil(cpu), math.ceil(mem), math.ceil(gpu), math.ceil(gmem) )
                 self.execute_schedule(job1, job1_gpu_id_list, False, {})
                 self.master.monitor.alloc_resource(job1, None,job1_gpu_id_list)
                 # self.execute_schedule(job1, job1_gpu_id_list, shm_name_dict)
@@ -194,8 +194,8 @@ class WeaveSchedulor:
                 # scheduled_jobs.append([job1, job1_gpu_id_list, shm_name_dict])
                 # scheduled_jobs.append([job2, job2_gpu_id_list, shm_name_dict])
                 [cpu, mem, gpu, gmem] =pack_resource
-                job1.set_pack_resource(cpu, mem, gpu, gmem, job2.job_name )
-                job2.set_pack_resource(cpu, mem, gpu, gmem , job1.job_name)
+                job1.set_pack_resource(math.ceil(cpu), math.ceil(mem), math.ceil(gpu), math.ceil(gmem), job2.job_name )
+                job2.set_pack_resource(math.ceil(cpu), math.ceil(mem), math.ceil(gpu), math.ceil(gmem), job1.job_name)
                 self.execute_schedule(job1, job1_gpu_id_list, True, shm_name_dict)
                 self.execute_schedule(job2, job2_gpu_id_list, False,  shm_name_dict)
                 if job1.parallel_num>= job2.parallel_num:
@@ -261,8 +261,7 @@ class WeaveSchedulor:
             
         main_ip=self.master.nodes[min_node_index].ip
         main_temp_port=self.master.nodes[min_node_index].get_idle_port()
-        if job.job_name =="16703ff8c156f85a4c737651":
-            a=1
+
         for [node_index, gpu_list] in select_gpu_list:
             if len(gpu_list)==0:    #如果对应GPU list没有被选择，则不用将Job发送到Node，不然，会导致任务重复
                 continue
