@@ -15,7 +15,7 @@ from WeaveMonitor import WeaveMonitor
 import queue
 from Job import Job 
 from Node import Node
-
+import subprocess
 
 #cpu, gpu 按照百分比表示需求和剩余，即1个GPU 表示为100
 #mem, gmem按照存储单位表示，本平台中使用MB
@@ -29,7 +29,7 @@ class WeaveMaster:
         # self.schedule_strategy="over_sharing"
 
         self.sync_mode=True
-        self.MPS_mode=True      #需要手动调整GPU设置
+        self.MPS_mode=True      #需要手动调整GPU设置, 直接修改无效果
         
         
         self.print_level=print_level
@@ -73,15 +73,16 @@ class WeaveMaster:
         self.job_complete_time_list=[]
         #################################
         self.init_node()
-        
+        self.init_MPS()
+        # exit(8)
         if self.print_level>0:
             print("master load ali trace...")
-        self.load_ali_trace("ali_trace_job_info.csv")
+        self.load_ali_trace("ali_trace_job_info_sub.csv")
         
         if self.print_level>0:
             print("master init analyze loader...")
         self.analyze_2080_loader=AnalyzeDataLoader("Analyzer-NVIDIA_GeForce_RTX_2080.csv",print_level)
-        self.analyze_2080ti_loader=AnalyzeDataLoader("Analyzer-NVIDIA_GeForce_RTX_2080_Ti.csv",print_level)
+        # self.analyze_2080ti_loader=AnalyzeDataLoader("Analyzer-NVIDIA_GeForce_RTX_2080_Ti.csv",print_level)
         
         #资源监视器
         if self.print_level>0:
@@ -105,9 +106,11 @@ class WeaveMaster:
     def init_node(self):
         if self.single_node_mode:
             self.node_num=1
-            master_node=Node(node_id="master", ip="10.26.128.51", net_card="eno1", overshared_factor=self.overshared_factor, max_cross_gpu_job_num=self.max_gpu_cross, print_level=self.print_level)
-            master_node.set_init_resouce(48*100,125*1024, 3, 10*1024)
-            self.nodes=[master_node]
+            # master_node=Node(node_id="master", ip="10.26.128.51", net_card="eno1", overshared_factor=self.overshared_factor, max_cross_gpu_job_num=self.max_gpu_cross, print_level=self.print_level)
+            # master_node.set_init_resouce(48*100,125*1024, 3, 10*1024)
+            worker_node=Node(node_id="worker", ip="10.26.128.115", net_card="eno2", overshared_factor=self.overshared_factor, max_cross_gpu_job_num=self.max_gpu_cross, print_level=self.print_level)
+            worker_node.set_init_resouce(48*100, 62*1024, 4, 7*1024)
+            self.nodes=[worker_node]
         else:
             self.node_num=2
             master_node=Node(node_id="master", ip="10.26.128.51", net_card="eno1", overshared_factor=self.overshared_factor, max_cross_gpu_job_num=self.max_gpu_cross, print_level=self.print_level)
@@ -118,7 +121,28 @@ class WeaveMaster:
             
             self.nodes=[master_node, worker_node]
         
-    
+    def init_MPS(self):
+        password=" "
+        
+        if self.MPS_mode ==True:
+            flage = start_MPS(password)
+            if flage:
+                print("MPS 开启")
+                return True
+            else:
+                print("MPS 开启失败")
+                exit(-1)
+                return False
+        else:
+            flage = stop_MPS(password)
+            if flage:
+                print("MPS 关闭")
+                return True
+            else:
+                print("MPS 关闭失败")
+                exit(-1)
+                return False
+            
             
         
 
