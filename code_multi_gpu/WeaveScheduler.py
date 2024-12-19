@@ -72,14 +72,14 @@ class WeaveSchedulor:
         for job in job_list:
             if continue_schedule_flage:
                 #正常调度
-                plan_resource=[job.plan_cpu, job.plan_mem, job.plan_gpu]
+                plan_resource=[job.plan_cpu, job.plan_mem/job.parallel_num, job.plan_gpu/job.parallel_num, 0]
                 satisfy_gpu_list=self.master.monitor.get_satisfy_gpu(plan_resource)
                 all_satisfy_gpu_num=0
                 for [node_index, score, temp_gpu_list] in satisfy_gpu_list:
                     all_satisfy_gpu_num+=len(temp_gpu_list)
                 if all_satisfy_gpu_num>=job.parallel_num:
                     selected_gpu_id_list,_,_= self.__over_sharing_select_gpu(job.parallel_num, 0, satisfy_gpu_list)
-                    self.master.monitor.alloc_plan_resource(job, None, selected_gpu_id_list, plan=True)
+                    self.master.monitor.alloc_resource(job, None, selected_gpu_id_list, plan=True)
                     self.execute_schedule(job, selected_gpu_id_list, False, {})
                 else:
                     rest_job.append(job)
@@ -105,14 +105,14 @@ class WeaveSchedulor:
         for job in job_list:
             if continue_schedule_flage:
                 #正常调度
-                plan_resource=[job.plan_cpu, job.plan_mem, job.plan_gpu]
+                plan_resource=[job.plan_cpu, job.plan_mem/job.parallel_num, job.plan_gpu/job.parallel_num, 0]
                 satisfy_gpu_list=self.master.monitor.get_satisfy_gpu(plan_resource)
                 all_satisfy_gpu_num=0
                 for [node_index, score, temp_gpu_list] in satisfy_gpu_list:
                     all_satisfy_gpu_num+=len(temp_gpu_list)
                 if all_satisfy_gpu_num>=job.parallel_num:
                     selected_gpu_id_list,_,_= self.__over_sharing_select_gpu(job.parallel_num, 0, satisfy_gpu_list)
-                    self.master.monitor.alloc_plan_resource(job, None, selected_gpu_id_list, plan=True)
+                    self.master.monitor.alloc_resource(job, None, selected_gpu_id_list, plan=True)
                     self.execute_schedule(job, selected_gpu_id_list, False, {})
                 else:
                     rest_job.append(job)

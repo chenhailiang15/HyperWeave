@@ -396,7 +396,7 @@ if __name__=="__main__":
     formatted_time = now_time.strftime('%m_%d_%H_%M_%S')
     sum_info_file_name="SumInfo_Weave_"+formatted_time+".txt"
     file=open("../output/"+sum_info_file_name,"w")
-    experiment_all(file, "FIFO",formatted_time)
+    # experiment_all(file, "FIFO",formatted_time)
     experiment_all(file, "SRSF",formatted_time)
     experiment_all(file, "SRSF",formatted_time)
     file.close()
