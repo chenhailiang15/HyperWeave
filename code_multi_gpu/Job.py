@@ -53,6 +53,10 @@ class Job:
         self.start_time=start_time
     def set_end_time(self, end_time):
         self.end_time=end_time
+    def set_ddl_time(self, ddl_time):
+        self.ddl_time=ddl_time
+    def set_duration_time(self, duration_time):
+        self.duration_time=duration_time
         
     
     def succeed(self):
@@ -127,6 +131,8 @@ class Job:
         json_dict["arrive_time"]=self.arrive_time
         json_dict["start_time"]=self.start_time
         json_dict["end_time"]=self.end_time
+        json_dict["ddl_time"]=self.ddl_time
+        json_dict["duration_time"]=self.duration_time
         json_dict["succeed_flage"]=self.succeed_flage
 
         
@@ -175,6 +181,8 @@ class Job:
         self.arrive_time=json_dict["arrive_time"]
         self.start_time=json_dict["start_time"]
         self.end_time=json_dict["end_time"]
+        self.ddl_time=json_dict["ddl_time"]
+        self.duration_time=json_dict["duration_time"]
         self.succeed_flage=json_dict["succeed_flage"]
 
         

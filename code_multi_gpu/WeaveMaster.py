@@ -24,37 +24,43 @@ import subprocess
 class WeaveMaster:
     
     def __init__(self, print_level=0):
-        self.single_node_mode=True
-        self.schedule_strategy="over_sharing"
-        # self.schedule_strategy="over_sharing"
-
-        self.sync_mode=True
-        self.MPS_mode=True      #需要手动调整GPU设置, 直接修改无效果
         
+        
+        ##################################################《--设置区域--》开始####################################################
+        self.master_is_2080=False
+        self.single_node_mode=True
+        
+        self.schedule_strategy="FIFO"#over_sharing
+        self.sync_mode=True
+        #需要最好手动确认
+        self.MPS_mode=False      
+        self.password="sim2024"
         
         self.print_level=print_level
         self.clock_time_factor=10000
         self.job_time_factor=1000
+        self.job_ddl_factor=2             #ddl是任务持续时间的job_ddl_factor倍
+        
         self.schedule_interval=10
+        
         
         self.model_name_list=["AlexNet","ResNet18","ResNet50","MobileNetv2"]
         self.batch_size_list=[64,128]
         self.epoch_list=[5,10,15,20]
         
-        self.master_ip="10.26.128.51"
-        # self.master_port=2000
-        self.worker_ip="10.26.128.115"
-        # self.worker_port=3000
+        # self.master_ip="10.26.128.51"
+        # self.worker_ip="10.26.128.115"
+
+        self.max_cross=1           #最大跨node任务数量
+        self.max_gpu_cross=1       #最大跨GPU任务数量（单node）
+        self.overshared_factor=1   #等于1存在GPU资源不够的情况
         
-        
+        self.ali_trace_file_name="ali_trace_job_info_sub.csv"
+        self.analyze_file_name="Analyzer-NVIDIA_GeForce_RTX_2080.csv"
+        ##################################################《--设置区域--》结束####################################################
         #用于socket包去粘包
         self.buffer=""
         self.end_event=threading.Event()
-        
-        self.max_cross=1
-        self.max_gpu_cross=1
-        self.overshared_factor=2   #等于1存在GPU资源不够的情况
-        
         ############统计信息##############
         
         self.job_come_num=0
@@ -77,11 +83,11 @@ class WeaveMaster:
         # exit(8)
         if self.print_level>0:
             print("master load ali trace...")
-        self.load_ali_trace("ali_trace_job_info_sub.csv")
+        self.load_ali_trace(self.ali_trace_file_name)
         
         if self.print_level>0:
             print("master init analyze loader...")
-        self.analyze_2080_loader=AnalyzeDataLoader("Analyzer-NVIDIA_GeForce_RTX_2080.csv",print_level)
+        self.analyze_2080_loader=AnalyzeDataLoader(self.analyze_file_name,print_level)
         # self.analyze_2080ti_loader=AnalyzeDataLoader("Analyzer-NVIDIA_GeForce_RTX_2080_Ti.csv",print_level)
         
         #资源监视器
@@ -101,31 +107,35 @@ class WeaveMaster:
             self.communicator=CommunicateServer(print_level=self.print_level)
             self.communicator.start_connect()
             self.communicator.start_listening(self.message_receive)
-        
-        
+
+    #初始化node信息
     def init_node(self):
+        
+        node_2080=Node(node_id="node_2080", ip="10.26.128.115", net_card="eno2", overshared_factor=self.overshared_factor, max_cross_gpu_job_num=self.max_gpu_cross, print_level=self.print_level)
+        node_2080.set_init_resouce(48*100, 62*1024, 4, 7*1024)
+        node_2080ti=Node(node_id="node_2080ti", ip="10.26.128.51", net_card="eno1", overshared_factor=self.overshared_factor, max_cross_gpu_job_num=self.max_gpu_cross, print_level=self.print_level)
+        node_2080ti.set_init_resouce(48*100,125*1024, 3, 10*1024)
+        
         if self.single_node_mode:
             self.node_num=1
-            # master_node=Node(node_id="master", ip="10.26.128.51", net_card="eno1", overshared_factor=self.overshared_factor, max_cross_gpu_job_num=self.max_gpu_cross, print_level=self.print_level)
-            # master_node.set_init_resouce(48*100,125*1024, 3, 10*1024)
-            worker_node=Node(node_id="worker", ip="10.26.128.115", net_card="eno2", overshared_factor=self.overshared_factor, max_cross_gpu_job_num=self.max_gpu_cross, print_level=self.print_level)
-            worker_node.set_init_resouce(48*100, 62*1024, 4, 7*1024)
-            self.nodes=[worker_node]
+            if self.master_is_2080:
+                self.nodes=[node_2080]
+            else:
+                self.nodes=[node_2080ti]
         else:
             self.node_num=2
-            master_node=Node(node_id="master", ip="10.26.128.51", net_card="eno1", overshared_factor=self.overshared_factor, max_cross_gpu_job_num=self.max_gpu_cross, print_level=self.print_level)
-            master_node.set_init_resouce(48*100,125*1024, 3, 10*1024)
+            if self.master_is_2080:
+                self.nodes=[node_2080, node_2080ti]
+            else:
+                self.nodes=[node_2080ti, node_2080]
             
-            worker_node=Node(node_id="worker", ip="10.26.128.115", net_card="eno2", overshared_factor=self.overshared_factor, max_cross_gpu_job_num=self.max_gpu_cross, print_level=self.print_level)
-            worker_node.set_init_resouce(48*100, 62*1024, 4, 7*1024)
             
-            self.nodes=[master_node, worker_node]
-        
+    #初始化MPS
     def init_MPS(self):
-        password=" "
+        
         
         if self.MPS_mode ==True:
-            flage = start_MPS(password)
+            flage = start_MPS(self.password)
             if flage:
                 print("MPS 开启")
                 return True
@@ -134,7 +144,7 @@ class WeaveMaster:
                 exit(-1)
                 return False
         else:
-            flage = stop_MPS(password)
+            flage = stop_MPS(self.password)
             if flage:
                 print("MPS 关闭")
                 return True
@@ -142,9 +152,6 @@ class WeaveMaster:
                 print("MPS 关闭失败")
                 exit(-1)
                 return False
-            
-            
-        
 
     def load_ali_trace(self,file_name):
         ali_trace_pd=self.load_csv(file_name,header=0)
@@ -181,10 +188,15 @@ class WeaveMaster:
         
         arrive_time=time.time()
         
+        duration_time=ali_trace["duration_s"]/self.job_time_factor
+        ddl_time=arrive_time+duration_time*self.job_ddl_factor
+        
         job=Job()
         job.set_model_info(job_name, model_name,total_epochs, batch_size)
         job.set_plan_resource(plan_cpu, plan_mem, plan_gpu)
         job.set_arrive_time(arrive_time)
+        job.set_ddl_time(ddl_time)
+        job.set_duration_time(duration_time)
         return job
         
     #调度子线程，间隔schedule_interval（秒）后，执行一次调度。未调度成功的job需要返回，重新放入队列
@@ -290,8 +302,10 @@ class WeaveMaster:
             print("end a job:", job.job_name)
         
         #回收资源(需要修改，有配对的，在两个都结束后，再释放资源)
-
-        self.monitor.takeback_resource(job)
+        if self.schedule_strategy=="over_sharing":
+            self.monitor.takeback_resource(job)
+        else:
+            self.monitor.takeback_resource(job,plan=True)
         
         
         #统计信息

@@ -18,34 +18,48 @@ class WeaveMonitor:
 
         
         
-    def alloc_resource(self, job1, job2, couple_job_gpu_id_list):
+    def alloc_resource(self, job1, job2, couple_job_gpu_id_list, plan=False):
         
         self.occupy_resource_gpu_id_list[job1.job_name]=couple_job_gpu_id_list
-        if job2 !=None:
-            self.occupy_resource_gpu_id_list[job2.job_name]=couple_job_gpu_id_list
-        
-        for [node_index, gpu_id_list] in couple_job_gpu_id_list:
-            self.nodes[node_index].alloc_resource(job1.pack_cpu, job1.pack_mem, job1.pack_gpu, job1.pack_gmem, gpu_id_list)
-        
-                
-    def takeback_resource(self,job):
-
-        if job.is_main == False:
-            return False
-        if job.couple_job_name == None:
-            for [node_index , gpu_id_list_t]in self.occupy_resource_gpu_id_list[job.job_name]:
-                self.nodes[node_index].takeback_resource(job.pack_cpu, job.pack_mem, job.pack_gpu, job.pack_gmem, gpu_id_list_t)
-            # del self.occupy_resource_gpu_id_list[job.job_name]
-            return
-        if job.couple_job_name in self.end_job_name:
-            for [node_index , gpu_id_list_t]in self.occupy_resource_gpu_id_list[job.job_name]:
-                self.nodes[node_index].takeback_resource(job.pack_cpu, job.pack_mem, job.pack_gpu, job.pack_gmem, gpu_id_list_t)
+        if plan==True:
+            #plan resource
+            for [node_index, gpu_id_list] in couple_job_gpu_id_list:
+                self.nodes[node_index].alloc_resource(job1.plan_cpu, job1.plan_mem, job1.plan_gpu, 0, gpu_id_list)
             return
         else:
-            self.end_job_name.add(job.job_name)
+            #pack resource
+            if job2 !=None:
+                self.occupy_resource_gpu_id_list[job2.job_name]=couple_job_gpu_id_list
+            
+            for [node_index, gpu_id_list] in couple_job_gpu_id_list:
+                self.nodes[node_index].alloc_resource(job1.pack_cpu, job1.pack_mem, job1.pack_gpu, job1.pack_gmem, gpu_id_list)
+        
+                
+    def takeback_resource(self,job, plan=False):
+        
+        if job.is_main == False:
+                return False
+            
+        if plan == True:
+            #plan resource
+            for [node_index , gpu_id_list_t]in self.occupy_resource_gpu_id_list[job.job_name]:
+                self.nodes[node_index].takeback_resource(job.plan_cpu, job.plan_mem, job.plan_gpu, 0, gpu_id_list_t)
+        else:
+            # pack resource
+            if job.couple_job_name == None:
+                for [node_index , gpu_id_list_t]in self.occupy_resource_gpu_id_list[job.job_name]:
+                    self.nodes[node_index].takeback_resource(job.pack_cpu, job.pack_mem, job.pack_gpu, job.pack_gmem, gpu_id_list_t)
+                # del self.occupy_resource_gpu_id_list[job.job_name]
+                return
+            if job.couple_job_name in self.end_job_name:
+                for [node_index , gpu_id_list_t]in self.occupy_resource_gpu_id_list[job.job_name]:
+                    self.nodes[node_index].takeback_resource(job.pack_cpu, job.pack_mem, job.pack_gpu, job.pack_gmem, gpu_id_list_t)
+                return
+            else:
+                self.end_job_name.add(job.job_name)
         
         
-        
+    
             
                 
                 

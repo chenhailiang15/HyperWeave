@@ -176,6 +176,13 @@ class AnalyzeDataLoader:
         gmem=self.get_job_value(job,stage_info, "gmem")
         time=self.get_job_value(job,stage_info, "time")
         return [cpu, mem, gpu, gmem, time]
+    
+    def get_job_pack_resource(self, job):
+        [cpu0, mem0, gpu0, gmem0,time0]=self.master.analyze_2080_loader.get_job_values(job,"stage_init")
+        [cpu1, mem1, gpu1, gmem1,time1]=self.master.analyze_2080_loader.get_job_values(job,"stage_sample")
+        [cpu2, mem2, gpu2, gmem2,time2]=self.master.analyze_2080_loader.get_job_values(job,"stage_train")
+        pack_resource=[max(cpu0,cpu1,cpu2), max(mem0, mem1,mem2), max(gpu0, gpu1, gpu2), max(gmem0, gmem1, gmem2)]
+        return pack_resource
 
         
     

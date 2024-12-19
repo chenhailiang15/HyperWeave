@@ -9,7 +9,7 @@ import time
 import threading 
 from WeaveSynchronizer import Synchronizer
 import numpy as np
-
+import math
 
 
 netIn='0.00'
@@ -136,15 +136,15 @@ class Record:
         return (cpu,mem,gpu,gmem,time_t)
     
     def run_analyze_get_ave_value(self):
-        cpu_ave=round(np.mean(self.cpu),2) if len(self.cpu)>0 else 0
-        mem_ave=round(np.mean(self.mem),2) if len(self.mem)>0 else 0
-        gpu_ave=round(np.mean(self.gpu_util),2) if len(self.gpu_util)>0 else 0
-        gmem_ave=round(np.mean(self.gpu_mem),2) if len(self.gpu_mem)>0 else 0
+        cpu_ave=math.ceil(np.mean(self.cpu)) if len(self.cpu)>0 else 0
+        mem_max=math.ceil(np.max(self.mem)) if len(self.mem)>0 else 0
+        gpu_ave=math.ceil(np.mean(self.gpu_util)) if len(self.gpu_util)>0 else 0
+        gmem_max=math.ceil(np.max(self.gpu_mem)) if len(self.gpu_mem)>0 else 0
         self.cpu=[]
         self.mem=[]
         self.gpu_util=[]
         self.gpu_mem=[]
-        return (cpu_ave,mem_ave, gpu_ave,gmem_ave)
+        return (cpu_ave,mem_max, gpu_ave,gmem_max)
         
     
         
