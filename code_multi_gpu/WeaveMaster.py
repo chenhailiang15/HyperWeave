@@ -16,29 +16,29 @@ import queue
 from Job import Job 
 from Node import Node
 import subprocess
-
+from Recorder import Record
 #cpu, gpu 按照百分比表示需求和剩余，即1个GPU 表示为100
 #mem, gmem按照存储单位表示，本平台中使用MB
 
 
 class WeaveMaster:
     
-    def __init__(self, print_level=0):
+    def __init__(self,stragey, print_level=0):
         
         
         ##################################################《--设置区域--》开始####################################################
         self.master_is_2080=False
         self.single_node_mode=True
         
-        self.schedule_strategy="FIFO"#over_sharing
+        self.schedule_strategy=stragey #over_sharing "FIFO"
         self.sync_mode=True
         #需要最好手动确认
         self.MPS_mode=False      
         self.password="sim2024"
         
         self.print_level=print_level
-        self.clock_time_factor=10000
-        self.job_time_factor=1000
+        self.clock_time_factor=1000
+        self.job_time_factor=100
         self.job_ddl_factor=2             #ddl是任务持续时间的job_ddl_factor倍
         
         self.schedule_interval=10
@@ -48,12 +48,14 @@ class WeaveMaster:
         self.batch_size_list=[64,128]
         self.epoch_list=[5,10,15,20]
         
-        # self.master_ip="10.26.128.51"
-        # self.worker_ip="10.26.128.115"
 
         self.max_cross=1           #最大跨node任务数量
         self.max_gpu_cross=1       #最大跨GPU任务数量（单node）
         self.overshared_factor=1   #等于1存在GPU资源不够的情况
+        
+        self.single_job_max_plan_cpu=40*100
+        self.single_job_max_plan_mem=40*1024
+        self.single_job_max_plan_gpu=3*100
         
         self.ali_trace_file_name="ali_trace_job_info_sub.csv"
         self.analyze_file_name="Analyzer-NVIDIA_GeForce_RTX_2080.csv"
@@ -165,16 +167,16 @@ class WeaveMaster:
         return data_pd
 
     def generate_job(self, ali_trace):
+        
         if ali_trace["cpu_usage"]==0 or ali_trace["avg_mem"]==0:
             return None
         job_name=ali_trace["job_name"]
 
         model_name=random.choice(self.model_name_list)
         batch_size=random.choice(self.batch_size_list)
-        if self.single_node_mode:
-            plan_gpu=ali_trace["plan_gpu"] if ali_trace["plan_gpu"]<=300 else 300
-        else:
-            plan_gpu=ali_trace["plan_gpu"] if ali_trace["plan_gpu"]<=500 else 500
+
+        plan_gpu=ali_trace["plan_gpu"] if ali_trace["plan_gpu"]<=self.single_job_max_plan_gpu else self.single_job_max_plan_gpu
+        
         
         parrallel_num=math.ceil(min(plan_gpu, 400)/100)
         model_info=model_name+"-"+str(batch_size)+"-"+str(parrallel_num)
@@ -183,8 +185,8 @@ class WeaveMaster:
         cal_epoch=math.ceil((ali_trace["duration_s"]/self.job_time_factor-init_time)/epoch_time)
         total_epochs=cal_epoch if cal_epoch<5 else 5
         
-        plan_cpu=min(ali_trace["plan_cpu"]/ali_trace["cpu_usage"]*self.analyze_2080_loader.get_value(model_info,"stage_sample","cpu"), 48*100)
-        plan_mem=min(ali_trace["plan_mem"]/ali_trace["avg_mem"]*self.analyze_2080_loader.get_value(model_info,"stage_sample","mem"),62*1024)
+        plan_cpu=min(ali_trace["plan_cpu"]/ali_trace["cpu_usage"]*self.analyze_2080_loader.get_value(model_info,"stage_sample","cpu"), self.single_job_max_plan_cpu)
+        plan_mem=min(ali_trace["plan_mem"]/ali_trace["avg_mem"]*self.analyze_2080_loader.get_value(model_info,"stage_sample","mem"),self.single_job_max_plan_cpu)
         
         arrive_time=time.time()
         
@@ -269,7 +271,7 @@ class WeaveMaster:
                 job=Job()
                 job.load_string(buffer_list[i])
                 
-                if print_level>5:
+                if self.print_level>5:
                     print(f"master receive back job ${job.job_name}$" )
 
                 self.statistic_end_job(job)
@@ -333,9 +335,13 @@ class WeaveMaster:
             
     def print_job_time_info(self):
         size, _mean, _min, _max, per_50, per_90, per_95=analyze_datas(self.job_wait_time_list)
-        print(f"job wait time: size-{size}, mean-{_mean}, min-{_min}, max-{_max}, percentile50-{per_50}, percentile90-{per_90},percentile95-{per_95}")
+        out_string1=f"job wait time: size-{size}, mean-{_mean}, min-{_min}, max-{_max}, percentile50-{per_50}, percentile90-{per_90},percentile95-{per_95}"
+        print(out_string1)
         size, _mean, _min, _max, per_50, per_90, per_95=analyze_datas(self.job_complete_time_list)
-        print(f"job complete time: size-{size}, mean-{_mean}, min-{_min}, max-{_max}, percentile50-{per_50}, percentile90-{per_90},percentile95-{per_95}")
+        out_string2=f"job complete time: size-{size}, mean-{_mean}, min-{_min}, max-{_max}, percentile50-{per_50}, percentile90-{per_90},percentile95-{per_95}"
+        print(out_string2)
+        
+        self.sum_string=out_string1+"\n"+out_string2
     def wait(self):
         
         self.end_event.wait()
@@ -344,20 +350,57 @@ class WeaveMaster:
     def close(self):
         if not self.single_node_mode:
             self.communicator.close()
+            
+    def get_sum_info(self):
+        temp_string="****************************************************************************************\n"
+        temp_string+=f"stragey {self.schedule_strategy}, MPS:{self.MPS_mode}, Synchronization:{self.sync_mode}\n"
+        return temp_string+self.sum_string+"\n\n\n"
+        
 import random
 
 random.seed(3)
 
-if __name__=="__main__":
+def Record_resource( gpu_id, out_dir, out_file_name,event):
+    record=Record(gpu_id=gpu_id,net_card="", sample_interval=0.1,out_dir=out_dir, out_file_name=out_file_name,event=event,print_flage=False)
+    record.run()
     
+    
+def experiment_all(file, strategy,formatted_time):
+    
+    resource_file_name="Resource_record_"+strategy+"_"+formatted_time
+    event=threading.Event()
+    subTread_record=threading.Thread(target=Record_resource,args=(-1, "../output/",resource_file_name,event))
+    subTread_record.start()
+        
     print_level=10
-    weave_master=WeaveMaster(print_level)
+    weave_master=WeaveMaster(strategy, print_level)
     weave_master.job_come()
-    weave_master.wait()
+    # weave_master.wait()
     weave_master.print_job_time_info()
     weave_master.close()
+    out_string=weave_master.get_sum_info()
+    file.write(out_string)
+    file.flush()
+    
+    event.set()
+    subTread_record.join()
+    print(f"The process end (by master) with {strategy}!")
 
-    print("The whole process end (by master)!")
+
+
+
+if __name__=="__main__":
+    
+    # 格式化输出
+    now_time    = datetime.datetime.now()
+    formatted_time = now_time.strftime('%m_%d_%H_%M_%S')
+    sum_info_file_name="SumInfo_Weave_"+formatted_time+".txt"
+    file=open("../output/"+sum_info_file_name,"w")
+    experiment_all(file, "FIFO",formatted_time)
+    experiment_all(file, "SRSF",formatted_time)
+    experiment_all(file, "SRSF",formatted_time)
+    file.close()
+    
     
     
     

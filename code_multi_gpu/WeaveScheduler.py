@@ -4,7 +4,7 @@ import os
 import threading
 from util import *
 import copy
-
+import time
 
 class WeaveSchedulor:
     def __init__(self,master, strategy,print_level=0):
@@ -32,6 +32,7 @@ class WeaveSchedulor:
         return rest_job
     
     def schedule_FIFO(self, job_list):
+
         #按照到来的先后顺序排序
         job_list.sort(key=lambda x: x.arrive_time)
         #初始化未被调度的job
@@ -42,7 +43,7 @@ class WeaveSchedulor:
         for job in job_list:
             if continue_schedule_flage:
                 #正常调度
-                plan_resource=[job.plan_cpu, job.plan_mem, job.plan_gpu, 0]
+                plan_resource=[job.plan_cpu, job.plan_mem/job.parallel_num, job.plan_gpu/job.parallel_num, 0]
                 satisfy_gpu_list=self.master.monitor.get_satisfy_gpu(plan_resource)
                 all_satisfy_gpu_num=0
                 for [node_index, score, temp_gpu_list] in satisfy_gpu_list:
@@ -60,8 +61,9 @@ class WeaveSchedulor:
         return rest_job
     
     def schedule_SRTF(self, job_list):
+        time_now=time.time()
         #按照到来的先后顺序排序
-        job_list.sort(key=lambda x: x.arrive_time)
+        job_list.sort(key=lambda x: x.ddl_time-time_now-x.duration_time)
         #初始化未被调度的job
         rest_job=[]
         #是否继续调度的标志，当遇到一个无法调度的任务时，停止调度等待下一轮调度，将剩余的job返回
@@ -88,8 +90,13 @@ class WeaveSchedulor:
         return rest_job
     
     def schedule_SRSF(self, job_list):
+        
+        time_now=time.time()
+        # for job in job_list:
+        #     job.set_schedule_order(time_now)
+            
         #按照到来的先后顺序排序
-        job_list.sort(key=lambda x: x.arrive_time)
+        job_list.sort(key=lambda x: (x.ddl_time-time_now-x.duration_time)*x.parallel_num)
         #初始化未被调度的job
         rest_job=[]
         #是否继续调度的标志，当遇到一个无法调度的任务时，停止调度等待下一轮调度，将剩余的job返回

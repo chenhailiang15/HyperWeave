@@ -39,7 +39,11 @@ def stop_MPS(password):
 
 
 def analyze_datas(data):
+    if len(data) ==0:
+        data.append(0)
+        
     np_data=np.array(data)
+    
     _mean=np_data.mean()
     _min=np_data.min()
     _max=np_data.max()

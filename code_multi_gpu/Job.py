@@ -58,6 +58,8 @@ class Job:
     def set_duration_time(self, duration_time):
         self.duration_time=duration_time
         
+    def set_schedule_order(self,time_now):
+        self.order= (self.ddl_time-time_now-self.duration_time)*self.parallel_num
     
     def succeed(self):
         self.succeed_flage=True
