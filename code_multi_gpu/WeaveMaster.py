@@ -26,6 +26,10 @@ class WeaveMaster:
     def __init__(self, print_level=0):
         self.single_node_mode=True
         self.schedule_strategy="over_sharing"
+        # self.schedule_strategy="over_sharing"
+
+        self.sync_mode=True
+        self.MPS_mode=True      #需要手动调整GPU设置
         
         
         self.print_level=print_level

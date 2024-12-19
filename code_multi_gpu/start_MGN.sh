@@ -11,14 +11,14 @@
 #     node_rank=1
 #     net_card="eno1"
 # fi
-conda activate torch_mp_chl
+# conda activate torch_mp_chl
 
 node_rank=0
 net_card="eno1"
 MASTER_ADDR="10.26.128.51"   # one node:localhost  multi node: master ip
 MASTER_PORT="12355"
 
-model_name="VGG16"
+model_name="Transformer"
 world_size=1
 nprocs_list=[1]
 

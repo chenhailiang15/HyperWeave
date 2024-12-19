@@ -16,6 +16,7 @@ from models.Model_ResNet_etal import ResNet_etal_class
 from models.Model_Bert import Bert_class
 from models.Model_GCN import GCN_class
 from models.Model_GraphSage import GraphSage_class
+from models.Model_Transformer import Transformer_class
 from util import *
 
 def ddp_setup(local_rank, args):
@@ -99,6 +100,8 @@ def Run_model_training(args_t,dataset_dir):
         model=GCN_class(args_t,dataset_dir)
     elif args_t.model_name == "GraphSage":
         model=GraphSage_class(args_t,dataset_dir)
+    elif args_t.model_name == "Transformer":
+        model=Transformer_class(args_t,dataset_dir)
     else:
         print("model_name wrong!")
         exit(-1)
