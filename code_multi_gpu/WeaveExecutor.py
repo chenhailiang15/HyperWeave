@@ -55,11 +55,11 @@ def single_training(local_rank,args,model):
     if args.node_rank in args.shm_name_list:
         gpu_id=args.gpu_id_list[args.node_rank][local_rank]
         if gpu_id in args.shm_name_list[args.node_rank]:
-            model.set_shm_name(args.prior, args.shm_name_list[args.node_rank][gpu_id])
+            model.set_shm_name( args.shm_name_list[args.node_rank][gpu_id], args.prior)
         else:
-            model.set_shm_name(args.prior, "", enable_flage=False)
+            model.set_shm_name("", args.prior, enable_flage=False)
     else:
-        model.set_shm_name(args.prior, "", enable_flage=False)
+        model.set_shm_name("", args.prior, enable_flage=False)
     # Load the necessary training objects - dataset, model, and optimizer.
     model.load_mode_data()
     # Train the model for the specified number of epochs.
@@ -93,7 +93,7 @@ def Record_resource(args, gpu_id, out_dir, out_file_name,event):
 def Run_model_training(args_t,dataset_dir):
     if args_t.model_name == "ResNet18" or args_t.model_name == "ResNet50" or args_t.model_name =="AlexNet"\
         or args_t.model_name =="VGG16" or args_t.model_name =="MobileNetv2":
-        model=ResNet_etal_class(args_t,dataset_dir)
+        model=ResNet_etal_class(args_t,dataset_dir, "train")
     elif args_t.model_name == "Bert":
         model=Bert_class(args_t,dataset_dir)
     elif args_t.model_name == "GCN":
@@ -155,6 +155,9 @@ if __name__=="__main__":
     os.environ["MASTER_ADDR"]=args.MASTER_ADDR
     os.environ["MASTER_PORT"]=args.MASTER_PORT
     os.environ["NCCL_SOCKET_IFNAME"]=args.net_card
+    os.environ["PYTORCH_CUDA_ALLOC_CONF"]="max_split_size_mb:128"
+    
+    
     if args.print_level>0:
         print("addr:",args.MASTER_ADDR,"port:",args.MASTER_PORT,"netcard:",args.net_card)
     

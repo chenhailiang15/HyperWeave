@@ -15,7 +15,11 @@ import subprocess
 def start_MPS(password):
     command="nvidia-cuda-mps-control -d"
     (status, result)=subprocess.getstatusoutput('echo %s| sudo -S %s' %(password,command))
-    if status==0 and "nvidia-cuda-mps-control -d" in result and "nvidia-cuda-mps-server" in result:
+    print(status)
+    print(result)
+    
+    if (status==1 and result=="An instance of this daemon is already running" ) or (status==0 and "nvidia-cuda-mps-control -d" in result and "nvidia-cuda-mps-server" in result):
+        
         return True
     else:
         return False
@@ -24,6 +28,8 @@ def start_MPS(password):
 def stop_MPS(password):
     command="echo quit | nvidia-cuda-mps-control"
     (status, result)=subprocess.getstatusoutput('echo %s| sudo -S %s' %(password,command))
+    print(status)
+    print(result)
     if status==0 and "nvidia-cuda-mps-control -d" not in result and "nvidia-cuda-mps-server" not in result:
         return True
     else:

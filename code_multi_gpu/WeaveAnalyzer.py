@@ -60,11 +60,11 @@ def single_training(local_rank,args,model):
     
     #判断要不要启动同步器
     
-    model.set_shm_name_analyze( args.shm_name)
+    model.set_shm_name( args.shm_name)
     # Load the necessary training objects - dataset, model, and optimizer.
-    model.load_mode_data_analyze()
+    model.load_mode_data()
     # Train the model for the specified number of epochs.
-    model.run_analyze()
+    model.run()
     # Cleanup the distributed environment after training is complete.
     destroy_process_group()
 
@@ -77,7 +77,7 @@ def Record_resource(args, gpu_id, out_dir, out_file_name,event,queue):
 def analyze_one_task(args_t,dataset_dir):
     if args_t.model_name == "ResNet18" or args_t.model_name == "ResNet50" or args_t.model_name =="AlexNet"\
         or args_t.model_name =="VGG16" or args_t.model_name =="MobileNetv2":
-        model=ResNet_etal_class(args_t,dataset_dir)
+        model=ResNet_etal_class(args_t,dataset_dir,"analyze")
     elif args_t.model_name == "Bert":
         model=Bert_class(args_t,dataset_dir)
     elif args_t.model_name == "GCN":
@@ -95,9 +95,9 @@ def analyze_tasks(args,dataset_dir,queue):
     args.total_epochs=2
     # args.gpu_id_list=[0,1,2,3]
     args.node_rank=0
-    model_name_list=["VGG16"]#"AlexNet","ResNet18","ResNet50",,"MobileNetv2"
-    batch_size_list=[128]
-    max_parrallel=1
+    model_name_list=["AlexNet","ResNet18","ResNet50","MobileNetv2","VGG16"]#"AlexNet","ResNet18","ResNet50",,"MobileNetv2"
+    batch_size_list=[8,16,32,64,128,256]
+    max_parrallel=4
     for model_name in model_name_list:
         for batch_size in batch_size_list:
             for parrallel in range(1,max_parrallel+1):

@@ -38,10 +38,11 @@ class WeaveSchedulor:
     #over share 调度主线
     def schedule_weave_over_sharing(self,job_list):
         multi_gpu_jobs, single_gpu_jobs=self.__over_sharing_classify_jobs(job_list)         #job 根据其并行数量（GPU数量）分类为多GPU任务和单GPU任务
-        matched_jobs_list=self.__over_sharing_match_jobs(multi_gpu_jobs)                    #对多GPU任务进行匹配
-        rest_jobs1=self.__over_sharing_select_gpu_and_execute_schedule(matched_jobs_list)   #对多GPU任务， 选择GPU，并放到机器执行
-        matched_jobs_list=self.__over_sharing_match_jobs(single_gpu_jobs)                   #对单GPU任务进行匹配
-        rest_jobs2=self.__over_sharing_select_gpu_and_execute_schedule(matched_jobs_list)   #对单GPU任务， 选择GPU，并放到机器执行
+        matched_multi_jobs_list=self.__over_sharing_match_jobs(multi_gpu_jobs)                    #对多GPU任务进行匹配
+        matched_single_jobs_list=self.__over_sharing_match_jobs(single_gpu_jobs)                   #对单GPU任务进行匹配
+        
+        rest_jobs1=self.__over_sharing_select_gpu_and_execute_schedule(matched_multi_jobs_list)   #对多GPU任务， 选择GPU，并放到机器执行
+        rest_jobs2=self.__over_sharing_select_gpu_and_execute_schedule(matched_single_jobs_list)   #对单GPU任务， 选择GPU，并放到机器执行
         rest_job=rest_jobs1+rest_jobs2                                                      #对未调度的任务，合并，并返回进行重调度
         return rest_job
     
