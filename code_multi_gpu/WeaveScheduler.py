@@ -33,6 +33,61 @@ class WeaveSchedulor:
                 exit(-1)
         return rest_job
     
+    
+    
+    def schedule_FIFO(self, job_list):
+        #按照到来的先后顺序排序
+        job_list.sort(key=lambda x: x.arrive_time)
+        rest_job=self.schedule_ordered_job_list(job_list)
+            
+        return rest_job
+    
+    def schedule_SRTF(self, job_list):
+        time_now=time.time()
+        #按照到来的先后顺序排序
+        job_list.sort(key=lambda x: x.ddl_time-time_now-x.duration_time)
+        rest_job=self.schedule_ordered_job_list(job_list)
+            
+        return rest_job
+    
+    def schedule_SRSF(self, job_list):
+        
+        time_now=time.time()
+        # for job in job_list:
+        #     job.set_schedule_order(time_now)
+            
+        #按照到来的先后顺序排序
+        job_list.sort(key=lambda x: (x.ddl_time-time_now-x.duration_time)*x.parallel_num)
+        rest_job=self.schedule_ordered_job_list(job_list)
+        return rest_job
+    
+    
+    def schedule_ordered_single_job_list(self, job_list):
+        #初始化未被调度的job
+        rest_job=[]
+        #是否继续调度的标志，当遇到一个无法调度的任务时，停止调度等待下一轮调度，将剩余的job返回
+        continue_schedule_flage=True
+        #循环调度
+        for job in job_list:
+            if continue_schedule_flage:
+                #正常调度
+                plan_resource=[job.plan_cpu, job.plan_mem/job.parallel_num, job.plan_gpu/job.parallel_num, 0]
+                satisfy_gpu_list=self.master.monitor.get_satisfy_gpu(plan_resource)
+                all_satisfy_gpu_num=0
+                for [node_index, score, temp_gpu_list] in satisfy_gpu_list:
+                    all_satisfy_gpu_num+=len(temp_gpu_list)
+                if all_satisfy_gpu_num>=job.parallel_num:
+                    selected_gpu_id_list,_,_= self.__over_sharing_select_gpu(job.parallel_num, 0, satisfy_gpu_list)
+                    self.master.monitor.alloc_resource(job, None, selected_gpu_id_list, plan=True)
+                    self.execute_schedule(job, selected_gpu_id_list, False, {})
+                else:
+                    rest_job.append(job)
+                    continue_schedule_flage=False
+            else:
+                rest_job.append(job)
+        return rest_job
+    
+    
     #over share 调度主线
     def schedule_weave_over_sharing(self,job_list):
         multi_gpu_jobs, single_gpu_jobs=self.__over_sharing_classify_jobs(job_list)         #job 根据其并行数量（GPU数量）分类为多GPU任务和单GPU任务
@@ -51,129 +106,133 @@ class WeaveSchedulor:
 
         return rest_job
     
-    def schedule_FIFO(self, job_list):
-
-        #按照到来的先后顺序排序
-        job_list.sort(key=lambda x: x.arrive_time)
-        #初始化未被调度的job
-        rest_job=[]
-        #是否继续调度的标志，当遇到一个无法调度的任务时，停止调度等待下一轮调度，将剩余的job返回
-        continue_schedule_flage=True
-        #循环调度
-        for job in job_list:
-            if continue_schedule_flage:
-                #正常调度
-                plan_resource=[job.plan_cpu, job.plan_mem/job.parallel_num, job.plan_gpu/job.parallel_num, 0]
-                satisfy_gpu_list=self.master.monitor.get_satisfy_gpu(plan_resource)
-                all_satisfy_gpu_num=0
-                for [node_index, score, temp_gpu_list] in satisfy_gpu_list:
-                    all_satisfy_gpu_num+=len(temp_gpu_list)
-                if all_satisfy_gpu_num>=job.parallel_num:
-                    selected_gpu_id_list,_,_= self.__over_sharing_select_gpu(job.parallel_num, 0, satisfy_gpu_list)
-                    self.master.monitor.alloc_resource(job, None, selected_gpu_id_list, plan=True)
-                    self.execute_schedule(job, selected_gpu_id_list, False, {})
-                else:
-                    rest_job.append(job)
-                    continue_schedule_flage=False
-            else:
-                rest_job.append(job)
-            
-        return rest_job
     
-    def schedule_SRTF(self, job_list):
-        time_now=time.time()
-        #按照到来的先后顺序排序
-        job_list.sort(key=lambda x: x.ddl_time-time_now-x.duration_time)
-        #初始化未被调度的job
-        rest_job=[]
-        #是否继续调度的标志，当遇到一个无法调度的任务时，停止调度等待下一轮调度，将剩余的job返回
-        continue_schedule_flage=True
-        #循环调度
-        for job in job_list:
-            if continue_schedule_flage:
-                #正常调度
-                plan_resource=[job.plan_cpu, job.plan_mem/job.parallel_num, job.plan_gpu/job.parallel_num, 0]
-                satisfy_gpu_list=self.master.monitor.get_satisfy_gpu(plan_resource)
-                all_satisfy_gpu_num=0
-                for [node_index, score, temp_gpu_list] in satisfy_gpu_list:
-                    all_satisfy_gpu_num+=len(temp_gpu_list)
-                if all_satisfy_gpu_num>=job.parallel_num:
-                    selected_gpu_id_list,_,_= self.__over_sharing_select_gpu(job.parallel_num, 0, satisfy_gpu_list)
-                    self.master.monitor.alloc_resource(job, None, selected_gpu_id_list, plan=True)
-                    self.execute_schedule(job, selected_gpu_id_list, False, {})
-                else:
-                    rest_job.append(job)
-                    continue_schedule_flage=False
-            else:
-                rest_job.append(job)
-            
-        return rest_job
-    
-    def schedule_SRSF(self, job_list):
-        
-        time_now=time.time()
-        # for job in job_list:
-        #     job.set_schedule_order(time_now)
-            
-        #按照到来的先后顺序排序
-        job_list.sort(key=lambda x: (x.ddl_time-time_now-x.duration_time)*x.parallel_num)
-        #初始化未被调度的job
-        rest_job=[]
-        #是否继续调度的标志，当遇到一个无法调度的任务时，停止调度等待下一轮调度，将剩余的job返回
-        continue_schedule_flage=True
-        #循环调度
-        for job in job_list:
-            if continue_schedule_flage:
-                #正常调度
-                plan_resource=[job.plan_cpu, job.plan_mem/job.parallel_num, job.plan_gpu/job.parallel_num, 0]
-                satisfy_gpu_list=self.master.monitor.get_satisfy_gpu(plan_resource)
-                all_satisfy_gpu_num=0
-                for [node_index, score, temp_gpu_list] in satisfy_gpu_list:
-                    all_satisfy_gpu_num+=len(temp_gpu_list)
-                if all_satisfy_gpu_num>=job.parallel_num:
-                    selected_gpu_id_list,_,_= self.__over_sharing_select_gpu(job.parallel_num, 0, satisfy_gpu_list)
-                    self.master.monitor.alloc_resource(job, None, selected_gpu_id_list, plan=True)
-                    self.execute_schedule(job, selected_gpu_id_list, False, {})
-                else:
-                    rest_job.append(job)
-                    continue_schedule_flage=False
-            else:
-                rest_job.append(job)
-            
-        return rest_job
-    
-    
-    def shedule_weave_FIFO(self, multi_gpu_jobs, single_gpu_jobs):
-        match_jobs=[]
-        for [job1,job2,pack_resource] in multi_gpu_jobs:
+    def schedule_weave_FIFO(self, multi_gpu_jobs, single_gpu_jobs):
+        order_matched_jobs=[]
+        matched_jobs= multi_gpu_jobs+single_gpu_jobs
+        for [job1,job2,pack_resource] in matched_jobs:
             if job2 != None:
                 arrive_time=min(job1.arrive_time, job2.arrive_time)
             else:
                 arrive_time=job1.arrive_time
-            match_jobs.append([arrive_time, job1, job2])
-            
-        for [job1,job2,pack_resource] in single_gpu_jobs:
+            order_matched_jobs.append([job1, job2, pack_resource, arrive_time])
+        #matched_jobs排序
+        order_matched_jobs.sort(key=lambda x : x[3])
+        self.schedule_ordered_matched_job_list(order_matched_jobs)
+    
+    
+    
+    
+    
+    
+    
+    def schedule_weave_SRTF(self, multi_gpu_jobs, single_gpu_jobs):
+        order_matched_jobs=[]
+        time_now=time.time()
+        matched_jobs= multi_gpu_jobs+single_gpu_jobs
+        for [job1,job2,pack_resource] in matched_jobs:
             if job2 != None:
-                arrive_time=min(job1.arrive_time, job2.arrive_time)
+                rest_time1=job1.ddl_time-time_now-job1.duration_time
+                rest_time2=job2.ddl_time-time_now-job2.duration_time
+                rest_time=min(rest_time1, rest_time2)
             else:
-                arrive_time=job1.arrive_time
-            match_jobs.append([arrive_time, job1, job2])
-            
-    
-    
-    
-         
-    #over share 调度主线
-    def schedule_weave_over_sharing_back(self,job_list):
-        multi_gpu_jobs, single_gpu_jobs=self.__over_sharing_classify_jobs(job_list)         #job 根据其并行数量（GPU数量）分类为多GPU任务和单GPU任务
-        matched_multi_jobs_list=self.__over_sharing_match_jobs(multi_gpu_jobs)                    #对多GPU任务进行匹配
-        matched_single_jobs_list=self.__over_sharing_match_jobs(single_gpu_jobs)                   #对单GPU任务进行匹配
+                rest_time=job1.ddl_time-time_now-job1.duration_time  
+            order_matched_jobs.append([job1, job2, pack_resource, rest_time])
         
-        rest_jobs1=self.__over_sharing_select_gpu_and_execute_schedule(matched_multi_jobs_list)   #对多GPU任务， 选择GPU，并放到机器执行
-        rest_jobs2=self.__over_sharing_select_gpu_and_execute_schedule(matched_single_jobs_list)   #对单GPU任务， 选择GPU，并放到机器执行
-        rest_job=rest_jobs1+rest_jobs2                                                      #对未调度的任务，合并，并返回进行重调度
+        #match_jobs排序
+        order_matched_jobs.sort(key=lambda x : x[3])
+        self.schedule_ordered_matched_job_list(order_matched_jobs)
+        
+    def schedule_weave_SRSF(self, multi_gpu_jobs, single_gpu_jobs):
+        order_matched_jobs=[]
+        time_now=time.time()
+        matched_jobs= multi_gpu_jobs+single_gpu_jobs
+        for [job1,job2,pack_resource] in matched_jobs:
+            if job2 != None:
+                rest_time1=(job1.ddl_time-time_now-job1.duration_time)*job1.parallel_num
+                rest_time2=(job2.ddl_time-time_now-job2.duration_time)*job2.parallel_num
+                rest_time=min(rest_time1, rest_time2)
+            else:
+                rest_time=job1.ddl_time-time_now-job1.duration_time  
+            order_matched_jobs.append([job1, job2, pack_resource, rest_time])
+        
+        #match_jobs排序
+        order_matched_jobs.sort(key=lambda x : x[3])
+        self.schedule_ordered_matched_job_list(order_matched_jobs)
+        
+        
+    def schedule_weave_ordered_matched_job_list(self, match_jobs):
+        #初始化未被调度的job
+        rest_job=[]
+        #是否继续调度的标志，当遇到一个无法调度的任务时，停止调度等待下一轮调度，将剩余的job返回
+        continue_schedule_flage=True
+        #循环调度
+        for [job1,job2,pack_resource,order_value] in match_jobs:
+            if continue_schedule_flage:
+                #正常调度
+                #[[node_index, score, [[gpu_id, score],...]],...]
+                satisfy_gpu_list=self.master.monitor.get_satisfy_gpu(pack_resource)
+                #对优先级进行排序
+                satisfy_gpu_list_new=[]
+                all_satisfy_gpu_num=0
+                for [node_index, score, temp_gpu_list] in satisfy_gpu_list:
+                    score=score+len(temp_gpu_list)*10-self.master.nodes[node_index].get_over_corss_num()*10
+                    #调整优先级，score原始是GPU剩余量百分比的和
+                    satisfy_gpu_list_new.append([node_index, score, temp_gpu_list])
+                    all_satisfy_gpu_num+=len(temp_gpu_list)
+                satisfy_gpu_list_new.sort(key=lambda x:x[1], reverse=True)
+                
+                
+                if job2 != None :
+                    max_parallel=max(job1.parallel_num, job2.parallel_num)
+                    if all_satisfy_gpu_num<max_parallel:
+                        rest_job.append(job1)
+                        rest_job.append(job2)
+                        continue_schedule_flage=False
+                        continue
+                    job1_rest_gpu=job1.parallel_num
+                    job2_rest_gpu=job2.parallel_num
+                    
+                    job1_gpu_id_list,job2_gpu_id_list,shm_name_dict= self.__over_sharing_select_gpu(job1_rest_gpu, job2_rest_gpu, satisfy_gpu_list_new)
+                    # scheduled_jobs.append([job1, job1_gpu_id_list, shm_name_dict])
+                    # scheduled_jobs.append([job2, job2_gpu_id_list, shm_name_dict])
+                    [cpu, mem, gpu, gmem] =pack_resource
+                    job1.set_pack_resource(math.ceil(cpu), math.ceil(mem), math.ceil(gpu), math.ceil(gmem), job2.job_name)
+                    job2.set_pack_resource(math.ceil(cpu), math.ceil(mem), math.ceil(gpu), math.ceil(gmem), job1.job_name)
+                    
+                    if job1.parallel_num>= job2.parallel_num:
+                        max_couple_job_gpu_id_list=job1_gpu_id_list
+                    else:
+                        max_couple_job_gpu_id_list=job2_gpu_id_list
+                    self.master.monitor.alloc_resource(job1, job2,max_couple_job_gpu_id_list)
+                    if self.master.sync_mode==False:
+                        shm_name_dict={}
+                    self.execute_schedule(job1, job1_gpu_id_list, True, shm_name_dict)
+                    self.execute_schedule(job2, job2_gpu_id_list, False,  shm_name_dict)
+                else:
+                    max_parallel=job1.parallel_num
+                    if all_satisfy_gpu_num<max_parallel:
+                        rest_job.append(job1)
+                        continue_schedule_flage=False
+                        continue
+                    job1_rest_parallel_num=job1.parallel_num
+                    
+                    job1_gpu_id_list, _, _= self.__over_sharing_select_gpu(job1_rest_parallel_num, 0, satisfy_gpu_list_new)   
+                    # scheduled_jobs.append([job1, job1_gpu_id_list, {}])
+                    [cpu, mem, gpu, gmem] =pack_resource
+                    job1.set_pack_resource(math.ceil(cpu), math.ceil(mem), math.ceil(gpu), math.ceil(gmem) )
+                    
+                    self.master.monitor.alloc_resource(job1, None,job1_gpu_id_list)
+                    self.execute_schedule(job1, job1_gpu_id_list, False, {})
+            
+            else:
+                if job2 !=None:
+                    rest_job.append(job2)
+                rest_job.append(job1)
+                
         return rest_job
-    
+        
+        
     #任务分类 单GPU和多GPU任务
     def __over_sharing_classify_jobs(self,job_list):     
         multi_gpu_jobs=[]
@@ -253,7 +312,7 @@ class WeaveSchedulor:
         #判断输出是否包含所有jobs
         if len(matched_job_name) != len(jobs_list):
             if single_job.job_name not in matched_job_name:
-                out_matched_jobs_list.append([single_job, single_job_pack_resource])
+                out_matched_jobs_list.append([single_job, None, single_job_pack_resource])
             else:
                 print("__over_sharing_match_multi_gpu_jobs wrong!")
                 exit(256)
@@ -262,78 +321,6 @@ class WeaveSchedulor:
     #匹配值计算的子函数，匹配效果越好，值越接近1
     def __over_sharing_cal_similarity(self, var1, var2):
         return 1-(abs(var1-var2)/max(var1,var2))
-        
-    #选择合适的GPU，并发送Job执行
-    def __over_sharing_select_gpu_and_execute_schedule(self, matched_jobs_list):
-        #matched_jobs_list = [job1, job2, [cpu, mem, gpu, gmem] ] or [job1, [cpu, mem, gpu, gmem] ] 
-        rest_job=[]
-        # scheduled_jobs=[]
-        for matched_jobs in matched_jobs_list:
-            if len(matched_jobs) == 3:
-                job1=matched_jobs[0]
-                job2=matched_jobs[1]
-                pack_resource=matched_jobs[2]
-            else:
-                job1=matched_jobs[0]
-                job2=None
-                pack_resource=matched_jobs[1]
-            #[[node_index, score, [[gpu_id, score],...]],...]
-            satisfy_gpu_list=self.master.monitor.get_satisfy_gpu(pack_resource)
-            #对优先级进行排序
-            satisfy_gpu_list_new=[]
-            all_satisfy_gpu_num=0
-            for [node_index, score, temp_gpu_list] in satisfy_gpu_list:
-                score=score+len(temp_gpu_list)*10-self.master.nodes[node_index].get_over_corss_num()*10
-                #调整优先级，score原始是GPU剩余量百分比的和
-                satisfy_gpu_list_new.append([node_index, score, temp_gpu_list])
-                all_satisfy_gpu_num+=len(temp_gpu_list)
-            satisfy_gpu_list_new.sort(key=lambda x:x[1], reverse=True)
-            
-            
-            if job2 == None :
-                
-                max_parallel=job1.parallel_num
-                if all_satisfy_gpu_num<max_parallel:
-                    rest_job.append(job1)
-                    continue
-                job1_rest_parallel_num=job1.parallel_num
-                
-                job1_gpu_id_list, _, _= self.__over_sharing_select_gpu(job1_rest_parallel_num, 0, satisfy_gpu_list_new)   
-                # scheduled_jobs.append([job1, job1_gpu_id_list, {}])
-                [cpu, mem, gpu, gmem] =pack_resource
-                job1.set_pack_resource(math.ceil(cpu), math.ceil(mem), math.ceil(gpu), math.ceil(gmem) )
-                self.execute_schedule(job1, job1_gpu_id_list, False, {})
-                self.master.monitor.alloc_resource(job1, None,job1_gpu_id_list)
-                # self.execute_schedule(job1, job1_gpu_id_list, shm_name_dict)
-                    
-            else:
-                max_parallel=max(job1.parallel_num, job2.parallel_num)
-                if all_satisfy_gpu_num<max_parallel:
-                    rest_job.append(job1)
-                    rest_job.append(job2)
-                    continue
-                job1_rest_gpu=job1.parallel_num
-                job2_rest_gpu=job2.parallel_num
-                
-                job1_gpu_id_list,job2_gpu_id_list,shm_name_dict= self.__over_sharing_select_gpu(job1_rest_gpu, job2_rest_gpu, satisfy_gpu_list_new)
-                # scheduled_jobs.append([job1, job1_gpu_id_list, shm_name_dict])
-                # scheduled_jobs.append([job2, job2_gpu_id_list, shm_name_dict])
-                [cpu, mem, gpu, gmem] =pack_resource
-                job1.set_pack_resource(math.ceil(cpu), math.ceil(mem), math.ceil(gpu), math.ceil(gmem), job2.job_name)
-                job2.set_pack_resource(math.ceil(cpu), math.ceil(mem), math.ceil(gpu), math.ceil(gmem), job1.job_name)
-                self.execute_schedule(job1, job1_gpu_id_list, True, shm_name_dict)
-                self.execute_schedule(job2, job2_gpu_id_list, False,  shm_name_dict)
-                if job1.parallel_num>= job2.parallel_num:
-                    max_couple_job_gpu_id_list=job1_gpu_id_list
-                else:
-                    max_couple_job_gpu_id_list=job2_gpu_id_list
-                self.master.monitor.alloc_resource(job1, job2,max_couple_job_gpu_id_list)
-                # self.execute_schedule(job1, job1_gpu_id_list, shm_name_dict)
-                # self.execute_schedule(job2, job2_gpu_id_list, shm_name_dict)
-                
-        return rest_job
-
-                            
                 
                 
     def __over_sharing_select_gpu(self, job1_rest_gpu, job2_rest_gpu, satisfy_gpu_list_new) :
@@ -399,8 +386,91 @@ class WeaveSchedulor:
             net_card=self.master.nodes[node_index].net_card
             job_t.set_execute_info(main_ip, main_temp_port, net_card, node_index, world_size ,nprocs_list, gpu_id_list, prior=prior, shm_name_list=shm_name_dict)
             self.master.send_job_to_execution(job_t)
-            
+    
+    
+    
+    
+    # #over share 调度主线
+    # def schedule_weave_over_sharing_back(self,job_list):
+    #     multi_gpu_jobs, single_gpu_jobs=self.__over_sharing_classify_jobs(job_list)         #job 根据其并行数量（GPU数量）分类为多GPU任务和单GPU任务
+    #     matched_multi_jobs_list=self.__over_sharing_match_jobs(multi_gpu_jobs)                    #对多GPU任务进行匹配
+    #     matched_single_jobs_list=self.__over_sharing_match_jobs(single_gpu_jobs)                   #对单GPU任务进行匹配
         
+    #     rest_jobs1=self.__over_sharing_select_gpu_and_execute_schedule(matched_multi_jobs_list)   #对多GPU任务， 选择GPU，并放到机器执行
+    #     rest_jobs2=self.__over_sharing_select_gpu_and_execute_schedule(matched_single_jobs_list)   #对单GPU任务， 选择GPU，并放到机器执行
+    #     rest_job=rest_jobs1+rest_jobs2                                                      #对未调度的任务，合并，并返回进行重调度
+    #     return rest_job
+    
+         
+    #     #选择合适的GPU，并发送Job执行
+    # def __over_sharing_select_gpu_and_execute_schedule(self, matched_jobs_list):
+    #     #matched_jobs_list = [job1, job2, [cpu, mem, gpu, gmem] ] or [job1, [cpu, mem, gpu, gmem] ] 
+    #     rest_job=[]
+    #     # scheduled_jobs=[]
+    #     for matched_jobs in matched_jobs_list:
+    #         if len(matched_jobs) == 3:
+    #             job1=matched_jobs[0]
+    #             job2=matched_jobs[1]
+    #             pack_resource=matched_jobs[2]
+    #         else:
+    #             job1=matched_jobs[0]
+    #             job2=None
+    #             pack_resource=matched_jobs[1]
+    #         #[[node_index, score, [[gpu_id, score],...]],...]
+    #         satisfy_gpu_list=self.master.monitor.get_satisfy_gpu(pack_resource)
+    #         #对优先级进行排序
+    #         satisfy_gpu_list_new=[]
+    #         all_satisfy_gpu_num=0
+    #         for [node_index, score, temp_gpu_list] in satisfy_gpu_list:
+    #             score=score+len(temp_gpu_list)*10-self.master.nodes[node_index].get_over_corss_num()*10
+    #             #调整优先级，score原始是GPU剩余量百分比的和
+    #             satisfy_gpu_list_new.append([node_index, score, temp_gpu_list])
+    #             all_satisfy_gpu_num+=len(temp_gpu_list)
+    #         satisfy_gpu_list_new.sort(key=lambda x:x[1], reverse=True)
+            
+            
+    #         if job2 == None :
+                
+    #             max_parallel=job1.parallel_num
+    #             if all_satisfy_gpu_num<max_parallel:
+    #                 rest_job.append(job1)
+    #                 continue
+    #             job1_rest_parallel_num=job1.parallel_num
+                
+    #             job1_gpu_id_list, _, _= self.__over_sharing_select_gpu(job1_rest_parallel_num, 0, satisfy_gpu_list_new)   
+    #             # scheduled_jobs.append([job1, job1_gpu_id_list, {}])
+    #             [cpu, mem, gpu, gmem] =pack_resource
+    #             job1.set_pack_resource(math.ceil(cpu), math.ceil(mem), math.ceil(gpu), math.ceil(gmem) )
+    #             self.execute_schedule(job1, job1_gpu_id_list, False, {})
+    #             self.master.monitor.alloc_resource(job1, None,job1_gpu_id_list)
+    #             # self.execute_schedule(job1, job1_gpu_id_list, shm_name_dict)
+                    
+    #         else:
+    #             max_parallel=max(job1.parallel_num, job2.parallel_num)
+    #             if all_satisfy_gpu_num<max_parallel:
+    #                 rest_job.append(job1)
+    #                 rest_job.append(job2)
+    #                 continue
+    #             job1_rest_gpu=job1.parallel_num
+    #             job2_rest_gpu=job2.parallel_num
+                
+    #             job1_gpu_id_list,job2_gpu_id_list,shm_name_dict= self.__over_sharing_select_gpu(job1_rest_gpu, job2_rest_gpu, satisfy_gpu_list_new)
+    #             # scheduled_jobs.append([job1, job1_gpu_id_list, shm_name_dict])
+    #             # scheduled_jobs.append([job2, job2_gpu_id_list, shm_name_dict])
+    #             [cpu, mem, gpu, gmem] =pack_resource
+    #             job1.set_pack_resource(math.ceil(cpu), math.ceil(mem), math.ceil(gpu), math.ceil(gmem), job2.job_name)
+    #             job2.set_pack_resource(math.ceil(cpu), math.ceil(mem), math.ceil(gpu), math.ceil(gmem), job1.job_name)
+    #             self.execute_schedule(job1, job1_gpu_id_list, True, shm_name_dict)
+    #             self.execute_schedule(job2, job2_gpu_id_list, False,  shm_name_dict)
+    #             if job1.parallel_num>= job2.parallel_num:
+    #                 max_couple_job_gpu_id_list=job1_gpu_id_list
+    #             else:
+    #                 max_couple_job_gpu_id_list=job2_gpu_id_list
+    #             self.master.monitor.alloc_resource(job1, job2,max_couple_job_gpu_id_list)
+    #             # self.execute_schedule(job1, job1_gpu_id_list, shm_name_dict)
+    #             # self.execute_schedule(job2, job2_gpu_id_list, shm_name_dict)
+                
+    #     return rest_job
             
                 
         #     execute_node=None

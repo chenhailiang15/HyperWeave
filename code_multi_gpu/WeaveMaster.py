@@ -61,7 +61,7 @@ class WeaveMaster:
         self.single_job_max_plan_gpu=3*100
         
         self.ali_trace_file_name="ali_trace_job_info_sub.csv"
-        self.analyze_file_name="Analyzer-NVIDIA_GeForce_RTX_2080.csv"
+        self.analyze_file_name="Analyzer-NVIDIA_GeForce_RTX_2080-tim_12_19_16_38_14.csv"
         ##################################################《--设置区域--》结束####################################################
         
         if self.start_weave:
@@ -254,6 +254,7 @@ class WeaveMaster:
     
     
     def send_job_to_execution(self, job_f):
+        return
         with self.lock:
             #记录统计数据
             self.command_start_num+=1
@@ -268,6 +269,7 @@ class WeaveMaster:
                 if self.print_level>5:
                     print(f"send job to worker:{job_f.job_name} ...")
                 self.send_job_to_worker(job_f)
+                
     #将任务发送给worker执行
     def send_job_to_worker(self,job_f):
         self.communicator.send(job_f.to_string()+"--end")
