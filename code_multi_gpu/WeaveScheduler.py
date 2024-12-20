@@ -291,6 +291,8 @@ class WeaveSchedulor:
                 else:
                     similarity=0
                 complete_match_list.append([similarity,job1,job2,pack_resource])          #存储匹配值，后续用于匹配
+                if job1.job_name =="37c4f6f6faf7b828eb52cb80" or job2.job_name=="37c4f6f6faf7b828eb52cb80":
+                    a=9
                 
         #按照匹配值高低进行提取
         matched_job_name=set()

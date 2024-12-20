@@ -40,8 +40,8 @@ class WeaveMaster:
         self.password="sim2024"
         
         self.print_level=print_level
-        self.clock_time_factor=1000
-        self.job_time_factor=10
+        self.clock_time_factor=10000
+        self.job_time_factor=1
         self.job_ddl_factor=2             #ddl是任务持续时间的job_ddl_factor倍
         
         self.schedule_interval=10
@@ -124,7 +124,7 @@ class WeaveMaster:
     def init_node(self):
         
         node_2080=Node(node_id="node_2080", ip="10.26.128.115", net_card="eno2", overshared_factor=self.overshared_factor, max_cross_gpu_job_num=self.max_gpu_cross, print_level=self.print_level)
-        node_2080.set_init_resouce(48*100, 60*1024, 4, 7*1024)
+        node_2080.set_init_resouce(48*100, 60*1024, 4, 6*1024)
         node_2080ti=Node(node_id="node_2080ti", ip="10.26.128.51", net_card="eno1", overshared_factor=self.overshared_factor, max_cross_gpu_job_num=self.max_gpu_cross, print_level=self.print_level)
         node_2080ti.set_init_resouce(48*100,120*1024, 3, 10*1024)
         
@@ -181,26 +181,32 @@ class WeaveMaster:
         if ali_trace["cpu_usage"]==0 or ali_trace["avg_mem"]==0:
             return None
         job_name=ali_trace["job_name"]
+        while True:
+            model_name=random.choice(self.model_name_list)
+            batch_size=random.choice(self.batch_size_list)
 
-        model_name=random.choice(self.model_name_list)
-        batch_size=random.choice(self.batch_size_list)
-
-        plan_gpu=ali_trace["plan_gpu"] if ali_trace["plan_gpu"]<=self.single_job_max_plan_gpu else self.single_job_max_plan_gpu
+            plan_gpu=ali_trace["plan_gpu"] if ali_trace["plan_gpu"]<=self.single_job_max_plan_gpu else self.single_job_max_plan_gpu
+            
+            
+            parrallel_num=math.ceil(min(plan_gpu, 400)/100)
+            model_info=model_name+"-"+str(batch_size)+"-"+str(parrallel_num)
+            duration_time=ali_trace["duration_s"]/self.job_time_factor
+            init_time=self.analyze_loader.get_value(model_info,"stage_init","time")
+            epoch_time=self.analyze_loader.get_value(model_info,"stage_sample","time")+self.analyze_loader.get_value(model_info,"stage_train","time")
+            model_duration_time=init_time+epoch_time
+            
+            if model_duration_time<duration_time:
+                break
         
         
-        parrallel_num=math.ceil(min(plan_gpu, 400)/100)
-        model_info=model_name+"-"+str(batch_size)+"-"+str(parrallel_num)
-        init_time=self.analyze_loader.get_value(model_info,"stage_init","time")
-        epoch_time=self.analyze_loader.get_value(model_info,"stage_sample","time")+self.analyze_loader.get_value(model_info,"stage_train","time")
-        cal_epoch=math.ceil((ali_trace["duration_s"]/self.job_time_factor-init_time)/epoch_time)
-        total_epochs=cal_epoch if cal_epoch<5 else 5
+        total_epochs=math.ceil((ali_trace["duration_s"]/self.job_time_factor-init_time)/epoch_time)
+        
         
         plan_cpu=min(ali_trace["plan_cpu"]/ali_trace["cpu_usage"]*self.analyze_loader.get_value(model_info,"stage_sample","cpu"), self.single_job_max_plan_cpu)
         plan_mem=min(ali_trace["plan_mem"]/ali_trace["avg_mem"]*self.analyze_loader.get_value(model_info,"stage_sample","mem"),self.single_job_max_plan_cpu)
         
         arrive_time=time.time()
         
-        duration_time=ali_trace["duration_s"]/self.job_time_factor
         ddl_time=arrive_time+duration_time*self.job_ddl_factor
         
         job=Job()
@@ -366,22 +372,7 @@ class WeaveMaster:
             self.communicator.close()
             
     def get_sum_info(self):
-        self.master_is_2080=True
-        self.single_node_mode=True
         
-        self.schedule_strategy=stragey #over_sharing "FIFO"
-        self.start_weave=True
-        
-        self.sync_mode=True
-        #需要最好手动确认
-        self.MPS_mode=True 
-             
-
-    
-    
-        
-        self.ali_trace_file_name="ali_trace_job_info_sub.csv"
-        self.analyze_file_name="Analyzer-NVIDIA_GeForce_RTX_2080-tim_12_19_16_38_14.csv"
         temp_string=f"*****************************************{self.schedule_strategy}************************************************\n"
         temp_string+="    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    parameters in experiment    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    "
         temp_string+=f"master_is_2080:{self.master_is_2080}, single_node_mode:{self.single_node_mode}\n"
@@ -392,7 +383,8 @@ class WeaveMaster:
         temp_string+=f"model_name_list:{self.model_name_list}\n"
         temp_string+=f"batch_size_list:{self.batch_size_list}, epoch_list:{self.epoch_list}\n"
         temp_string+=f"schedule_interval:{self.schedule_interval}\n"
-        
+        temp_string+=f"ali_trace_file_name:{self.ali_trace_file_name}\n"
+        temp_string+=f"analyze_file_name:{self.analyze_file_name}\n"
         temp_string+="    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    time info in following    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    "
         temp_string+=f"all job num:{self.job_come_num}, succeed job num:{self.succeed_job_num}, failed job num:{self.failed_job_num}\n"
         return temp_string+self.sum_string+"\n\n\n"
