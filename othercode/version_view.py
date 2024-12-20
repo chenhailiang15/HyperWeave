@@ -4,7 +4,10 @@ import numpy as np
 
 print("torch version:", torch.__version__)
 print("nccl_version:",torch.cuda.nccl.version())
-a=[[2,3],[53,58,9,6],[6,8,9,5]]
-for [index, value] in a:
+a=[2,36,8,9,5]
+b=[1,35,6,10,3]
+result=all(max_value>=need_value for max_value, need_value in zip(a, b))
     
-    print(f"index:{index}\t value:{value}")
+print(a)
+print(b)
+print(result)

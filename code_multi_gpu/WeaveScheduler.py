@@ -10,7 +10,7 @@ class WeaveSchedulor:
     def __init__(self,master, print_level=0):
         
         self.master=master
-        self.strategy=master.strategy
+        self.strategy=master.schedule_strategy
         self.gpu_list=[i for i in range(7)]
         self.print_level=print_level
         
@@ -118,7 +118,8 @@ class WeaveSchedulor:
             order_matched_jobs.append([job1, job2, pack_resource, arrive_time])
         #matched_jobs排序
         order_matched_jobs.sort(key=lambda x : x[3])
-        self.schedule_ordered_matched_job_list(order_matched_jobs)
+        rest_job=self.schedule_weave_ordered_matched_job_list(order_matched_jobs)
+        return rest_job
     
     
     
@@ -141,7 +142,8 @@ class WeaveSchedulor:
         
         #match_jobs排序
         order_matched_jobs.sort(key=lambda x : x[3])
-        self.schedule_ordered_matched_job_list(order_matched_jobs)
+        rest_job=self.schedule_weave_ordered_matched_job_list(order_matched_jobs)
+        return rest_job
         
     def schedule_weave_SRSF(self, multi_gpu_jobs, single_gpu_jobs):
         order_matched_jobs=[]
@@ -158,8 +160,8 @@ class WeaveSchedulor:
         
         #match_jobs排序
         order_matched_jobs.sort(key=lambda x : x[3])
-        self.schedule_ordered_matched_job_list(order_matched_jobs)
-        
+        rest_job=self.schedule_weave_ordered_matched_job_list(order_matched_jobs)
+        return rest_job
         
     def schedule_weave_ordered_matched_job_list(self, match_jobs):
         #初始化未被调度的job
@@ -204,7 +206,7 @@ class WeaveSchedulor:
                         max_couple_job_gpu_id_list=job1_gpu_id_list
                     else:
                         max_couple_job_gpu_id_list=job2_gpu_id_list
-                    self.master.monitor.alloc_resource(job1, job2,max_couple_job_gpu_id_list)
+                    # self.master.monitor.alloc_resource(job1, job2,max_couple_job_gpu_id_list)
                     if self.master.sync_mode==False:
                         shm_name_dict={}
                     self.execute_schedule(job1, job1_gpu_id_list, True, shm_name_dict)
@@ -222,7 +224,7 @@ class WeaveSchedulor:
                     [cpu, mem, gpu, gmem] =pack_resource
                     job1.set_pack_resource(math.ceil(cpu), math.ceil(mem), math.ceil(gpu), math.ceil(gmem) )
                     
-                    self.master.monitor.alloc_resource(job1, None,job1_gpu_id_list)
+                    # self.master.monitor.alloc_resource(job1, None,job1_gpu_id_list)
                     self.execute_schedule(job1, job1_gpu_id_list, False, {})
             
             else:
@@ -252,8 +254,8 @@ class WeaveSchedulor:
             return out_matched_jobs_list
         if len(jobs_list) == 1:
             job1=jobs_list[0]
-            pack_resource=self.master.analyze_2080_loader.get_job_pack_resource(job1)
-            out_matched_jobs_list.append([job1, pack_resource])
+            pack_resource=self.master.analyze_loader.get_job_pack_resource(job1)
+            out_matched_jobs_list.append([job1, None, pack_resource])
             return out_matched_jobs_list
         
         #计算两两的匹配值
@@ -263,15 +265,15 @@ class WeaveSchedulor:
                 job2=jobs_list[j_index]
                 epoch1=job1.total_epochs
                 parallel1=job1.parallel_num
-                [cpu10, mem10, gpu10, gmem10,time10]=self.master.analyze_2080_loader.get_job_values(job1,"stage_init")
-                [cpu11, mem11, gpu11, gmem11,time11]=self.master.analyze_2080_loader.get_job_values(job1,"stage_sample")
-                [cpu12, mem12, gpu12, gmem12,time12]=self.master.analyze_2080_loader.get_job_values(job1,"stage_train")
+                [cpu10, mem10, gpu10, gmem10,time10]=self.master.analyze_loader.get_job_values(job1,"stage_init")
+                [cpu11, mem11, gpu11, gmem11,time11]=self.master.analyze_loader.get_job_values(job1,"stage_sample")
+                [cpu12, mem12, gpu12, gmem12,time12]=self.master.analyze_loader.get_job_values(job1,"stage_train")
 
                 epoch2=job2.total_epochs
                 parallel2=job2.parallel_num
-                [cpu20, mem20, gpu20, gmem20,time20]=self.master.analyze_2080_loader.get_job_values(job2,"stage_init")
-                [cpu21, mem21, gpu21, gmem21,time21]=self.master.analyze_2080_loader.get_job_values(job2,"stage_sample")
-                [cpu22, mem22, gpu22, gmem22,time22]=self.master.analyze_2080_loader.get_job_values(job2,"stage_train")
+                [cpu20, mem20, gpu20, gmem20,time20]=self.master.analyze_loader.get_job_values(job2,"stage_init")
+                [cpu21, mem21, gpu21, gmem21,time21]=self.master.analyze_loader.get_job_values(job2,"stage_sample")
+                [cpu22, mem22, gpu22, gmem22,time22]=self.master.analyze_loader.get_job_values(job2,"stage_train")
                 
                 epoch_factor=self.__over_sharing_cal_similarity(epoch1,epoch2)
                 parallel_factor=self.__over_sharing_cal_similarity(parallel1,parallel2)
@@ -282,31 +284,39 @@ class WeaveSchedulor:
                 time_factor=self.__over_sharing_cal_similarity(time11+time22,time12+time21)
                 
                 pack_resource=[max(cpu10+cpu20,cpu11+cpu22,cpu12+cpu21 ), max(mem10+mem20, mem11+mem22, mem12+mem21), max(gpu10+gpu20, gpu11+gpu22, gpu12+gpu21), max(gmem10+gmem20, gmem11+gmem22, gmem12+gmem21)]
-                simimlarity=epoch_factor+parallel_factor+cpu_factor+mem_factor+gpu_factor+gmem_factor+time_factor
-                complete_match_list.append([simimlarity,job1,job2,pack_resource])          #存储匹配值，后续用于匹配
+                max_resource=self.master.monitor.get_max_resource()
+                result=all(max_value>=need_value for max_value, need_value in zip(max_resource, pack_resource))
+                if result:
+                    similarity=epoch_factor+parallel_factor+cpu_factor+mem_factor+gpu_factor+gmem_factor+time_factor
+                else:
+                    similarity=0
+                complete_match_list.append([similarity,job1,job2,pack_resource])          #存储匹配值，后续用于匹配
                 
         #按照匹配值高低进行提取
         matched_job_name=set()
         single_job=None
         single_job_pack_resource=None
         complete_match_list.sort(key=lambda x:x[0], reverse=True)
-        for i in range(len(complete_match_list)):
-            job1=complete_match_list[i][1]
-            job2=complete_match_list[i][2]
-            
+        for [similarity,job1,job2,pack_resource] in complete_match_list:
+
             if job1.job_name not in matched_job_name and job2.job_name not in matched_job_name:
-                pack_resource=complete_match_list[i][3]
+                if similarity==0:  #如果为0，表示当前匹配已经超出机器最大资源容量， 放弃匹配
+                    single_job1_pack_resource=self.master.analyze_loader.get_job_pack_resource(job1)
+                    out_matched_jobs_list.append([job1,None,single_job1_pack_resource])
+                    single_job2_pack_resource=self.master.analyze_loader.get_job_pack_resource(job2)
+                    out_matched_jobs_list.append([job2,None,single_job2_pack_resource])
+                else:
+                    out_matched_jobs_list.append([job1,job2,pack_resource])
                 matched_job_name.add(job1.job_name)
                 matched_job_name.add(job2.job_name)
-                
-                out_matched_jobs_list.append([job1,job2,pack_resource])
                 continue
+            
             elif job1.job_name not in matched_job_name:
                 single_job=job1
-                single_job_pack_resource=self.master.analyze_2080_loader.get_job_pack_resource(job1)
+                single_job_pack_resource=self.master.analyze_loader.get_job_pack_resource(job1)
             elif job2.job_name not in matched_job_name:
                 single_job=job2
-                single_job_pack_resource=self.master.analyze_2080_loader.get_job_pack_resource(job2)
+                single_job_pack_resource=self.master.analyze_loader.get_job_pack_resource(job2)
                 
             
         #判断输出是否包含所有jobs

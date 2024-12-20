@@ -14,6 +14,7 @@ class WeaveMonitor:
         self.end_job_name=set()
         self.occupy_resource_gpu_id_list={}
         self.lock=threading.Lock()
+        self.init_max_resource()
         
     
 
@@ -60,10 +61,6 @@ class WeaveMonitor:
                     self.end_job_name.add(job.job_name)
         
         
-    
-            
-                
-                
     def get_satisfy_gpu(self,pack_resource):
         satisfy_gpu_list=[]
         for i in range(self.node_num):
@@ -73,6 +70,20 @@ class WeaveMonitor:
         satisfy_gpu_list.sort(key=lambda x:x[1], reverse=True)    #对满足的node相关信息，进行排序，降序
 
         return satisfy_gpu_list        #[[node_index, score, [[gpu_id, score],...]],...]
+    
+    def init_max_resource(self):
+        self.max_cpu=0
+        self.max_mem=0
+        self.max_gpu=0
+        self.max_gmem=0
+        for i in range(self.node_num):
+            self.max_cpu=self.nodes[i].cpu if self.nodes[i].cpu>self.max_cpu else self.max_cpu
+            self.max_mem=self.nodes[i].mem if self.nodes[i].mem>self.max_mem else self.max_mem
+            self.max_gpu=self.nodes[i].gpu if self.nodes[i].gpu>self.max_gpu else self.max_gpu
+            self.max_gmem=self.nodes[i].gmem if self.nodes[i].gmem>self.max_gmem else self.max_gmem
+            
+    def get_max_resource(self):
+        return [self.max_cpu, self.max_mem, self.max_gpu, self.max_gmem]
     
     # def __get_satisfy_gpu_node(self,node_kind, pack_resource):
     #     cpu_need=pack_resource[0]

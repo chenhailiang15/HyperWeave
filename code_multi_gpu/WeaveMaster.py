@@ -54,7 +54,7 @@ class WeaveMaster:
 
         self.max_cross=1           #最大跨node任务数量
         self.max_gpu_cross=1       #最大跨GPU任务数量（单node）
-        self.overshared_factor=1   #等于1存在GPU资源不够的情况
+        self.overshared_factor=2   #等于1存在GPU资源不够的情况
         
         self.single_job_max_plan_cpu=40*100
         self.single_job_max_plan_mem=40*1024
@@ -99,7 +99,7 @@ class WeaveMaster:
         
         if self.print_level>0:
             print("master init analyze loader...")
-        self.analyze_2080_loader=AnalyzeDataLoader(self.analyze_file_name,print_level)
+        self.analyze_loader=AnalyzeDataLoader(self.analyze_file_name,print_level)
         # self.analyze_2080ti_loader=AnalyzeDataLoader("Analyzer-NVIDIA_GeForce_RTX_2080_Ti.csv",print_level)
         
         #资源监视器
@@ -190,13 +190,13 @@ class WeaveMaster:
         
         parrallel_num=math.ceil(min(plan_gpu, 400)/100)
         model_info=model_name+"-"+str(batch_size)+"-"+str(parrallel_num)
-        init_time=self.analyze_2080_loader.get_value(model_info,"stage_init","time")
-        epoch_time=self.analyze_2080_loader.get_value(model_info,"stage_sample","time")+self.analyze_2080_loader.get_value(model_info,"stage_train","time")
+        init_time=self.analyze_loader.get_value(model_info,"stage_init","time")
+        epoch_time=self.analyze_loader.get_value(model_info,"stage_sample","time")+self.analyze_loader.get_value(model_info,"stage_train","time")
         cal_epoch=math.ceil((ali_trace["duration_s"]/self.job_time_factor-init_time)/epoch_time)
         total_epochs=cal_epoch if cal_epoch<5 else 5
         
-        plan_cpu=min(ali_trace["plan_cpu"]/ali_trace["cpu_usage"]*self.analyze_2080_loader.get_value(model_info,"stage_sample","cpu"), self.single_job_max_plan_cpu)
-        plan_mem=min(ali_trace["plan_mem"]/ali_trace["avg_mem"]*self.analyze_2080_loader.get_value(model_info,"stage_sample","mem"),self.single_job_max_plan_cpu)
+        plan_cpu=min(ali_trace["plan_cpu"]/ali_trace["cpu_usage"]*self.analyze_loader.get_value(model_info,"stage_sample","cpu"), self.single_job_max_plan_cpu)
+        plan_mem=min(ali_trace["plan_mem"]/ali_trace["avg_mem"]*self.analyze_loader.get_value(model_info,"stage_sample","mem"),self.single_job_max_plan_cpu)
         
         arrive_time=time.time()
         
@@ -383,9 +383,10 @@ def Record_resource( gpu_id, out_dir, out_file_name,event):
     
 def experiment_all(file, strategy,formatted_time):
     
+    parent_dir  = os.path.dirname(os.path.abspath(os.curdir))
     resource_file_name="Resource_record_"+strategy+"_"+formatted_time
     event=threading.Event()
-    subTread_record=threading.Thread(target=Record_resource,args=(-1, "../output/",resource_file_name,event))
+    subTread_record=threading.Thread(target=Record_resource,args=(-1, parent_dir+"/output/",resource_file_name,event))
     subTread_record.start()
         
     print_level=10
@@ -407,12 +408,13 @@ def experiment_all(file, strategy,formatted_time):
 
 if __name__=="__main__":
     
+    parent_dir  = os.path.dirname(os.path.abspath(os.curdir))
     # 格式化输出
     now_time    = datetime.datetime.now()
     formatted_time = now_time.strftime('%m_%d_%H_%M_%S')
     sum_info_file_name="SumInfo_Weave_"+formatted_time+".txt"
-    file=open("../output/"+sum_info_file_name,"w")
-    # experiment_all(file, "FIFO",formatted_time)
+    file=open(parent_dir+"/output/"+sum_info_file_name,"w")
+    experiment_all(file, "FIFO",formatted_time)
     experiment_all(file, "SRTF",formatted_time)
     experiment_all(file, "SRSF",formatted_time)
     file.close()

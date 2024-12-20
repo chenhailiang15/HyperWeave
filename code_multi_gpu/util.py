@@ -39,17 +39,21 @@ def stop_MPS(password):
 
 
 def analyze_datas(data):
-    if len(data) ==0:
-        data.append(0)
-        
-    np_data=np.array(data)
-    
-    _mean=np_data.mean()
-    _min=np_data.min()
-    _max=np_data.max()
-    per_50=np.percentile(np_data, 50)
-    per_90=np.percentile(np_data, 90)
-    per_95=np.percentile(np_data, 95)
+    if len(data) >0:
+        np_data=np.array(data)
+        _mean=np_data.mean()
+        _min=np_data.min()
+        _max=np_data.max()
+        per_50=np.percentile(np_data, 50)
+        per_90=np.percentile(np_data, 90)
+        per_95=np.percentile(np_data, 95)
+    else:
+        _mean=0
+        _min=0
+        _max=0
+        per_50=0
+        per_90=0
+        per_95=0
     return len(data), _mean, _min, _max, per_50, per_90, per_95
 
 #判断端口是否被使用
