@@ -79,8 +79,8 @@ class WeaveMonitor:
         for i in range(self.node_num):
             self.max_cpu=self.nodes[i].cpu if self.nodes[i].cpu>self.max_cpu else self.max_cpu
             self.max_mem=self.nodes[i].mem if self.nodes[i].mem>self.max_mem else self.max_mem
-            self.max_gpu=self.nodes[i].gpu if self.nodes[i].gpu>self.max_gpu else self.max_gpu
-            self.max_gmem=self.nodes[i].gmem if self.nodes[i].gmem>self.max_gmem else self.max_gmem
+            self.max_gpu=self.nodes[i].gpu[0] if self.nodes[i].gpu[0]>self.max_gpu else self.max_gpu
+            self.max_gmem=self.nodes[i].gmem[0] if self.nodes[i].gmem[0]>self.max_gmem else self.max_gmem
             
     def get_max_resource(self):
         return [self.max_cpu, self.max_mem, self.max_gpu, self.max_gmem]

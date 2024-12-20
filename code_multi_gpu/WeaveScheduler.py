@@ -206,7 +206,7 @@ class WeaveSchedulor:
                         max_couple_job_gpu_id_list=job1_gpu_id_list
                     else:
                         max_couple_job_gpu_id_list=job2_gpu_id_list
-                    # self.master.monitor.alloc_resource(job1, job2,max_couple_job_gpu_id_list)
+                    self.master.monitor.alloc_resource(job1, job2,max_couple_job_gpu_id_list)
                     if self.master.sync_mode==False:
                         shm_name_dict={}
                     self.execute_schedule(job1, job1_gpu_id_list, True, shm_name_dict)
@@ -224,7 +224,7 @@ class WeaveSchedulor:
                     [cpu, mem, gpu, gmem] =pack_resource
                     job1.set_pack_resource(math.ceil(cpu), math.ceil(mem), math.ceil(gpu), math.ceil(gmem) )
                     
-                    # self.master.monitor.alloc_resource(job1, None,job1_gpu_id_list)
+                    self.master.monitor.alloc_resource(job1, None,job1_gpu_id_list)
                     self.execute_schedule(job1, job1_gpu_id_list, False, {})
             
             else:

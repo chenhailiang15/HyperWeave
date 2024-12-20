@@ -142,7 +142,7 @@ class AnalyzeDataLoader:
         self.index["gpu"]=2
         self.index["gmem"]=3
         self.index["time"]=4
-        self.expand=1.2
+        self.expand=1
         
         self.data={}
         self.load_csv(file_name)
@@ -169,6 +169,8 @@ class AnalyzeDataLoader:
     
     def get_job_value(self, job, stage_info, resource_kind):
         return self.data[job.get_name_batchsize_epoch()][stage_info][self.index[resource_kind]]*self.expand
+    
+    
     def get_job_values(self, job, stage_info):
         cpu=self.get_job_value(job,stage_info, "cpu")
         mem=self.get_job_value(job,stage_info, "mem")

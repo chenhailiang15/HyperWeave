@@ -27,7 +27,7 @@ class WeaveMaster:
         
         
         ##################################################《--设置区域--》开始####################################################
-        self.master_is_2080=False
+        self.master_is_2080=True
         self.single_node_mode=True
         
         self.schedule_strategy=stragey #over_sharing "FIFO"
@@ -41,13 +41,13 @@ class WeaveMaster:
         
         self.print_level=print_level
         self.clock_time_factor=1000
-        self.job_time_factor=100
+        self.job_time_factor=10
         self.job_ddl_factor=2             #ddl是任务持续时间的job_ddl_factor倍
         
         self.schedule_interval=10
         
         
-        self.model_name_list=["AlexNet","ResNet18","ResNet50","MobileNetv2"]
+        self.model_name_list=["AlexNet","VGG16","ResNet18","ResNet50","MobileNetv2"]
         self.batch_size_list=[64,128]
         self.epoch_list=[5,10,15,20]
         
@@ -124,9 +124,9 @@ class WeaveMaster:
     def init_node(self):
         
         node_2080=Node(node_id="node_2080", ip="10.26.128.115", net_card="eno2", overshared_factor=self.overshared_factor, max_cross_gpu_job_num=self.max_gpu_cross, print_level=self.print_level)
-        node_2080.set_init_resouce(48*100, 62*1024, 4, 7*1024)
+        node_2080.set_init_resouce(48*100, 60*1024, 4, 7*1024)
         node_2080ti=Node(node_id="node_2080ti", ip="10.26.128.51", net_card="eno1", overshared_factor=self.overshared_factor, max_cross_gpu_job_num=self.max_gpu_cross, print_level=self.print_level)
-        node_2080ti.set_init_resouce(48*100,125*1024, 3, 10*1024)
+        node_2080ti.set_init_resouce(48*100,120*1024, 3, 10*1024)
         
         if self.single_node_mode:
             self.node_num=1
@@ -254,7 +254,6 @@ class WeaveMaster:
     
     
     def send_job_to_execution(self, job_f):
-        return
         with self.lock:
             #记录统计数据
             self.command_start_num+=1
@@ -353,7 +352,7 @@ class WeaveMaster:
         out_string1=f"job wait time: size-{size}, mean-{_mean}, min-{_min}, max-{_max}, percentile50-{per_50}, percentile90-{per_90},percentile95-{per_95}"
         print(out_string1)
         size, _mean, _min, _max, per_50, per_90, per_95=analyze_datas(self.job_complete_time_list)
-        out_string2=f"job complete time: size-{size}, mean-{_mean}, min-{_min}, max-{_max}, percentile50-{per_50}, percentile90-{per_90},percentile95-{per_95}"
+        out_string2=f"job complete time(JCT): size-{size}, mean-{_mean}, min-{_min}, max-{_max}, percentile50-{per_50}, percentile90-{per_90},percentile95-{per_95}"
         print(out_string2)
         
         self.sum_string=out_string1+"\n"+out_string2
@@ -367,8 +366,34 @@ class WeaveMaster:
             self.communicator.close()
             
     def get_sum_info(self):
-        temp_string="****************************************************************************************\n"
-        temp_string+=f"weave state:{self.start_weave}, stragey:{self.schedule_strategy}, MPS:{self.MPS_mode}, Synchronization:{self.sync_mode}\n"
+        self.master_is_2080=True
+        self.single_node_mode=True
+        
+        self.schedule_strategy=stragey #over_sharing "FIFO"
+        self.start_weave=True
+        
+        self.sync_mode=True
+        #需要最好手动确认
+        self.MPS_mode=True 
+             
+
+    
+    
+        
+        self.ali_trace_file_name="ali_trace_job_info_sub.csv"
+        self.analyze_file_name="Analyzer-NVIDIA_GeForce_RTX_2080-tim_12_19_16_38_14.csv"
+        temp_string=f"*****************************************{self.schedule_strategy}************************************************\n"
+        temp_string+="    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    parameters in experiment    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    "
+        temp_string+=f"master_is_2080:{self.master_is_2080}, single_node_mode:{self.single_node_mode}\n"
+        temp_string+=f"weave state:{self.start_weave}, MPS:{self.MPS_mode}, Sync:{self.sync_mode}\n"
+        temp_string+=f"overshared_factor:{self.overshared_factor}, max_cross:{self.max_cross}, max_gpu_cross:{self.max_gpu_cross}\n"
+        temp_string+=f"single_job_max_plan_cpu:{self.single_job_max_plan_cpu}, single_job_max_plan_mem:{self.single_job_max_plan_mem}, single_job_max_plan_gpu:{self.single_job_max_plan_gpu}\n"
+        temp_string+=f"clock_time_factor:{self.clock_time_factor}, job_time_factor:{self.job_time_factor}, job_ddl_factor:{self.job_ddl_factor}\n"
+        temp_string+=f"model_name_list:{self.model_name_list}\n"
+        temp_string+=f"batch_size_list:{self.batch_size_list}, epoch_list:{self.epoch_list}\n"
+        temp_string+=f"schedule_interval:{self.schedule_interval}\n"
+        
+        temp_string+="    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    time info in following    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    "
         temp_string+=f"all job num:{self.job_come_num}, succeed job num:{self.succeed_job_num}, failed job num:{self.failed_job_num}\n"
         return temp_string+self.sum_string+"\n\n\n"
         
@@ -392,7 +417,7 @@ def experiment_all(file, strategy,formatted_time):
     print_level=10
     weave_master=WeaveMaster(strategy, print_level)
     weave_master.job_come()
-    # weave_master.wait()
+    weave_master.wait()
     weave_master.print_job_time_info()
     weave_master.close()
     out_string=weave_master.get_sum_info()
@@ -420,9 +445,3 @@ if __name__=="__main__":
     file.close()
     
     
-    
-    
-    
-    
-    
-         

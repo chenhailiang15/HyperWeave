@@ -54,7 +54,7 @@ def analyze_datas(data):
         per_50=0
         per_90=0
         per_95=0
-    return len(data), _mean, _min, _max, per_50, per_90, per_95
+    return len(data), round(_mean,2), round(_min,2), round(_max,2), round(per_50,2), round(per_90,2), round(per_95,2)
 
 #判断端口是否被使用
 def is_port_in_use(ip, port):
