@@ -1,0 +1,12 @@
+****************************************************************************************
+stragey SRTF, MPS:False, Synchronization:True
+job wait time: size-8, mean-247.16357696056366, min-4.012590646743774, max-605.6831817626953, percentile50-177.55467653274536, percentile90-545.9656090259551,percentile95-575.8243953943252
+job complete time: size-8, mean-359.5932679474354, min-73.38855075836182, max-687.9725997447968, percentile50-340.50635063648224, percentile90-624.0490720987319,percentile95-656.0108359217643
+
+
+****************************************************************************************
+stragey SRSF, MPS:False, Synchronization:True
+job wait time: size-7, mean-291.38449004718234, min-4.011033058166504, max-650.4952578544617, percentile50-278.7164354324341, percentile90-610.4434124946595,percentile95-630.4693351745605
+job complete time: size-7, mean-401.1282285622188, min-50.57135510444641, max-709.9580924510956, percentile50-366.9685752391815, percentile90-677.003033542633,percentile95-693.4805629968643
+
+
