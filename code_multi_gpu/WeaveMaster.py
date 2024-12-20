@@ -409,10 +409,10 @@ def Record_resource( gpu_id, out_dir, out_file_name,event):
     record.run()
     
     
-def experiment_all(file, strategy,formatted_time):
+def experiment_all(file, strategy,formatted_time, version):
     
     parent_dir  = os.path.dirname(os.path.abspath(os.curdir))
-    resource_file_name="Resource_record_"+strategy+"_"+formatted_time
+    resource_file_name="Resource_record_"+version+"_"+strategy+"_"+formatted_time
     event=threading.Event()
     subTread_record=threading.Thread(target=Record_resource,args=(-1, parent_dir+"/output/",resource_file_name,event))
     subTread_record.start()
@@ -435,16 +435,16 @@ def experiment_all(file, strategy,formatted_time):
 
 
 if __name__=="__main__":
-    
+    version="v1.0.0"
     parent_dir  = os.path.dirname(os.path.abspath(os.curdir))
     # 格式化输出
     now_time    = datetime.datetime.now()
     formatted_time = now_time.strftime('%m_%d_%H_%M_%S')
-    sum_info_file_name="SumInfo_Weave_"+formatted_time+".txt"
+    sum_info_file_name="SumInfo_Weave_"+version+"_"+formatted_time+".txt"
     file=open(parent_dir+"/output/"+sum_info_file_name,"w")
-    experiment_all(file, "FIFO",formatted_time)
-    experiment_all(file, "SRTF",formatted_time)
-    experiment_all(file, "SRSF",formatted_time)
+    experiment_all(file, "FIFO",formatted_time, version)
+    experiment_all(file, "SRTF",formatted_time, version)
+    experiment_all(file, "SRSF",formatted_time, version)
     file.close()
     
     
