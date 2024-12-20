@@ -31,16 +31,16 @@ class WeaveMaster:
         self.single_node_mode=True
         
         self.schedule_strategy=stragey #over_sharing "FIFO"
-        self.start_weave=False
+        self.start_weave=True
         
-        self.sync_mode=False
+        self.sync_mode=True
         #需要最好手动确认
-        self.MPS_mode=False 
+        self.MPS_mode=True 
              
-        self.password="sim2024"
+        self.password=" "
         
         self.print_level=print_level
-        self.clock_time_factor=10000
+        self.clock_time_factor=5000
         self.job_time_factor=1
         self.job_ddl_factor=2             #ddl是任务持续时间的job_ddl_factor倍
         
@@ -49,18 +49,18 @@ class WeaveMaster:
         
         self.model_name_list=["AlexNet","VGG16","ResNet18","ResNet50","MobileNetv2"]
         self.batch_size_list=[64,128]
-        self.epoch_list=[5,10,15,20]
+        self.epoch_list=[]
         
 
         self.max_cross=1           #最大跨node任务数量
         self.max_gpu_cross=1       #最大跨GPU任务数量（单node）
-        self.overshared_factor=1   #等于1存在GPU资源不够的情况
+        self.overshared_factor=2   #等于1存在GPU资源不够的情况
         
-        self.single_job_max_plan_cpu=40*100
-        self.single_job_max_plan_mem=40*1024
-        self.single_job_max_plan_gpu=3*100
+        self.single_job_max_plan_cpu=5*100
+        self.single_job_max_plan_mem=10*1024
+        self.single_job_max_plan_gpu=4*100
         
-        self.ali_trace_file_name="ali_trace_job_info_sub.csv"
+        self.ali_trace_file_name="ali_trace_job_info.csv"
         self.analyze_file_name="Analyzer-NVIDIA_GeForce_RTX_2080-tim_12_19_16_38_14.csv"
         ##################################################《--设置区域--》结束####################################################
         
@@ -125,7 +125,7 @@ class WeaveMaster:
     def init_node(self):
         
         node_2080=Node(node_id="node_2080", ip="10.26.128.115", net_card="eno2", overshared_factor=self.overshared_factor, max_cross_gpu_job_num=self.max_gpu_cross, print_level=self.print_level)
-        node_2080.set_init_resouce(48*100, 60*1024, 4, 6*1024)
+        node_2080.set_init_resouce(48*100, 60*1024, 4, 7*1024)
         node_2080ti=Node(node_id="node_2080ti", ip="10.26.128.51", net_card="eno1", overshared_factor=self.overshared_factor, max_cross_gpu_job_num=self.max_gpu_cross, print_level=self.print_level)
         node_2080ti.set_init_resouce(48*100,120*1024, 3, 10*1024)
         
@@ -224,6 +224,7 @@ class WeaveMaster:
         while self.job_come_flage or self.wait_schedule_queue.qsize()>0:
             time.sleep(self.schedule_interval)
             wait_schedule_list=[]
+            self.queue_length.append(self.wait_schedule_queue.qsize())
             
             while self.wait_schedule_queue.qsize()>0:
                 wait_schedule_list.append(self.wait_schedule_queue.get())
@@ -368,13 +369,16 @@ class WeaveMaster:
     def wait(self):
         
         self.end_event.wait()
+        
 
         
     def close(self):
+        self.makespan=time.time()-self.start_time
         if not self.single_node_mode:
             self.communicator.close()
             
     def get_sum_info(self):
+        
         
         temp_string=f"****************************************************{self.schedule_strategy}***********************************************************\n"
         temp_string+="    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    parameters in experiment    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    \n"
@@ -389,7 +393,11 @@ class WeaveMaster:
         temp_string+=f"ali_trace_file_name:{self.ali_trace_file_name}\n"
         temp_string+=f"analyze_file_name:{self.analyze_file_name}\n"
         temp_string+="    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    time info in following    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    \n"
+        
         temp_string+=f"all job num:{self.job_come_num}, \tsucceed job num:{self.succeed_job_num}, \tfailed job num:{self.failed_job_num}\n"
+        temp_string+=f"makespan:{self.makespan}"
+        temp_string+=f"queue length{self.queue_length}"
+        
         return temp_string+self.sum_string+"\n\n\n"
         
 import random
