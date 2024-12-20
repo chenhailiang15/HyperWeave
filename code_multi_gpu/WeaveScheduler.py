@@ -38,7 +38,7 @@ class WeaveSchedulor:
     def schedule_FIFO(self, job_list):
         #按照到来的先后顺序排序
         job_list.sort(key=lambda x: x.arrive_time)
-        rest_job=self.schedule_ordered_job_list(job_list)
+        rest_job=self.schedule_ordered_single_job_list(job_list)
             
         return rest_job
     
@@ -46,7 +46,7 @@ class WeaveSchedulor:
         time_now=time.time()
         #按照到来的先后顺序排序
         job_list.sort(key=lambda x: x.ddl_time-time_now-x.duration_time)
-        rest_job=self.schedule_ordered_job_list(job_list)
+        rest_job=self.schedule_ordered_single_job_list(job_list)
             
         return rest_job
     
@@ -58,7 +58,7 @@ class WeaveSchedulor:
             
         #按照到来的先后顺序排序
         job_list.sort(key=lambda x: (x.ddl_time-time_now-x.duration_time)*x.parallel_num)
-        rest_job=self.schedule_ordered_job_list(job_list)
+        rest_job=self.schedule_ordered_single_job_list(job_list)
         return rest_job
     
     

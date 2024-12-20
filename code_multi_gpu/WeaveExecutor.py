@@ -18,6 +18,8 @@ from models.Model_GCN import GCN_class
 from models.Model_GraphSage import GraphSage_class
 from models.Model_Transformer import Transformer_class
 from util import *
+torch.backends.cudnn.enabled = False
+
 
 def ddp_setup(local_rank, args):
     """

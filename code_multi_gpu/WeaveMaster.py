@@ -31,11 +31,11 @@ class WeaveMaster:
         self.single_node_mode=True
         
         self.schedule_strategy=stragey #over_sharing "FIFO"
-        self.start_weave=True
+        self.start_weave=False
         
-        self.sync_mode=True
+        self.sync_mode=False
         #需要最好手动确认
-        self.MPS_mode=True 
+        self.MPS_mode=False 
              
         self.password="sim2024"
         
@@ -54,7 +54,7 @@ class WeaveMaster:
 
         self.max_cross=1           #最大跨node任务数量
         self.max_gpu_cross=1       #最大跨GPU任务数量（单node）
-        self.overshared_factor=2   #等于1存在GPU资源不够的情况
+        self.overshared_factor=1   #等于1存在GPU资源不够的情况
         
         self.single_job_max_plan_cpu=40*100
         self.single_job_max_plan_mem=40*1024
@@ -64,11 +64,12 @@ class WeaveMaster:
         self.analyze_file_name="Analyzer-NVIDIA_GeForce_RTX_2080-tim_12_19_16_38_14.csv"
         ##################################################《--设置区域--》结束####################################################
         
-        if self.start_weave:
-            self.sync_mode=True
-            self.MPS_mode=True
+        # if self.start_weave:
+        #     self.sync_mode=True
+        #     self.MPS_mode=True
         
-        
+        self.queue_length=[]
+        self.block_index=[]   #
         #用于socket包去粘包
         self.buffer=""
         self.end_event=threading.Event()
@@ -237,6 +238,8 @@ class WeaveMaster:
             
     #job到来的函数，持续运行，直到读取的文件中的job结束
     def job_come(self):
+        self.start_time=time.time()
+        
         self.wait_schedule_queue=queue.Queue()
         self.job_come_flage=True
         sub_thread_schedule=threading.Thread(target=self.schedule_subthreading,args=())
@@ -355,10 +358,10 @@ class WeaveMaster:
             
     def print_job_time_info(self):
         size, _mean, _min, _max, per_50, per_90, per_95=analyze_datas(self.job_wait_time_list)
-        out_string1=f"job wait time: size-{size}, mean-{_mean}, min-{_min}, max-{_max}, percentile50-{per_50}, percentile90-{per_90},percentile95-{per_95}"
+        out_string1=f"job wait time: size-{size}, \tmean-{_mean}, \tmin-{_min}, \tmax-{_max}, \tpercentile50-{per_50}, \tpercentile90-{per_90}, \tpercentile95-{per_95}"
         print(out_string1)
         size, _mean, _min, _max, per_50, per_90, per_95=analyze_datas(self.job_complete_time_list)
-        out_string2=f"job complete time(JCT): size-{size}, mean-{_mean}, min-{_min}, max-{_max}, percentile50-{per_50}, percentile90-{per_90},percentile95-{per_95}"
+        out_string2=f"job complete time(JCT): size-{size}, \tmean-{_mean}, \tmin-{_min}, \tmax-{_max}, \tpercentile50-{per_50}, \tpercentile90-{per_90}, \tpercentile95-{per_95}"
         print(out_string2)
         
         self.sum_string=out_string1+"\n"+out_string2
@@ -373,20 +376,20 @@ class WeaveMaster:
             
     def get_sum_info(self):
         
-        temp_string=f"*****************************************{self.schedule_strategy}************************************************\n"
-        temp_string+="    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    parameters in experiment    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    "
+        temp_string=f"****************************************************{self.schedule_strategy}***********************************************************\n"
+        temp_string+="    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    parameters in experiment    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    \n"
         temp_string+=f"master_is_2080:{self.master_is_2080}, single_node_mode:{self.single_node_mode}\n"
-        temp_string+=f"weave state:{self.start_weave}, MPS:{self.MPS_mode}, Sync:{self.sync_mode}\n"
-        temp_string+=f"overshared_factor:{self.overshared_factor}, max_cross:{self.max_cross}, max_gpu_cross:{self.max_gpu_cross}\n"
-        temp_string+=f"single_job_max_plan_cpu:{self.single_job_max_plan_cpu}, single_job_max_plan_mem:{self.single_job_max_plan_mem}, single_job_max_plan_gpu:{self.single_job_max_plan_gpu}\n"
-        temp_string+=f"clock_time_factor:{self.clock_time_factor}, job_time_factor:{self.job_time_factor}, job_ddl_factor:{self.job_ddl_factor}\n"
+        temp_string+=f"weave state:{self.start_weave}, \tMPS:{self.MPS_mode}, \tSync:{self.sync_mode}\n"
+        temp_string+=f"overshared_factor:{self.overshared_factor}, \tmax_cross:{self.max_cross}, \tmax_gpu_cross:{self.max_gpu_cross}\n"
+        temp_string+=f"single_job_max_plan_cpu:{self.single_job_max_plan_cpu}, \tsingle_job_max_plan_mem:{self.single_job_max_plan_mem}, \tsingle_job_max_plan_gpu:{self.single_job_max_plan_gpu}\n"
+        temp_string+=f"clock_time_factor:{self.clock_time_factor}, \tjob_time_factor:{self.job_time_factor}, \tjob_ddl_factor:{self.job_ddl_factor}\n"
         temp_string+=f"model_name_list:{self.model_name_list}\n"
-        temp_string+=f"batch_size_list:{self.batch_size_list}, epoch_list:{self.epoch_list}\n"
+        temp_string+=f"batch_size_list:{self.batch_size_list}, \tepoch_list:{self.epoch_list}\n"
         temp_string+=f"schedule_interval:{self.schedule_interval}\n"
         temp_string+=f"ali_trace_file_name:{self.ali_trace_file_name}\n"
         temp_string+=f"analyze_file_name:{self.analyze_file_name}\n"
-        temp_string+="    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    time info in following    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    "
-        temp_string+=f"all job num:{self.job_come_num}, succeed job num:{self.succeed_job_num}, failed job num:{self.failed_job_num}\n"
+        temp_string+="    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    time info in following    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    \n"
+        temp_string+=f"all job num:{self.job_come_num}, \tsucceed job num:{self.succeed_job_num}, \tfailed job num:{self.failed_job_num}\n"
         return temp_string+self.sum_string+"\n\n\n"
         
 import random
