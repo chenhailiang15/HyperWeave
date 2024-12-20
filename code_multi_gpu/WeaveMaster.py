@@ -31,9 +31,12 @@ class WeaveMaster:
         self.single_node_mode=True
         
         self.schedule_strategy=stragey #over_sharing "FIFO"
+        self.start_weave=True
+        
         self.sync_mode=True
         #需要最好手动确认
-        self.MPS_mode=False      
+        self.MPS_mode=True 
+             
         self.password="sim2024"
         
         self.print_level=print_level
@@ -60,9 +63,16 @@ class WeaveMaster:
         self.ali_trace_file_name="ali_trace_job_info_sub.csv"
         self.analyze_file_name="Analyzer-NVIDIA_GeForce_RTX_2080.csv"
         ##################################################《--设置区域--》结束####################################################
+        
+        if self.start_weave:
+            self.sync_mode=True
+            self.MPS_mode=True
+        
+        
         #用于socket包去粘包
         self.buffer=""
         self.end_event=threading.Event()
+        self.lock=threading.Lock()
         ############统计信息##############
         
         self.job_come_num=0
@@ -100,7 +110,7 @@ class WeaveMaster:
     
         if self.print_level>0:
             print("master init scheduler...")
-        self.scheduler=WeaveSchedulor(self, self.schedule_strategy, print_level=self.print_level)
+        self.scheduler=WeaveSchedulor(self, print_level=self.print_level)
         
         #通讯器，初始化和启动监听。
         if self.print_level>0:
@@ -244,19 +254,20 @@ class WeaveMaster:
     
     
     def send_job_to_execution(self, job_f):
-        #记录统计数据
-        self.command_start_num+=1
-        if job_f.is_main:
-            self.job_dealing_num+=1
-            
-        if job_f.node_rank==0:
-            if self.print_level>5:
-                print(f"master execute job:{job_f.job_name} ...")
-            self.execute_job_in_master(job_f)
-        else:
-            if self.print_level>5:
-                print(f"send job to worker:{job_f.job_name} ...")
-            self.send_job_to_worker(job_f)
+        with self.lock:
+            #记录统计数据
+            self.command_start_num+=1
+            if job_f.is_main:
+                self.job_dealing_num+=1
+                
+            if job_f.node_rank==0:
+                if self.print_level>5:
+                    print(f"master execute job:{job_f.job_name} ...")
+                self.execute_job_in_master(job_f)
+            else:
+                if self.print_level>5:
+                    print(f"send job to worker:{job_f.job_name} ...")
+                self.send_job_to_worker(job_f)
     #将任务发送给worker执行
     def send_job_to_worker(self,job_f):
         self.communicator.send(job_f.to_string()+"--end")
@@ -300,32 +311,34 @@ class WeaveMaster:
         print(f"******master end job ${job.job_name}$ with back code: {back}")
     
     def statistic_end_job(self,job):
+        
         if self.print_level>3:
             print("end a job:", job.job_name)
         
         #回收资源(需要修改，有配对的，在两个都结束后，再释放资源)
-        if self.schedule_strategy=="over_sharing":
+        if self.start_weave:
             self.monitor.takeback_resource(job)
         else:
             self.monitor.takeback_resource(job,plan=True)
-        
-        
-        #统计信息
-        self.command_end_num+=1
-        
-        if job.is_main:
-            self.job_wait_time_list.append(job.start_time-job.arrive_time)
-            self.job_complete_time_list.append(job.end_time-job.arrive_time)
-            self.job_end_num+=1
-            self.job_dealing_num-=1
-            if job.succeed_flage:
-                self.succeed_job_num+=1
-            else:
-                self.failed_job_num+=1
+            
+        with self.lock:    
+            #统计信息
+            self.command_end_num+=1
+            
+            if job.is_main:
                 
-        if self.job_come_flage==False and self.job_come_num == self.job_end_num and self.command_start_num == self.command_end_num:
-            print("event set")
-            self.end_event.set()
+                self.job_end_num+=1
+                self.job_dealing_num-=1
+                if job.succeed_flage:
+                    self.succeed_job_num+=1
+                    self.job_wait_time_list.append(job.start_time-job.arrive_time)
+                    self.job_complete_time_list.append(job.end_time-job.arrive_time)
+                else:
+                    self.failed_job_num+=1
+                    
+            if self.job_come_flage==False and self.job_come_num == self.job_end_num and self.command_start_num == self.command_end_num:
+                print("event set")
+                self.end_event.set()
                 
         print("********************************** current status **********************************")
         print(f"job come number:{self.job_come_num}\tjob end number:{self.job_end_num}\tjob dealing number:{self.job_dealing_num}")
@@ -353,7 +366,8 @@ class WeaveMaster:
             
     def get_sum_info(self):
         temp_string="****************************************************************************************\n"
-        temp_string+=f"stragey {self.schedule_strategy}, MPS:{self.MPS_mode}, Synchronization:{self.sync_mode}\n"
+        temp_string+=f"weave state:{self.start_weave}, stragey:{self.schedule_strategy}, MPS:{self.MPS_mode}, Synchronization:{self.sync_mode}\n"
+        temp_string+=f"all job num:{self.job_come_num}, succeed job num:{self.succeed_job_num}, failed job num:{self.failed_job_num}\n"
         return temp_string+self.sum_string+"\n\n\n"
         
 import random
@@ -397,7 +411,7 @@ if __name__=="__main__":
     sum_info_file_name="SumInfo_Weave_"+formatted_time+".txt"
     file=open("../output/"+sum_info_file_name,"w")
     # experiment_all(file, "FIFO",formatted_time)
-    experiment_all(file, "SRSF",formatted_time)
+    experiment_all(file, "SRTF",formatted_time)
     experiment_all(file, "SRSF",formatted_time)
     file.close()
     

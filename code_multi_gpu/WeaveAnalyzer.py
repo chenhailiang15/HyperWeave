@@ -97,7 +97,7 @@ def analyze_tasks(args,dataset_dir,queue):
     args.node_rank=0
     model_name_list=["AlexNet","ResNet18","ResNet50","MobileNetv2","VGG16"]#"AlexNet","ResNet18","ResNet50",,"MobileNetv2"
     batch_size_list=[8,16,32,64,128,256]
-    max_parrallel=4
+    max_parrallel=3
     for model_name in model_name_list:
         for batch_size in batch_size_list:
             for parrallel in range(1,max_parrallel+1):

@@ -7,10 +7,10 @@ import copy
 import time
 
 class WeaveSchedulor:
-    def __init__(self,master, strategy,print_level=0):
+    def __init__(self,master, print_level=0):
         
         self.master=master
-        self.strategy=strategy
+        self.strategy=master.strategy
         self.gpu_list=[i for i in range(7)]
         self.print_level=print_level
         
@@ -18,17 +18,37 @@ class WeaveSchedulor:
     def do_schedule(self,job_list):
         if self.print_level>2:
             print(f"start schedule ({self.strategy})...")
-        if self.strategy=="over_sharing":
+            
+        if self.master.start_weave:
             rest_job=self.schedule_weave_over_sharing(job_list)
-        elif self.strategy=="FIFO":
-            rest_job=self.schedule_FIFO(job_list)
+        else:
+            if self.strategy=="FIFO":
+                rest_job=self.schedule_FIFO(job_list)
+            elif self.strategy=="SRTF":
+                rest_job=self.schedule_SRTF(job_list)
+            elif self.strategy=="SRSF":
+                rest_job=self.schedule_SRSF(job_list)
+            else:
+                print("strategy wrong!")
+                exit(-1)
+        return rest_job
+    
+    #over share 调度主线
+    def schedule_weave_over_sharing(self,job_list):
+        multi_gpu_jobs, single_gpu_jobs=self.__over_sharing_classify_jobs(job_list)         #job 根据其并行数量（GPU数量）分类为多GPU任务和单GPU任务
+        matched_multi_jobs_list=self.__over_sharing_match_jobs(multi_gpu_jobs)                    #对多GPU任务进行匹配
+        matched_single_jobs_list=self.__over_sharing_match_jobs(single_gpu_jobs)                   #对单GPU任务进行匹配
+        
+        if self.strategy=="FIFO":
+            rest_job=self.schedule_weave_FIFO(matched_multi_jobs_list, matched_single_jobs_list)
         elif self.strategy=="SRTF":
-            rest_job=self.schedule_SRTF(job_list)
+            rest_job=self.schedule_weave_SRTF(matched_multi_jobs_list, matched_single_jobs_list)
         elif self.strategy=="SRSF":
-            rest_job=self.schedule_SRSF(job_list)
+            rest_job=self.schedule_weave_SRSF(matched_multi_jobs_list, matched_single_jobs_list)
         else:
             print("strategy wrong!")
             exit(-1)
+
         return rest_job
     
     def schedule_FIFO(self, job_list):
@@ -122,8 +142,29 @@ class WeaveSchedulor:
             
         return rest_job
     
+    
+    def shedule_weave_FIFO(self, multi_gpu_jobs, single_gpu_jobs):
+        match_jobs=[]
+        for [job1,job2,pack_resource] in multi_gpu_jobs:
+            if job2 != None:
+                arrive_time=min(job1.arrive_time, job2.arrive_time)
+            else:
+                arrive_time=job1.arrive_time
+            match_jobs.append([arrive_time, job1, job2])
+            
+        for [job1,job2,pack_resource] in single_gpu_jobs:
+            if job2 != None:
+                arrive_time=min(job1.arrive_time, job2.arrive_time)
+            else:
+                arrive_time=job1.arrive_time
+            match_jobs.append([arrive_time, job1, job2])
+            
+    
+    
+    
+         
     #over share 调度主线
-    def schedule_weave_over_sharing(self,job_list):
+    def schedule_weave_over_sharing_back(self,job_list):
         multi_gpu_jobs, single_gpu_jobs=self.__over_sharing_classify_jobs(job_list)         #job 根据其并行数量（GPU数量）分类为多GPU任务和单GPU任务
         matched_multi_jobs_list=self.__over_sharing_match_jobs(multi_gpu_jobs)                    #对多GPU任务进行匹配
         matched_single_jobs_list=self.__over_sharing_match_jobs(single_gpu_jobs)                   #对单GPU任务进行匹配
