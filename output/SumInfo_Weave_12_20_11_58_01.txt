@@ -1,0 +1,21 @@
+****************************************************************************************
+weave state:True, stragey:FIFO, MPS:True, Synchronization:True
+all job num:10, succeed job num:10, failed job num:0
+job wait time: size-10, mean-128.84080443382263, min-4.013885498046875, max-277.9303035736084, percentile50-119.24809324741364, percentile90-269.4905264854431,percentile95-273.71041502952573
+job complete time: size-10, mean-240.2740835905075, min-80.47352910041809, max-364.077431678772, percentile50-264.14036321640015, percentile90-359.1287129163742,percentile95-361.6030722975731
+
+
+****************************************************************************************
+weave state:True, stragey:SRTF, MPS:True, Synchronization:True
+all job num:10, succeed job num:10, failed job num:0
+job wait time: size-10, mean-138.85233254432677, min-3.1864590644836426, max-290.1414804458618, percentile50-156.5266718864441, percentile90-288.73057305812836,percentile95-289.4360267519951
+job complete time: size-10, mean-236.22357482910155, min-71.05172991752625, max-375.1329016685486, percentile50-244.76596522331238, percentile90-360.94164898395536,percentile95-368.037275326252
+
+
+****************************************************************************************
+weave state:True, stragey:SRSF, MPS:True, Synchronization:True
+all job num:10, succeed job num:10, failed job num:0
+job wait time: size-10, mean-124.83586502075195, min-3.1819915771484375, max-278.55650544166565, percentile50-116.87365365028381, percentile90-265.2887695074081,percentile95-271.9226374745369
+job complete time: size-10, mean-238.28929331302643, min-72.21260261535645, max-431.54770517349243, percentile50-244.43748486042023, percentile90-370.8218132972717,percentile95-401.184759235382
+
+

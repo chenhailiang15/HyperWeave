@@ -30,19 +30,19 @@ class WeaveMaster:
         self.master_is_2080=True
         self.single_node_mode=True
         
-        self.schedule_strategy=stragey #over_sharing "FIFO"
-        self.start_weave=True
+        self.schedule_strategy=stragey # "FIFO"
+        self.start_weave=False
         
-        self.sync_mode=True
+        self.sync_mode=False
         #需要最好手动确认
-        self.MPS_mode=True 
+        self.MPS_mode=False 
              
         self.password=" "
         
         self.print_level=print_level
-        self.clock_time_factor=5000
+        self.clock_time_factor=10000
         self.job_time_factor=1
-        self.job_ddl_factor=2             #ddl是任务持续时间的job_ddl_factor倍
+        self.job_ddl_factor=1             #ddl是任务持续时间的job_ddl_factor倍
         
         self.schedule_interval=10
         
@@ -54,7 +54,7 @@ class WeaveMaster:
 
         self.max_cross=1           #最大跨node任务数量
         self.max_gpu_cross=1       #最大跨GPU任务数量（单node）
-        self.overshared_factor=2   #等于1存在GPU资源不够的情况
+        self.overshared_factor=1   #等于1存在GPU资源不够的情况
         
         self.single_job_max_plan_cpu=5*100
         self.single_job_max_plan_mem=10*1024
@@ -125,7 +125,7 @@ class WeaveMaster:
     def init_node(self):
         
         node_2080=Node(node_id="node_2080", ip="10.26.128.115", net_card="eno2", overshared_factor=self.overshared_factor, max_cross_gpu_job_num=self.max_gpu_cross, print_level=self.print_level)
-        node_2080.set_init_resouce(48*100, 60*1024, 4, 7*1024)
+        node_2080.set_init_resouce(48*100, 60*1024, 4, 6*1024)
         node_2080ti=Node(node_id="node_2080ti", ip="10.26.128.51", net_card="eno1", overshared_factor=self.overshared_factor, max_cross_gpu_job_num=self.max_gpu_cross, print_level=self.print_level)
         node_2080ti.set_init_resouce(48*100,120*1024, 3, 10*1024)
         
@@ -395,8 +395,8 @@ class WeaveMaster:
         temp_string+="    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    time info in following    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    \n"
         
         temp_string+=f"all job num:{self.job_come_num}, \tsucceed job num:{self.succeed_job_num}, \tfailed job num:{self.failed_job_num}\n"
-        temp_string+=f"makespan:{self.makespan}"
-        temp_string+=f"queue length{self.queue_length}"
+        temp_string+=f"makespan:{self.makespan}\n"
+        temp_string+=f"queue length{self.queue_length}\n"
         
         return temp_string+self.sum_string+"\n\n\n"
         

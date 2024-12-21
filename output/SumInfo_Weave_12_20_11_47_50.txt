@@ -1,0 +1,21 @@
+****************************************************************************************
+weave state:True, stragey:FIFO, MPS:True, Synchronization:True
+all job num:10, succeed job num:0, failed job num:0
+job wait time: size-0, mean-0, min-0, max-0, percentile50-0, percentile90-0,percentile95-0
+job complete time: size-0, mean-0, min-0, max-0, percentile50-0, percentile90-0,percentile95-0
+
+
+****************************************************************************************
+weave state:True, stragey:SRTF, MPS:True, Synchronization:True
+all job num:10, succeed job num:0, failed job num:0
+job wait time: size-0, mean-0, min-0, max-0, percentile50-0, percentile90-0,percentile95-0
+job complete time: size-0, mean-0, min-0, max-0, percentile50-0, percentile90-0,percentile95-0
+
+
+****************************************************************************************
+weave state:True, stragey:SRSF, MPS:True, Synchronization:True
+all job num:10, succeed job num:0, failed job num:0
+job wait time: size-0, mean-0, min-0, max-0, percentile50-0, percentile90-0,percentile95-0
+job complete time: size-0, mean-0, min-0, max-0, percentile50-0, percentile90-0,percentile95-0
+
+
