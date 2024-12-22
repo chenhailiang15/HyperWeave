@@ -111,6 +111,9 @@ class Record:
 
 
     def run_analyze_sub_threading(self):
+        # if print_flage:
+        #     file=open(self.out_dir+self.out_file_name,"w")
+        #     start_time=time.time()
         while self.start_flage:
             cpu_temp=self.get_cpu_use_abs()
             mem_temp=self.get_mem_use_abs()
@@ -121,6 +124,14 @@ class Record:
                 self.mem.append(mem_temp)
                 self.gpu_util.append(gpu_temp)
                 self.gpu_mem.append(gmem_temp)
+        #     if print_flage:
+        #         file.write(cpu_temp.__str__()+","+mem_temp.__str__()+","+gpu_temp.__str__()+","+gmem_temp.__str__()+"\n")
+        
+        # if print_flage:
+        #     file.flush()
+        #     end_time=time.time()
+        #     file.write((round(end_time-start_time,2)).__str__())
+        #     file.close()
         return
 
     def run_analyze_wait_record(self,index):

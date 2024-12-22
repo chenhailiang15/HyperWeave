@@ -90,17 +90,64 @@ def analyze_one_task(args_t,dataset_dir):
     mp.spawn(single_training, args=(args_t,model), nprocs=args_t.nprocs_per_node)
     return
 
+# def Record_resource_single(args, gpu_id, out_dir, out_file_name, event):
+#     record=Record(gpu_id=gpu_id,net_card=args.net_card, sample_interval=args.sample_interval,out_dir=out_dir, out_file_name=out_file_name,event=event,print_flage=args.print_flage)
+#     record.run()
+    
+# def record(args):
+#     if args.record_flage:
+#         path=os.path.abspath(os.curdir)
+#         parent_dir  = os.path.dirname(os.path.abspath(os.curdir))
+#         dataset_dir = parent_dir + '/dataset/'
+#         out_dir     = parent_dir + "/output/"
+        
+#         # 获取当前时间
+#         now_time    = datetime.datetime.now()
+#         # 格式化输出
+#         formatted_time = now_time.strftime('%m_%d_%H_%M_%S')
+#         device_name =''
+#         if torch.cuda.is_available():
+#             device_name=torch.cuda.get_device_name(0).replace(" ","_")
+#         else:
+#             device_name="CPU"
+        
+        
+#         nnodes=len(args.nprocs_list)
+#         node_rank=args.node_rank
+        
+
+#         model_name=args.model_name
+#         batch_size=args.batch_size
+#         total_epochs=args.total_epochs
+#         sample_interval=args.sample_interval
+#         layer_num=args.layer_num
+#         layer_feature=args.layer_feature
+        
+        
+        
+#         out_file_name=model_name+"-"+device_name+\
+#         "-nno:"+nnodes.__str__()+"-nra:"+args.node_rank.__str__()+\
+#         "-bs:"+batch_size.__str__() +"-ep:"+total_epochs.__str__() +"-lan:"+layer_num.__str__() +"-laf:"+layer_feature.__str__() +\
+#         "-si:"+sample_interval.__str__()+"-tim:"+formatted_time+".csv"
+#         print(out_file_name)
+#         event=threading.Event()
+#         subTread_record=threading.Thread(target=Record_resource_single,args=(args, 0, out_dir, out_file_name, event))
+#         subTread_record.start()
+#         time.sleep(1)
+#         return event, subTread_record
+#     return False, False
 
 def analyze_tasks(args,dataset_dir,queue):
     args.total_epochs=2
     # args.gpu_id_list=[0,1,2,3]
     args.node_rank=0
-    model_name_list=["AlexNet","ResNet18","ResNet50","MobileNetv2","VGG16"]#"AlexNet","ResNet18","ResNet50",,"MobileNetv2"
-    batch_size_list=[8,16,32,64,128,256]
+    model_name_list=["ResNet18"]#"AlexNet","ResNet18","ResNet50",,"MobileNetv2"
+    batch_size_list=[256]
     max_parrallel=3
     for model_name in model_name_list:
         for batch_size in batch_size_list:
-            for parrallel in range(1,max_parrallel+1):
+            for parrallel in range(3,max_parrallel+1):
+                
                 # try:
                 print("start analyze: ", model_name+"-"+batch_size.__str__()+"-"+parrallel.__str__())
                 queue.put(model_name+"-"+batch_size.__str__()+"-"+parrallel.__str__())
@@ -108,7 +155,12 @@ def analyze_tasks(args,dataset_dir,queue):
                 args.batch_size=batch_size
                 args.nprocs_per_node=parrallel
                 
+                # event,subTread_record=record(args)
+                
                 analyze_one_task(args,dataset_dir)
+                # if args.record_flage: 
+                #     event.set()
+                #     subTread_record.join()
                 # except Exception:
                 #     print("wrong:",model_name+"-"+batch_size.__str__()+"-"+parrallel.__str__()) 
     return

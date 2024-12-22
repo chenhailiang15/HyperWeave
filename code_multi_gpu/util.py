@@ -159,7 +159,7 @@ class args_weave:
         #系统参数
         self.nnodes=1
         self.node_rank=0
-        self.nprocs_per_node=1
+        self.nprocs_list=[1]
         self.gpu_id_list=[]
         
         #模型通用参数
@@ -175,7 +175,7 @@ class args_weave:
 
         #记录参数
         self.sample_interval=1
-        self.record_flage=False
+        self.record_flage=True
         self.print_flage=False
         
         #同步参数

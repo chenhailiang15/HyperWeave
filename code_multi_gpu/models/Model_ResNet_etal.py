@@ -159,6 +159,7 @@ class ResNet_etal_class:
             # print("model name:",self.args.model_name,"\tend sync...")
             # 每个epoch都有训练阶段
             for idx, (inputs, labels) in enumerate(self.dataloaders["train"]): #每个epoch首次进入当前代码需要加载数据，GPU利用率为0
+                
                 #进行同步操作 等待信号，方可继续执行，后方代码主要利用GPU
                 if self.mode == "train":
                     if idx==0:

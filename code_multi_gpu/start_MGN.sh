@@ -18,15 +18,15 @@ net_card="eno1"
 MASTER_ADDR="10.26.128.51"   # one node:localhost  multi node: master ip
 MASTER_PORT="12355"
 
-model_name="Transformer"
+model_name="ResNet18"
 world_size=1
 nprocs_list=[1]
 
 gpu_id_list="[[0,1,2],[]]"
 
 
-total_epochs=3
-batch_size=128           #8 for Bert (default:16)
+total_epochs=10
+batch_size=256           #8 for Bert (default:16)
 worker_num=4
 
 squad_data_size=1000
@@ -35,12 +35,88 @@ layer_feature=10        #100 for GCN (default:10)
 
 sample_interval=0.1
 
-
+batch_size=16
+world_size=1
+nprocs_list=[1]
 python WeaveExecutor.py --MASTER_ADDR ${MASTER_ADDR} --MASTER_PORT ${MASTER_PORT} --net_card ${net_card}  --model_name ${model_name} --node_rank ${node_rank} \
 --world_size ${world_size} --nprocs_list ${nprocs_list} --gpu_id_list ${gpu_id_list} --layer_num ${layer_num} --layer_feature ${layer_feature} \
 --batch_size ${batch_size} --total_epochs ${total_epochs} --worker_num ${worker_num} --squad_data_size ${squad_data_size} \
---sample_interval ${sample_interval} #--record_flage --print_flage
+--sample_interval ${sample_interval} --record_flage #--print_flage
 
+
+
+
+batch_size=16
+world_size=2
+nprocs_list=[2]
+python WeaveExecutor.py --MASTER_ADDR ${MASTER_ADDR} --MASTER_PORT ${MASTER_PORT} --net_card ${net_card}  --model_name ${model_name} --node_rank ${node_rank} \
+--world_size ${world_size} --nprocs_list ${nprocs_list} --gpu_id_list ${gpu_id_list} --layer_num ${layer_num} --layer_feature ${layer_feature} \
+--batch_size ${batch_size} --total_epochs ${total_epochs} --worker_num ${worker_num} --squad_data_size ${squad_data_size} \
+--sample_interval ${sample_interval} --record_flage 
+
+ 
+batch_size=16
+world_size=3
+nprocs_list=[3]
+python WeaveExecutor.py --MASTER_ADDR ${MASTER_ADDR} --MASTER_PORT ${MASTER_PORT} --net_card ${net_card}  --model_name ${model_name} --node_rank ${node_rank} \
+--world_size ${world_size} --nprocs_list ${nprocs_list} --gpu_id_list ${gpu_id_list} --layer_num ${layer_num} --layer_feature ${layer_feature} \
+--batch_size ${batch_size} --total_epochs ${total_epochs} --worker_num ${worker_num} --squad_data_size ${squad_data_size} \
+--sample_interval ${sample_interval} --record_flage 
+
+
+batch_size=64
+world_size=1
+nprocs_list=[1]
+python WeaveExecutor.py --MASTER_ADDR ${MASTER_ADDR} --MASTER_PORT ${MASTER_PORT} --net_card ${net_card}  --model_name ${model_name} --node_rank ${node_rank} \
+--world_size ${world_size} --nprocs_list ${nprocs_list} --gpu_id_list ${gpu_id_list} --layer_num ${layer_num} --layer_feature ${layer_feature} \
+--batch_size ${batch_size} --total_epochs ${total_epochs} --worker_num ${worker_num} --squad_data_size ${squad_data_size} \
+--sample_interval ${sample_interval} --record_flage 
+
+
+batch_size=64
+world_size=2
+nprocs_list=[2]
+python WeaveExecutor.py --MASTER_ADDR ${MASTER_ADDR} --MASTER_PORT ${MASTER_PORT} --net_card ${net_card}  --model_name ${model_name} --node_rank ${node_rank} \
+--world_size ${world_size} --nprocs_list ${nprocs_list} --gpu_id_list ${gpu_id_list} --layer_num ${layer_num} --layer_feature ${layer_feature} \
+--batch_size ${batch_size} --total_epochs ${total_epochs} --worker_num ${worker_num} --squad_data_size ${squad_data_size} \
+--sample_interval ${sample_interval} --record_flage 
+
+batch_size=64
+world_size=3
+nprocs_list=[3]
+python WeaveExecutor.py --MASTER_ADDR ${MASTER_ADDR} --MASTER_PORT ${MASTER_PORT} --net_card ${net_card}  --model_name ${model_name} --node_rank ${node_rank} \
+--world_size ${world_size} --nprocs_list ${nprocs_list} --gpu_id_list ${gpu_id_list} --layer_num ${layer_num} --layer_feature ${layer_feature} \
+--batch_size ${batch_size} --total_epochs ${total_epochs} --worker_num ${worker_num} --squad_data_size ${squad_data_size} \
+--sample_interval ${sample_interval} --record_flage 
+
+
+batch_size=256
+world_size=1
+nprocs_list=[1]
+python WeaveExecutor.py --MASTER_ADDR ${MASTER_ADDR} --MASTER_PORT ${MASTER_PORT} --net_card ${net_card}  --model_name ${model_name} --node_rank ${node_rank} \
+--world_size ${world_size} --nprocs_list ${nprocs_list} --gpu_id_list ${gpu_id_list} --layer_num ${layer_num} --layer_feature ${layer_feature} \
+--batch_size ${batch_size} --total_epochs ${total_epochs} --worker_num ${worker_num} --squad_data_size ${squad_data_size} \
+--sample_interval ${sample_interval} --record_flage 
+
+
+batch_size=256
+world_size=2
+nprocs_list=[2]
+python WeaveExecutor.py --MASTER_ADDR ${MASTER_ADDR} --MASTER_PORT ${MASTER_PORT} --net_card ${net_card}  --model_name ${model_name} --node_rank ${node_rank} \
+--world_size ${world_size} --nprocs_list ${nprocs_list} --gpu_id_list ${gpu_id_list} --layer_num ${layer_num} --layer_feature ${layer_feature} \
+--batch_size ${batch_size} --total_epochs ${total_epochs} --worker_num ${worker_num} --squad_data_size ${squad_data_size} \
+--sample_interval ${sample_interval} --record_flage 
+
+batch_size=256
+world_size=3
+nprocs_list=[3]
+python WeaveExecutor.py --MASTER_ADDR ${MASTER_ADDR} --MASTER_PORT ${MASTER_PORT} --net_card ${net_card}  --model_name ${model_name} --node_rank ${node_rank} \
+--world_size ${world_size} --nprocs_list ${nprocs_list} --gpu_id_list ${gpu_id_list} --layer_num ${layer_num} --layer_feature ${layer_feature} \
+--batch_size ${batch_size} --total_epochs ${total_epochs} --worker_num ${worker_num} --squad_data_size ${squad_data_size} \
+--sample_interval ${sample_interval} --record_flage 
+
+
+#--print_flage
 # model_name="ResNet50"
 # # batch_size=8
 # # layer_num=10

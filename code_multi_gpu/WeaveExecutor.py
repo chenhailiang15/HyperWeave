@@ -18,7 +18,7 @@ from models.Model_GCN import GCN_class
 from models.Model_GraphSage import GraphSage_class
 from models.Model_Transformer import Transformer_class
 from util import *
-torch.backends.cudnn.enabled = False
+# torch.backends.cudnn.enabled = False
 
 
 def ddp_setup(local_rank, args):
@@ -204,12 +204,12 @@ if __name__=="__main__":
         
         
         out_file_name=model_name+"-"+device_name+\
-        "-nno:"+nnodes.__str__()+"-nra:"+args.node_rank.__str__()+\
+        "-nno:"+nnodes.__str__()+"-nra:"+args.node_rank.__str__()+"-wds:"+args.world_size.__str__()+\
         "-bs:"+batch_size.__str__() +"-ep:"+total_epochs.__str__() +"-lan:"+layer_num.__str__() +"-laf:"+layer_feature.__str__() +\
         "-si:"+sample_interval.__str__()+"-tim:"+formatted_time+".csv"
         print(out_file_name)
         event=threading.Event()
-        subTread_record=threading.Thread(target=Record_resource,args=(args, -1, out_dir,out_file_name,event))
+        subTread_record=threading.Thread(target=Record_resource,args=(args, 0, out_dir,out_file_name,event))
         subTread_record.start()
         time.sleep(1)
     #主线程

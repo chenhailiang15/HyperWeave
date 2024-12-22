@@ -412,7 +412,7 @@ def Record_resource( gpu_id, out_dir, out_file_name,event):
 def experiment_all(file, strategy,formatted_time, version):
     
     parent_dir  = os.path.dirname(os.path.abspath(os.curdir))
-    resource_file_name="Resource_record_"+version+"_"+strategy+"_"+formatted_time
+    resource_file_name="Resource_record_"+version+"_"+strategy+"_"+formatted_time+".csv"
     event=threading.Event()
     subTread_record=threading.Thread(target=Record_resource,args=(-1, parent_dir+"/output/",resource_file_name,event))
     subTread_record.start()
