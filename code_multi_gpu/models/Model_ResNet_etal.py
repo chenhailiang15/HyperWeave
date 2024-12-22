@@ -16,7 +16,7 @@ import numpy as np
 
 
 
-torchvision.disable_beta_transforms_warning()
+# torchvision.disable_beta_transforms_warning()
 # recorder_queue=[]
 class ResNet_etal_class:
     def __init__(self, args_t, dataset_dir, mode="train"):

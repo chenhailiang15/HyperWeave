@@ -17,7 +17,7 @@ import numpy as np
 from Recorder import Record
 from models.Model_ResNet_etal import ResNet_etal_class
 from models.Model_Bert import Bert_class
-from models.Model_GCN import GCN_class
+# from models.Model_GCN import GCN_class
 from models.Model_GraphSage import GraphSage_class
 from util import *
 
@@ -80,8 +80,8 @@ def analyze_one_task(args_t,dataset_dir):
         model=ResNet_etal_class(args_t,dataset_dir,"analyze")
     elif args_t.model_name == "Bert":
         model=Bert_class(args_t,dataset_dir)
-    elif args_t.model_name == "GCN":
-        model=GCN_class(args_t,dataset_dir)
+    # elif args_t.model_name == "GCN":
+    #     model=GCN_class(args_t,dataset_dir)
     elif args_t.model_name == "GraphSage":
         model=GraphSage_class(args_t,dataset_dir)
     else:

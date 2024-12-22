@@ -31,11 +31,11 @@ class WeaveMaster:
         self.single_node_mode=True
         
         self.schedule_strategy=stragey # "FIFO"
-        self.start_weave=False
+        self.start_weave=True
         
-        self.sync_mode=False
+        self.sync_mode=True
         #需要最好手动确认
-        self.MPS_mode=False 
+        self.MPS_mode=True 
              
         self.password=" "
         
