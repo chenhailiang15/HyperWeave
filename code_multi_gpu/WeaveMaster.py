@@ -36,6 +36,8 @@ class WeaveMaster:
         self.sync_mode=True
         #需要最好手动确认
         self.MPS_mode=True 
+        
+        self.overshared_factor=2   #等于1存在GPU资源不够的情况
              
         self.password=" "
         
@@ -47,14 +49,14 @@ class WeaveMaster:
         self.schedule_interval=10
         
         
-        self.model_name_list=["AlexNet","VGG16","ResNet18","ResNet50","MobileNetv2"]
+        self.model_name_list=["AlexNet","VGG16","ResNet18","ResNet50","MobileNetv2"]#
         self.batch_size_list=[64,128]
         self.epoch_list=[]
         
 
         self.max_cross=1           #最大跨node任务数量
         self.max_gpu_cross=1       #最大跨GPU任务数量（单node）
-        self.overshared_factor=1   #等于1存在GPU资源不够的情况
+        
         
         self.single_job_max_plan_cpu=5*100
         self.single_job_max_plan_mem=10*1024

@@ -90,12 +90,14 @@ class Synchronizer:
         
         if self.boolean_array[2] == False:
             self.boolean_array[2]=True
-            self.shm.close()
+            # self.shm.unlink()
             print("shared memory close here!")
             
         else:
-            # self.shm.unlink()
             self.shm.close()
+            self.shm.unlink()
+            # self.shm.unlink()
+            # self.shm.close()
             print("shared memory delete here!")
             
     
