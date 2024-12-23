@@ -122,11 +122,13 @@ class args_weave:
             self.init_with_args(args)
         
     def init_with_args(self, args):
+         
+        
         self.prior=args.prior
         #系统参数
-        self.nnodes=args.nnodes
+        self.world_size=args.world_size
         self.node_rank=args.node_rank
-        self.nprocs_per_node=args.nprocs_per_node
+        self.nprocs_list=args.nprocs_list
         self.gpu_id_list=args.gpu_id_list
         
         #模型通用参数
@@ -146,13 +148,21 @@ class args_weave:
         self.print_flage=args.print_flage
         
         #同步参数
-        self.max_sync_num=args.max_sync_num
+        # self.max_sync_num=args.max_sync_num
         self.shm_name_list=args.shm_name_list
         
         #其他参数
         self.MASTER_ADDR=args.MASTER_ADDR
         self.MASTER_PORT=args.MASTER_PORT
         self.net_card=args.net_card
+        self.print_level=args.print_level
+        
+        
+        self.device=None
+        self.dataset_dir=None
+        self.idx=0
+        self.mode="train"
+
         
     def init_with_default(self):
         self.prior=True
