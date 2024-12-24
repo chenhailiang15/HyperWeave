@@ -83,6 +83,7 @@ class BertModel:
     
     
     
+    
     def run(self):
         # 微调BERT
         for epoch in range(self.args.total_epochs):
