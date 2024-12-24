@@ -1,2 +1,4 @@
 SQuAD_train_features.pkl
 model.safetensors
+
+dataset/tiny-ImageNet/
