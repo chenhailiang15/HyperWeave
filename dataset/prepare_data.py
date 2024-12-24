@@ -48,7 +48,7 @@ def squad_convert_to_fit_bert_features():
     )
 
     # 将特征保存到磁盘上
-    with open('../dataset/SQuAD_train_features.pkl', 'wb') as f:
+    with open('SQuAD_train_features.pkl', 'wb') as f:
         pickle.dump(train_features, f)
 
 print("start deal squad...")
