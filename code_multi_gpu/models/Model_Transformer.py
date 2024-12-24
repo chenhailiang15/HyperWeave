@@ -26,6 +26,11 @@ import torchtext
 # 导入专门用于英文分词的工具
 from torchtext.data.utils import get_tokenizer
 from torchtext.vocab import build_vocab_from_iterator
+import copy
+from torch.utils.data import dataset
+from torch import nn, Tensor
+import math
+
 
 
 class Transformer_class:
@@ -44,6 +49,11 @@ class Transformer_class:
         self.sync_er=Synchronizer(shm_name, shm_size=4)
         
         
+    def data_process(self,raw_text_iter: dataset.IterableDataset) -> Tensor:
+        """将原始文本转换成扁平的张量"""
+        data = [torch.tensor(self.vocab(self.tokenizer(item)), dtype=torch.long) for item in raw_text_iter]
+        return torch.cat(tuple(filter(lambda t: t.numel() > 0, data)))
+        
     def load_mode_data(self):
         if torch.cuda.is_available():
             if len(self.args.gpu_id_list[self.args.node_rank]) != 0:
@@ -55,6 +65,8 @@ class Transformer_class:
         print(f"load model and data with device {self.device} ...")
         
         
+    
+
         # 导入wikiText-2数据集并作基本处理
         # self.TEXT = torchtext.legacy.data.Field(tokenize=get_tokenizer("basic_english"),
         #                             init_token='<sos>',
@@ -64,63 +76,76 @@ class Transformer_class:
         # 使用torchtext的数据集方法导入WikiText2数据
         # 并切分为对应训练文本，验证文本，测试文本，并对这些文本施加刚刚创建的预料阈
         train_iter = torchtext.datasets.WikiText2(root="../dataset", split='train') # splits切分
-        tokenizer = get_tokenizer('basic_english')
-        self.vocab = build_vocab_from_iterator(map(tokenizer, train_iter), specials=['<unk>'])
         
-        self.train_data = self.data_process(train_iter)
+        self.tokenizer = get_tokenizer('basic_english')
+        self.vocab = build_vocab_from_iterator(map(self.tokenizer, train_iter), specials=['<unk>'])
+        
+        train_iter = torchtext.datasets.WikiText2(root="../dataset", split='train')
+        
+        self.train_data = self.data_process( train_iter)
         self.train_data = self.batchify(self.train_data, self.args.batch_size)
-        self.dataloaders = DataLoader(self.train_data, batch_size=self.args.batch_size, pin_memory=True, shuffle=False, sampler=DistributedSampler(self.train_data))
+        
+        self.dataloaders = DataLoader(self.train_data, batch_size=self.args.batch_size,  shuffle=False, sampler=DistributedSampler(self.train_data))
         
         
-        
-        
-        INPUT_DIM = len(self.vocab)
-        EMBEDDING_DIM = 300
-        HIDDEN_DIM = 256
-        OUTPUT_DIM = 2
-        N_LAYERS = 2
-        N_HEADS = 4
-        PF_DIM = 512
-        DROPOUT = 0.5
-        # 令句子长度允许的最大值是bptt为35
+        self.ntokens = len(self.vocab) # 词汇表的大小
+        emsize = 200 # 嵌入维度
+        d_hid = 200 # TransformerEncoder中前馈网络模型的维度
+        nlayers = 2 # TransformerEncoder中EncoderLayer层数
+        nhead = 2 # Transformer中的头数
+        dropout = 0.2 # 丢弃概率
+
+        self.model = TransformerModel( self.ntokens, emsize, nhead, d_hid, nlayers, dropout).to(self.device)
+
+        # self.ntokens=len(self.vocab)
+        # INPUT_DIM = len(self.vocab)
+        # EMBEDDING_DIM = 300
+        # HIDDEN_DIM = 256
+        # OUTPUT_DIM = 2
+        # N_LAYERS = 2
+        # N_HEADS = 4
+        # PF_DIM = 512
+        # DROPOUT = 0.5
+        # # 令句子长度允许的最大值是bptt为35
         self.bptt = 35 #即一个句子里，最多包含35个单词
         
         
         
 
-
-        self.model = TransformerModel(INPUT_DIM, EMBEDDING_DIM, HIDDEN_DIM, OUTPUT_DIM, N_LAYERS, N_HEADS, PF_DIM, DROPOUT).to(self.device)
+        
+        # self.model = TransformerModel(INPUT_DIM, EMBEDDING_DIM, HIDDEN_DIM, OUTPUT_DIM, N_LAYERS, N_HEADS, PF_DIM, DROPOUT).to(self.device)
         
         self.optimizer =torch.optim.SGD(self.model.parameters(), lr=5.0)
         self.criterion = nn.CrossEntropyLoss()
-        scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, 1.0, gamma=0.95)
+        
         
         print("start ddp model..." )
         self.model = DDP(self.model, device_ids=[self.device], output_device=self.device)
         print("end ddp model...")
-        exit(-1)
+        
         
         
         
         
     def run(self):
-        
+       
         for epoch in range(1, self.args.total_epochs):
             self.model.train()
             print(f"epoch:{epoch}")
             # 开始遍历批次数据
-            # for batch, i in enumerate(range(0, self.train_data.size(0)-1, self.bptt)):
+            for batch, i in enumerate(range(0, self.train_data.size(0)-1, self.bptt)):
                 # 通过get_batch获得源数据和目标数据
-                # data, targets = self.get_batch(self.train_data, i)
-            i=0
-            for data_all in self.dataloader:
-                data, targets = self.get_batch(data_all, i)
+                data, targets = self.get_batch(self.train_data, i)
+            # i=0
+            # for data_all in self.dataloaders:
+            #     data, targets = self.get_batch(data_all, i)
                 # 设置优化器初始采样梯度为0梯度
                 self.optimizer.zero_grad()
                 # 将数据装入model得到输出
                 output = self.model(data)
                 # 将输出和目标数据传入损失函数对象
-                loss = self.criterion(output.view(-1, self.ntokens), targets)
+                output_flat=output.view(-1,self.ntokens)
+                loss = self.criterion(output_flat, targets)
                 # 损失进行反向传播已获得总损失
                 loss.backward()
                 # 用nn自带的clip_grad_norm_方法进行梯度规范化，防止出现梯度消失或爆炸
@@ -164,40 +189,102 @@ class Transformer_class:
 
         return data, target
 
-    def data_process(self, raw_text_iter):
-        """将原始文本转换成扁平的张量"""
-        data = [torch.tensor(self.vocab(self.tokenizer(item)), dtype=torch.long) for item in raw_text_iter]
-        return torch.cat(tuple(filter(lambda t: t.numel() > 0, data)))
+    
 
 
-
-
-
-class TransformerModel(nn.Module):
-    def __init__(self, input_dim, embedding_dim, hidden_dim, output_dim, n_layers, n_heads, pf_dim, dropout):
+# 位置编码
+class PositionalEncoding(nn.Module):
+    def __init__(self, d_model: int, dropout: float = 0.1, max_len: int = 5000):
         super().__init__()
 
-        self.input_dim = input_dim
-        self.embedding_dim = embedding_dim
-        self.hidden_dim = hidden_dim
-        self.output_dim = output_dim
-        self.n_layers = n_layers
-        self.n_heads = n_heads
-        self.pf_dim = pf_dim
-        self.dropout = dropout
+        self.dropout = nn.Dropout(p=dropout)
 
-        self.embedding = nn.Embedding(input_dim, embedding_dim)
+        # 生成位置编码的位置张量
+        position = torch.arange(max_len).unsqueeze(1)
+        # 计算位置编码的除数项
+        div_term = torch.exp(torch.arange(0, d_model, 2) * (-math.log(10000.0) / d_model))
+        # 创建位置编码张量
+        pe = torch.zeros(max_len, 1, d_model)
+        # 使用正弦函数计算位置编码中的奇数维度部分
+        pe[:, 0, 0::2] = torch.sin(position * div_term)
+        # 使用余弦函数计算位置编码中的偶数维度部分
+        pe[:, 0, 1::2] = torch.cos(position * div_term)
+        self.register_buffer('pe', pe)
 
-        self.encoder_layer = nn.TransformerEncoderLayer(embedding_dim, n_heads, pf_dim, dropout)
-        self.encoder = nn.TransformerEncoder(self.encoder_layer, n_layers)
+    def forward(self, x: Tensor) -> Tensor:
+        """Arguments:
+            x: Tensor, 形状为 [seq_len, batch_size, embedding_dim]
+        """
+        # 将位置编码添加到输入张量
+        x = x + self.pe[:x.size(0)]
+        # 应用dropout
+        return self.dropout(x)
+        
+# Transformer模型
+class TransformerModel(nn.Module):
+    def __init__(self, ntoken: int, d_model: int, nhead: int, d_hid: int, nlayers: int, dropout: float = 0.5):
+        super().__init__()
 
-        self.fc = nn.Linear(embedding_dim, output_dim)
-        self.dropout = nn.Dropout(dropout)
+		# 位置编码
+        self.pos_encoder = PositionalEncoding(d_model, dropout)
 
-    def forward(self, src):
-        embedded = self.dropout(self.embedding(src))
-        embedded = self.encoder(embedded)
-        embedded = embedded.mean(dim=0)
-        embedded = self.dropout(embedded)
-        output = self.fc(embedded)
+        # 定义编码器层
+        encoder_layers = TransformerEncoderLayer(d_model, nhead, d_hid, dropout)
+
+        # 定义编码器
+        self.transformer_encoder = TransformerEncoder(encoder_layers, nlayers)
+        self.embedding = nn.Embedding(ntoken, d_model)
+        self.d_model = d_model
+        self.linear = nn.Linear(d_model, ntoken)
+
+        self.init_weights()
+
+    def init_weights(self) -> None:
+        initrange = 0.1
+        self.embedding.weight.data.uniform_(-initrange, initrange)
+        self.linear.bias.data.zero_()
+        self.linear.weight.data.uniform_(-initrange, initrange)
+
+    def forward(self, src: Tensor, src_mask: Tensor = None) -> Tensor:
+        """Arguments
+            src: Tensor, 形状为 [seq_len, batch_size]
+            src_mask: Tensor, 形状为 [seq_len, seq_len]
+
+        Returns:
+            输出的Tensor, 形状为 [seq_len, batch_size, ntoken]
+        """
+        src = self.embedding(src) * math.sqrt(self.d_model)
+        src = self.pos_encoder(src)
+        output = self.transformer_encoder(src, src_mask)
+        output = self.linear(output)
         return output
+
+
+# class TransformerModel(nn.Module):
+#     def __init__(self, input_dim, embedding_dim, hidden_dim, output_dim, n_layers, n_heads, pf_dim, dropout):
+#         super().__init__()
+
+#         self.input_dim = input_dim
+#         self.embedding_dim = embedding_dim
+#         self.hidden_dim = hidden_dim
+#         self.output_dim = output_dim
+#         self.n_layers = n_layers
+#         self.n_heads = n_heads
+#         self.pf_dim = pf_dim
+#         self.dropout = dropout
+
+#         self.embedding = nn.Embedding(input_dim, embedding_dim)
+
+#         self.encoder_layer = nn.TransformerEncoderLayer(embedding_dim, n_heads, pf_dim, dropout)
+#         self.encoder = nn.TransformerEncoder(self.encoder_layer, n_layers)
+
+#         self.fc = nn.Linear(embedding_dim, output_dim)
+#         self.dropout = nn.Dropout(dropout)
+
+#     def forward(self, src):
+#         embedded = self.dropout(self.embedding(src))
+#         embedded = self.encoder(embedded)
+#         embedded = embedded.mean(dim=0)
+#         embedded = self.dropout(embedded)
+#         output = self.fc(embedded)
+#         return output

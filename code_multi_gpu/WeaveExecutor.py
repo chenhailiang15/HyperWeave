@@ -14,7 +14,7 @@ import gc
 from Recorder import Record
 from models.Model_ResNet_etal import ResNet_etal_class
 from models.Model_Bert import Bert_class
-# from models.Model_GCN import GCN_class
+from models.Model_GCN import GCN_class
 from models.Model_GraphSage import GraphSage_class
 from models.Model_Transformer import Transformer_class
 from util import *
@@ -98,8 +98,8 @@ def Run_model_training(args_t,dataset_dir):
         model=ResNet_etal_class(args_t,dataset_dir, "train")
     elif args_t.model_name == "Bert":
         model=Bert_class(args_t,dataset_dir)
-    # elif args_t.model_name == "GCN":
-    #     model=GCN_class(args_t,dataset_dir)
+    elif args_t.model_name == "GCN":
+        model=GCN_class(args_t,dataset_dir)
     elif args_t.model_name == "GraphSage":
         model=GraphSage_class(args_t,dataset_dir)
     elif args_t.model_name == "Transformer":
@@ -127,7 +127,7 @@ if __name__=="__main__":
     # parser.add_argument('--gpu_id_list', default=[], type=parse_list_arg,help='gpu id for each node used')
     
     #模型通用参数
-    parser.add_argument('--model_name',default="Transformer",help='model name, such as ResNet18, GCN, Bert...')
+    parser.add_argument('--model_name',default="ResNet18",help='model name, such as ResNet18, GCN, Bert...')
     parser.add_argument('--batch_size', default=16, type=int, help='Input batch size on each device (default: 32)')
     parser.add_argument('--total_epochs', default=2,type=int, help='Total epochs to train the model')
     parser.add_argument('--worker_num', default= 4,type=int, help='Number of worker for data load')

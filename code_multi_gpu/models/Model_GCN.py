@@ -6,7 +6,7 @@ from transformers import BertTokenizer, BertForQuestionAnswering, AdamW
 from torch_geometric.datasets import Planetoid
 from torch_geometric.nn import GCNConv  # 从PyTorch几何库中导入图卷积网络层（GCNConv）
 import torch.nn.functional as F  # 导入PyTorch中的函数模块，通常用于激活函数、损失函数等操作
-
+from WeaveSynchronizer import Synchronizer
 
 
 class GCN_class:
@@ -17,11 +17,13 @@ class GCN_class:
         
     def set_local_rank(self,local_rank):
         self.local_rank=local_rank
+    def set_shm_name(self,prior,shm_name,enable_flage=True):
+        self.sync_er=Synchronizer(shm_name,prior=prior, enable_flage=enable_flage)
 
     def load_mode_data(self):
         if torch.cuda.is_available():
             if len(self.args.gpu_id_list) != 0:
-                self.device = "cuda:"+self.args.gpu_id_list[self.local_rank].__str__()
+                self.device = "cuda:"+self.args.gpu_id_list[self.args.node_rank][self.local_rank].__str__()
             else:
                 self.device = "cuda:"+self.local_rank.__str__()
         else:
@@ -30,7 +32,7 @@ class GCN_class:
         
 
         # 数据加载和模型训练部分：
-        dataset = Planetoid(root=self.dataset_dir+'Corak', name='Cora')  # 加载Cora数据集
+        dataset = Planetoid(root=self.dataset_dir+"Corakk", name='Cora')  # 加载Cora数据集
 
         self.model = GCN(dataset.num_node_features, dataset.num_classes, self.args.layer_num, self.args.layer_feature, self.device).to(self.device)  # 实例化GNN模型，并移动到对应设备
         self.data = dataset[0].to(self.device)  # 获取数据集的第一个图数据，并移动到对应设备

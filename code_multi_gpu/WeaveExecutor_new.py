@@ -109,7 +109,7 @@ if __name__=="__main__":
     parser.add_argument('--world_size', default=1, type=int)
     parser.add_argument('--nprocs_list', default=[1,0], type=parse_list_arg)
     parser.add_argument('--node_rank', default=0, type=int, help='The rank of the node in multi-node training')
-    parser.add_argument('--gpu_id_list', default=[[1,2],[]], type=parse_list_arg,help='gpu id for each node used')
+    parser.add_argument('--gpu_id_list', default=[[0,1],[]], type=parse_list_arg,help='gpu id for each node used')
     # parser.add_argument('--nnodes', default=1, type=int, help='The number of nodes in multi-node training')
     # parser.add_argument('--nprocs_per_node', default=1, type=int,help='used gpu number for each node')
     # parser.add_argument('--gpu_id_list', default=[], type=parse_list_arg,help='gpu id for each node used')
