@@ -33,48 +33,17 @@ import math
 
 
 
-class Transformer_class:
-    
-    def __init__(self, args_t, dataset_dir):
-        self.args=args_t
-        self.dataset_dir=dataset_dir
-    
-    def set_local_rank(self, local_rank):
-        self.local_rank = local_rank
-        
-    def set_shm_name(self,prior,shm_name,enable_flage=True):
-        self.sync_er=Synchronizer(shm_name,prior=prior, enable_flage=enable_flage)
-        
-    def set_shm_name_analyze(self,shm_name):
-        self.sync_er=Synchronizer(shm_name, shm_size=4)
-        
-        
-    def data_process(self,raw_text_iter: dataset.IterableDataset) -> Tensor:
-        """将原始文本转换成扁平的张量"""
-        data = [torch.tensor(self.vocab(self.tokenizer(item)), dtype=torch.long) for item in raw_text_iter]
-        return torch.cat(tuple(filter(lambda t: t.numel() > 0, data)))
-        
-    def load_mode_data(self):
-        if torch.cuda.is_available():
-            if len(self.args.gpu_id_list[self.args.node_rank]) != 0:
-                self.device = "cuda:"+self.args.gpu_id_list[self.args.node_rank][self.local_rank].__str__()
-            else:
-                self.device = "cuda:"+self.local_rank.__str__()
-        else:
-            self.device="cpu"
-        print(f"load model and data with device {self.device} ...")
-        
-        
-    
 
-        # 导入wikiText-2数据集并作基本处理
-        # self.TEXT = torchtext.legacy.data.Field(tokenize=get_tokenizer("basic_english"),
-        #                             init_token='<sos>',
-        #                             eos_token = '<eos>',
-        #                             lower=True)
-        # 最终获得了一个Field对象，即TEXT是一个Field对象
-        # 使用torchtext的数据集方法导入WikiText2数据
-        # 并切分为对应训练文本，验证文本，测试文本，并对这些文本施加刚刚创建的预料阈
+class TransformerModel:
+    def __init__(self,  args):
+        self.model_name=args.model_name
+        self.args = args 
+
+    def prepare(self):
+        '''
+        prepare dataloader, model, optimizer for training
+        '''
+        self.device=self.args.device
         train_iter = torchtext.datasets.WikiText2(root="../dataset", split='train') # splits切分
         
         self.tokenizer = get_tokenizer('basic_english')
@@ -85,7 +54,7 @@ class Transformer_class:
         self.train_data = self.data_process( train_iter)
         self.train_data = self.batchify(self.train_data, self.args.batch_size)
         
-        self.dataloaders = DataLoader(self.train_data, batch_size=self.args.batch_size,  shuffle=False, sampler=DistributedSampler(self.train_data))
+        self.train_loader = DataLoader(self.train_data, batch_size=self.args.batch_size,  shuffle=False, sampler=DistributedSampler(self.train_data))
         
         
         self.ntokens = len(self.vocab) # 词汇表的大小
@@ -95,18 +64,8 @@ class Transformer_class:
         nhead = 2 # Transformer中的头数
         dropout = 0.2 # 丢弃概率
 
-        self.model = TransformerModel( self.ntokens, emsize, nhead, d_hid, nlayers, dropout).to(self.device)
+        self.model = TransformerModel_( self.ntokens, emsize, nhead, d_hid, nlayers, dropout).to(self.device)
 
-        # self.ntokens=len(self.vocab)
-        # INPUT_DIM = len(self.vocab)
-        # EMBEDDING_DIM = 300
-        # HIDDEN_DIM = 256
-        # OUTPUT_DIM = 2
-        # N_LAYERS = 2
-        # N_HEADS = 4
-        # PF_DIM = 512
-        # DROPOUT = 0.5
-        # # 令句子长度允许的最大值是bptt为35
         self.bptt = 35 #即一个句子里，最多包含35个单词
         
         
@@ -123,22 +82,78 @@ class Transformer_class:
         self.model = DDP(self.model, device_ids=[self.device], output_device=self.device)
         print("end ddp model...")
         
+        self.model.train()
+        self.cur_epoch = 0
+        self.total_batch_num=len(self.train_loader)
+    
+    
+    def prepare_sub(self):  
+        
+        self.dataloader_iter = iter(self.train_loader)
+        self.batch_idx = 0
+
+    def is_epoch_end(self):
+        if self.batch_idx==self.total_batch_num:
+            return True
+        else:
+            return False
         
         
+    def get_data(self):
+        '''
+        get data
+        '''
+        try:
+            data = next(self.dataloader_iter)
+        except StopIteration:
+            self.cur_epoch += 1
+            self.train_sampler.set_epoch(self.cur_epoch)
+            self.dataloader_iter = iter(self.train_loader)
+            data = next(self.dataloader_iter)
+            self.batch_idx = 0
+        self.batch_idx +=1
+        
+        return data
+        
+    
+    def forward_backward(self, data_all):
+        '''
+        forward, calculate loss and backward
+        '''
+        data, targets = self.get_batch(data_all, 0)
+        # 设置优化器初始采样梯度为0梯度
+        self.optimizer.zero_grad()
+        # 将数据装入model得到输出
+        output = self.model(data)
+        # 将输出和目标数据传入损失函数对象
+        output_flat=output.view(-1,self.ntokens)
+        loss = self.criterion(output_flat, targets)
+        # 损失进行反向传播已获得总损失
+        loss.backward()
+        # 用nn自带的clip_grad_norm_方法进行梯度规范化，防止出现梯度消失或爆炸
+        torch.nn.utils.clip_grad_norm_(self.model.parameters(), 0.5)
         
         
-    def run(self):
-       
-        for epoch in range(1, self.args.total_epochs):
-            self.model.train()
-            print(f"epoch:{epoch}")
-            # 开始遍历批次数据
-            # for batch, i in enumerate(range(0, self.train_data.size(0)-1, self.bptt)):
-            #     # 通过get_batch获得源数据和目标数据
-            #     data, targets = self.get_batch(self.train_data, i)
-            i=0
-            print(f"batch num:{len(self.dataloaders)}")
-            for data_all in self.dataloaders:
+
+    def comm(self):
+        '''
+        sync for communication
+        '''
+        self.optimizer.step()
+    
+    
+    
+    def sample(self):
+        self.dataloader_iter = iter(self.train_loader)
+        self.cur_epoch +=1
+        
+        
+    def train(self):
+
+        
+        while True:
+            try:
+                data_all = next(self.dataloader_iter)
                 data, targets = self.get_batch(data_all, 0)
                 # 设置优化器初始采样梯度为0梯度
                 self.optimizer.zero_grad()
@@ -153,10 +168,16 @@ class Transformer_class:
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), 0.5)
                 # 模型参数进行更新
                 self.optimizer.step()
-                i+=1
                 
-                
-
+            except StopIteration:
+                break
+    
+    
+    
+    def data_process(self,raw_text_iter: dataset.IterableDataset) -> Tensor:
+        """将原始文本转换成扁平的张量"""
+        data = [torch.tensor(self.vocab(self.tokenizer(item)), dtype=torch.long) for item in raw_text_iter]
+        return torch.cat(tuple(filter(lambda t: t.numel() > 0, data)))
 
     # ============================构建用于模型输入的批次化数据============================
     def batchify(self, data, bsz):
@@ -189,10 +210,8 @@ class Transformer_class:
         target = source[i+1:i+1+seq_len].reshape(-1)
 
         return data, target
-
-    
-
-
+      
+        
 # 位置编码
 class PositionalEncoding(nn.Module):
     def __init__(self, d_model: int, dropout: float = 0.1, max_len: int = 5000):
@@ -222,7 +241,7 @@ class PositionalEncoding(nn.Module):
         return self.dropout(x)
         
 # Transformer模型
-class TransformerModel(nn.Module):
+class TransformerModel_(nn.Module):
     def __init__(self, ntoken: int, d_model: int, nhead: int, d_hid: int, nlayers: int, dropout: float = 0.5):
         super().__init__()
 
@@ -259,33 +278,3 @@ class TransformerModel(nn.Module):
         output = self.transformer_encoder(src, src_mask)
         output = self.linear(output)
         return output
-
-
-# class TransformerModel(nn.Module):
-#     def __init__(self, input_dim, embedding_dim, hidden_dim, output_dim, n_layers, n_heads, pf_dim, dropout):
-#         super().__init__()
-
-#         self.input_dim = input_dim
-#         self.embedding_dim = embedding_dim
-#         self.hidden_dim = hidden_dim
-#         self.output_dim = output_dim
-#         self.n_layers = n_layers
-#         self.n_heads = n_heads
-#         self.pf_dim = pf_dim
-#         self.dropout = dropout
-
-#         self.embedding = nn.Embedding(input_dim, embedding_dim)
-
-#         self.encoder_layer = nn.TransformerEncoderLayer(embedding_dim, n_heads, pf_dim, dropout)
-#         self.encoder = nn.TransformerEncoder(self.encoder_layer, n_layers)
-
-#         self.fc = nn.Linear(embedding_dim, output_dim)
-#         self.dropout = nn.Dropout(dropout)
-
-#     def forward(self, src):
-#         embedded = self.dropout(self.embedding(src))
-#         embedded = self.encoder(embedded)
-#         embedded = embedded.mean(dim=0)
-#         embedded = self.dropout(embedded)
-#         output = self.fc(embedded)
-#         return output

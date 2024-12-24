@@ -127,7 +127,7 @@ if __name__=="__main__":
     # parser.add_argument('--gpu_id_list', default=[], type=parse_list_arg,help='gpu id for each node used')
     
     #模型通用参数
-    parser.add_argument('--model_name',default="ResNet18",help='model name, such as ResNet18, GCN, Bert...')
+    parser.add_argument('--model_name',default="Transformer",help='model name, such as ResNet18, GCN, Bert...')
     parser.add_argument('--batch_size', default=16, type=int, help='Input batch size on each device (default: 32)')
     parser.add_argument('--total_epochs', default=2,type=int, help='Total epochs to train the model')
     parser.add_argument('--worker_num', default= 4,type=int, help='Number of worker for data load')

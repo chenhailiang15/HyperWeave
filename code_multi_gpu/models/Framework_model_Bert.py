@@ -4,18 +4,18 @@ import torch
 import pickle
 from torch.utils.data import TensorDataset
 from torch.utils.data import DataLoader, RandomSampler
-from transformers import BertTokenizer, BertForQuestionAnswering, AdamW
+from transformers import BertTokenizer, BertForQuestionAnswering, AdamW,BertConfig
 
 
 class BertModel:
     def __init__(self, args):
-        self.idx=args.idx
-        self.args=args
+        self.model_name=args.model_name
+        self.args = args
 
     def prepare(self):
         self.device=self.args.device
         
-        with open(self.dataset_dir+'SQuAD_train_features.pkl', 'rb') as f:
+        with open(self.args.dataset_dir+'SQuAD_train_features.pkl', 'rb') as f:
             train_features = pickle.load(f)
             
         # 将特征转换为PyTorch张量
@@ -41,59 +41,76 @@ class BertModel:
         #num_workers = worker_num,
         # 加载BERT模型和优化器
         # 下载未经微调的BERT
-        # tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-        # self.model = BertForQuestionAnswering.from_pretrained('bert-base-uncased').to(self.device)
-        para_path="../model_para_data/bert_para/"
-        self.model = BertForQuestionAnswering.from_pretrained(para_path).to(self.device)
-        self.optimizer = AdamW(self.model.parameters(), lr=5e-5)
+        config = BertConfig.from_json_file('../model_para_data/bert_config.json')  
+        self.model = BertForQuestionAnswering(config=config).to(self.device)
+        self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=5e-5)
         print("start ddp model..." )
         self.model = DDP(self.model, device_ids=[self.device],output_device=self.device)
         print("end ddp model...")
         self.model.train()
         self.cur_epoch = 0
-
+        self.total_batch_num=len(self.train_dataloader)
 
     def prepare_sub(self):  
         self.dataloader_iter = iter(self.train_dataloader)
-        self.batch_idx = -1
+        self.batch_idx = 0
 
-    
+    def is_epoch_end(self):
+        if self.batch_idx==self.total_batch_num:
+            return True
+        else:
+            return False
+        
     def get_data(self):
         '''
         get data
         '''
         try:
-            step, batch = next(self.dataloader_iter)
+            batch = next(self.dataloader_iter)
         except StopIteration:
             self.cur_epoch += 1
             self.train_sampler.set_epoch(self.cur_epoch)
             self.dataloader_iter = iter(self.train_dataloader)
-            step, batch = next(self.dataloader_iter)
-            self.batch_idx = -1
+            batch = next(self.dataloader_iter)
+            self.batch_idx = 0
         self.batch_idx +=1
         
-        return step, batch
+        return batch
     
     
-    def forward_backward(self, thread):
+    def forward_backward(self, batch):
         '''
         forward, calculate loss and backward
         '''
         
+        self.optimizer.zero_grad()
+        input_ids, attention_mask, token_type_ids, start_positions, end_positions = tuple(t.to(self.device) for t in batch)
+        outputs = self.model(input_ids=input_ids,
+                        attention_mask=attention_mask,
+                        token_type_ids=token_type_ids,
+                        start_positions=start_positions,
+                        end_positions=end_positions)
+        loss = outputs.loss
+        loss.backward()
+    
+    def comm(self):
+        '''
+        sync for communication
+        '''
+        self.optimizer.step()
     
     
     
-    
-    def run(self):
-        # 微调BERT
-        for epoch in range(self.args.total_epochs):
-            print("epoch:",epoch)
-            
-            for step, batch in enumerate(self.train_dataloader):
-                
-                self.model.train()
-                self.optimizer.zero_grad()
+    def sample(self):
+        self.dataloader_iter = iter(self.train_dataloader)
+        self.cur_epoch += 1
+        
+    def train(self):
+        while True:
+            try:
+                batch = next(self.dataloader_iter)
                 input_ids, attention_mask, token_type_ids, start_positions, end_positions = tuple(t.to(self.device) for t in batch)
+                self.optimizer.zero_grad()
                 outputs = self.model(input_ids=input_ids,
                                 attention_mask=attention_mask,
                                 token_type_ids=token_type_ids,
@@ -102,5 +119,7 @@ class BertModel:
                 loss = outputs.loss
                 loss.backward()
                 self.optimizer.step()
-
-                print(f"Epoch [{epoch + 1}/{self.args.total_epochs}], Step [{step + 1}/{len(self.train_dataloader)}], Loss: {loss.item():.4f}")
+                
+            except StopIteration:
+                break
+    

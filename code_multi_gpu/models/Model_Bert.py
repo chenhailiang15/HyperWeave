@@ -4,8 +4,8 @@ import torch
 import pickle
 from torch.utils.data import TensorDataset
 from torch.utils.data import DataLoader, RandomSampler
-from transformers import BertTokenizer, BertForQuestionAnswering, AdamW
-
+from transformers import BertTokenizer, BertForQuestionAnswering, AdamW, BertConfig
+from WeaveSynchronizer import Synchronizer
 
 class Bert_class:
     def __init__(self, args_t,dataset_dir):
@@ -14,11 +14,12 @@ class Bert_class:
         
     def set_local_rank(self,local_rank):
         self.local_rank=local_rank
-
+    def set_shm_name(self,prior,shm_name,enable_flage=True):
+        self.sync_er=Synchronizer(shm_name,prior=prior, enable_flage=enable_flage)
     def load_mode_data(self):
         if torch.cuda.is_available():
             if len(self.args.gpu_id_list) != 0:
-                self.device = "cuda:"+self.args.gpu_id_list[self.local_rank].__str__()
+                self.device = "cuda:"+self.args.gpu_id_list[self.args.node_rank][self.local_rank].__str__()
             else:
                 self.device = "cuda:"+self.local_rank.__str__()
         else:
@@ -54,9 +55,9 @@ class Bert_class:
         # 下载未经微调的BERT
         # tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
         # self.model = BertForQuestionAnswering.from_pretrained('bert-base-uncased').to(self.device)
-        para_path="../model_para_data/bert_para/"
-        self.model = BertForQuestionAnswering.from_pretrained(para_path).to(self.device)
-        self.optimizer = AdamW(self.model.parameters(), lr=5e-5)
+        config = BertConfig.from_json_file('../model_para_data/bert-base-uncased-config.json')  
+        self.model = BertForQuestionAnswering(config=config).to(self.device)
+        self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=5e-5)
         self.model = DDP(self.model, device_ids=[self.device],output_device=self.device)
 
     def run(self):

@@ -106,8 +106,8 @@ if __name__=="__main__":
     #优先级参数
     parser.add_argument('--prior', action='store_true',help='A flage for label it is prior to run or not in Synchronizer')
     #系统参数
-    parser.add_argument('--world_size', default=1, type=int)
-    parser.add_argument('--nprocs_list', default=[1,0], type=parse_list_arg)
+    parser.add_argument('--world_size', default=2, type=int)
+    parser.add_argument('--nprocs_list', default=[2,0], type=parse_list_arg)
     parser.add_argument('--node_rank', default=0, type=int, help='The rank of the node in multi-node training')
     parser.add_argument('--gpu_id_list', default=[[0,1],[]], type=parse_list_arg,help='gpu id for each node used')
     # parser.add_argument('--nnodes', default=1, type=int, help='The number of nodes in multi-node training')
@@ -115,8 +115,8 @@ if __name__=="__main__":
     # parser.add_argument('--gpu_id_list', default=[], type=parse_list_arg,help='gpu id for each node used')
     
     #模型通用参数
-    parser.add_argument('--model_name',default="alexnet",help='model name, such as ResNet18, GCN, Bert...')
-    parser.add_argument('--batch_size', default=256, type=int, help='Input batch size on each device (default: 32)')
+    parser.add_argument('--model_name',default="Transformer",help='model name, such as ResNet18, GCN, Bert...')
+    parser.add_argument('--batch_size', default=16, type=int, help='Input batch size on each device (default: 32)')
     parser.add_argument('--total_epochs', default=2,type=int, help='Total epochs to train the model')
     parser.add_argument('--worker_num', default= 4,type=int, help='Number of worker for data load')
     
