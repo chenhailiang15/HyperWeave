@@ -77,15 +77,15 @@ def analyze_tasks(args,dataset_dir,queue):
     args.node_rank=0
     args.dataset_dir=dataset_dir
     args.mode="analyze"
-    model_name_list=["Transformer"]#"AlexNet","ResNet18","ResNet50",,"MobileNetv2"
-    batch_size_list=[8]#,16,32,64,128
-    max_parrallel=1
+    model_name_list=["GCN", "GraphSage","Transformer"]#"AlexNet","ResNet18","ResNet50",,"MobileNetv2"
+    batch_size_list=[8,16,32,64,128]#
+    max_parrallel=3
     for model_name in model_name_list:
         for batch_size in batch_size_list:
             for parrallel in range(1,max_parrallel+1):
                 if model_name =="GCN":
                     args.layer_num=100
-                    args.layer_feature=10
+                    args.layer_feature=100
                     args.batch_num=100
                     
                 # try:
