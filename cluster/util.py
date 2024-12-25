@@ -12,6 +12,24 @@ import numpy as np
 import subprocess
 
 
+
+model_to_batch_size_g={"AlexNet" : [8,16,32,64,128],
+                         "ResNet18" : [8,16,32,64,128],
+                         "ResNet50" : [8,16,32,64,128],
+                         "MobileNetv2" : [8,16,32,64,128],
+                         "VGG16" : [8,16,32,64,128],
+                         "Bert": [8,16],
+                         "Transformer": [8,16,32,64],
+                         "GCN": [8,16,32,64,128],
+                         "GraphSage":[8,16,32,64,128]
+                         }
+
+model_list_g=["AlexNet", "ResNet18", "ResNet50", "MobileNetv2", "VGG16", "Bert", "Transformer", "GCN", "GraphSage" ]
+
+
+
+
+
 def start_MPS(password):
     command="nvidia-cuda-mps-control -d"
     (status, result)=subprocess.getstatusoutput('echo %s| sudo -S %s' %(password,command))
@@ -125,6 +143,13 @@ class args_weave:
          
         
         self.prior=args.prior
+        
+        
+        self.system=args.system
+        self.mode=args.mode
+        self.job_idx=args.job_idx
+        self.idx_on_gpu=args.idx_on_gpu
+        
         #系统参数
         self.world_size=args.world_size
         self.node_rank=args.node_rank
@@ -156,13 +181,13 @@ class args_weave:
         self.MASTER_ADDR=args.MASTER_ADDR
         self.MASTER_PORT=args.MASTER_PORT
         self.net_card=args.net_card
+        
         self.print_level=args.print_level
         
         
         self.device=None
         self.dataset_dir=None
-        self.idx=0
-        self.mode="train"
+        
 
         
     def init_with_default(self):
@@ -208,7 +233,8 @@ class args_weave:
         
         self.device=None
         self.dataset_dir=None
-        self.idx=0
+        self.file_writer=None
+        
         
         
     def set_queue(self, queue):

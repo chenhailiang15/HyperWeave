@@ -17,7 +17,7 @@ import numpy as np
 from Recorder import Record
 from models.Framework import model_framework
 from util import *
-
+from WeaveSynchronizer import Synchronizer
 
 
 
@@ -71,17 +71,17 @@ def Record_resource(args, gpu_id, out_dir, out_file_name,event,queue):
 
 
 
-def analyze_tasks(args,dataset_dir,queue):
+def analyze_tasks(args,dataset_dir,queue,sync=None):
+    
     args.total_epochs=2
     # args.gpu_id_list=[0,1,2,3]
     args.node_rank=0
     args.dataset_dir=dataset_dir
     args.mode="analyze"
-    model_name_list=["GCN", "GraphSage","Transformer"]#"AlexNet","ResNet18","ResNet50",,"MobileNetv2"
-    batch_size_list=[8,16,32,64,128]#
+    model_name_list=["GCN", "GraphSage","Transformer"]#"AlexNet","ResNet18","ResNet50","MobileNetv2","VGG16"
     max_parrallel=3
     for model_name in model_name_list:
-        for batch_size in batch_size_list:
+        for batch_size in model_to_batch_size_g[model_name]:
             for parrallel in range(1,max_parrallel+1):
                 if model_name =="GCN":
                     args.layer_num=100
@@ -95,6 +95,12 @@ def analyze_tasks(args,dataset_dir,queue):
                 args.batch_size=batch_size
                 args.nprocs_per_node=parrallel
                 mp.spawn(single_training, args=(args,), nprocs=args.nprocs_per_node)
+                print(f"time:{sync.get_value(0)},{sync.get_value(1)},{sync.get_value(2)},{sync.get_value(3)}")
+                sync.set_value(0,0)
+                sync.set_value(1,0)
+                sync.set_value(2,0)
+                sync.set_value(3,0)
+                
                 # try:
 
                 #     mp.spawn(single_training, args=(args,), nprocs=args.nprocs_per_node)
@@ -105,10 +111,10 @@ def analyze_tasks(args,dataset_dir,queue):
     return
 
 
-def offline_analyze():
+def offline_analyze(system):
 
     args=args_weave()
-    
+    args.system=system
     shm_name=generate_shm_name()
     args.set_shm_name(shm_name)
     my_queue=queue.Queue()
@@ -116,12 +122,23 @@ def offline_analyze():
     dataset_dir=get_dataset_dir()
     output_dir=get_output_dir()
     record_file_name=generate_file_name_for_analyze()
-    event=threading.Event()
-    subthread_record=threading.Thread(target=Record_resource,args=(args,-1,output_dir,record_file_name,event,my_queue))
-    subthread_record.start()
-    analyze_tasks(args,dataset_dir,my_queue)
-    event.set()
-    subthread_record.join()
+    if args.system == "Weave":
+        event=threading.Event()
+        subthread_record=threading.Thread(target=Record_resource,args=(args,-1,output_dir,record_file_name,event,my_queue))
+        subthread_record.start()
+        sync_er=None
+    elif args.system == "Muri":
+        sync_er=Synchronizer(shm_name, shm_size=16)
+    #*************************************************
+    analyze_tasks(args,dataset_dir,my_queue,sync_er)
+    #*************************************************
+
+    if args.system == "Weave":
+        event.set()
+        subthread_record.join()
+    elif args.system == "Muri":
+        args.file_writer.close()
+        
     print("process end!")
     
     
@@ -180,7 +197,8 @@ class AnalyzeDataLoader:
         
     
 if __name__=="__main__":
-    offline_analyze()
+    
+    offline_analyze("Weave")
     # analyze_data=AnalyzeDataLoader("Analyzer-NVIDIA_GeForce_RTX_2080.csv")
     
     

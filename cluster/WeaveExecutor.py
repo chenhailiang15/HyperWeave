@@ -13,7 +13,6 @@ import gc
 
 from Recorder import Record
 from util import *
-# torch.backends.cudnn.enabled = False
 from models.Framework import model_framework
 
 def ddp_setup(local_rank, args):
@@ -32,7 +31,7 @@ def ddp_setup(local_rank, args):
 
     # Set the current CUDA device to the specified device (identified by rank).
     # This ensures that each process uses a different GPU in a multi-GPU setup.
-    if len(args.gpu_id_list)!=0:
+    if len(args.gpu_id_list)>=args.node_rank+1 and len(args.gpu_id_list[args.node_rank]) != 0:
         torch.cuda.set_device(args.gpu_id_list[args.node_rank][local_rank])
     else:
         torch.cuda.set_device(local_rank)
@@ -100,6 +99,12 @@ if __name__=="__main__":
     parser = argparse.ArgumentParser(description='simple distributed training job')
     #优先级参数
     parser.add_argument('--prior', action='store_true',help='A flage for label it is prior to run or not in Synchronizer')
+    
+    parser.add_argument("--system", default="Weave",type=str)
+    parser.add_argument("--mode", default="train",type=str)
+    parser.add_argument("--job_idx", default=0,type=int)
+    parser.add_argument("--idx_on_gpu",default=0, type=int)
+    
     #系统参数
     parser.add_argument('--world_size', default=1, type=int)
     parser.add_argument('--nprocs_list', default=[1,0], type=parse_list_arg)
@@ -110,8 +115,8 @@ if __name__=="__main__":
     # parser.add_argument('--gpu_id_list', default=[], type=parse_list_arg,help='gpu id for each node used')
     
     #模型通用参数
-    parser.add_argument('--model_name',default="GCN",help='model name, such as ResNet18, GCN, Bert...')
-    parser.add_argument('--batch_size', default=16, type=int, help='Input batch size on each device (default: 32)')
+    parser.add_argument('--model_name',default="Bert",help='model name, such as ResNet18, GCN, Bert...')
+    parser.add_argument('--batch_size', default=8, type=int, help='Input batch size on each device (default: 32)')
     parser.add_argument('--batch_num', default=16, type=int)
     parser.add_argument('--total_epochs', default=2,type=int, help='Total epochs to train the model')
     parser.add_argument('--worker_num', default= 4,type=int, help='Number of worker for data load')

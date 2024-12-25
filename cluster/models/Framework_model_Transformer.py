@@ -76,10 +76,17 @@ class TransformerModel:
         self.batch_idx = 0
 
     def is_epoch_end(self):
-        if self.batch_idx==self.total_batch_num:
+        if self.batch_idx==self.total_batch_num-1:
             return True
         else:
             return False
+        
+    def is_end(self):
+        if self.cur_epoch==self.args.total_epoch_num-1 and self.batch_idx==self.total_batch_num-1:
+            return True
+        else:
+            return False
+        
         
         
     def get_data(self):

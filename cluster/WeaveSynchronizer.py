@@ -31,6 +31,25 @@ class Synchronizer:
                 self.boolean_array[:]=new_values.astype(np.int8)
             else:
                 self.boolean_array = np.ndarray((4,), dtype=np.int8, buffer=self.shm.buf)
+        elif shm_size==12:
+            self.shm_name=shm_name
+            self.shm_size=shm_size
+            if self.load_share_memory():#为True，表示创建新的，需要初始化
+                self.boolean_array = np.ndarray((3,4), dtype=np.int8, buffer=self.shm.buf)
+                new_values = np.array([[0, 0, 0, 0],[0, 0, 0, 0],[0, 0, 0, 0]], dtype=np.int8)
+                self.boolean_array[:]=new_values.astype(np.int8)
+            else:
+                self.boolean_array = np.ndarray((3,4), dtype=np.int8, buffer=self.shm.buf)
+                
+        elif shm_size==16:
+            self.shm_name=shm_name
+            self.shm_size=shm_size
+            if self.load_share_memory():#为True，表示创建新的，需要初始化
+                self.boolean_array = np.ndarray((4,), dtype=np.float32, buffer=self.shm.buf)
+                new_values = np.array([0,0,0,0], dtype=np.float32)
+                self.boolean_array[:]=new_values.astype(np.float32)
+            else:
+                self.boolean_array = np.ndarray((4,), dtype=np.float32, buffer=self.shm.buf)
         else:
             print("share memory size wrong!")
             exit(-1)
@@ -39,15 +58,15 @@ class Synchronizer:
     def load_share_memory(self):
         try:
             self.shm=shared_memory.SharedMemory(name=self.shm_name)
-            print(f"共享内存 '{self.shm_name}' 已存在。")
+            print(f"共享内存 '{self.shm_name}' 已存在。size:{self.shm_size}")
             return False
         except FileNotFoundError:
             self.shm=shared_memory.SharedMemory(name=self.shm_name, create=True, size=self.shm_size)
-            print(f"共享内存 '{self.shm_name}' 不存在，现在创建。size ={self.shm_size}")
+            print(f"共享内存 '{self.shm_name}' 不存在，现在创建。size:{self.shm_size}")
             return True
         
         
-            
+    
     def sync_in_start_epoch(self,first_epoch):
         #是否发挥作用
         if not self.enable_flage:
@@ -57,7 +76,7 @@ class Synchronizer:
             return
             
         while self.boolean_array[self.cpu_index] == True:
-            time.sleep(0.1)
+            a=1
         self.boolean_array[self.cpu_index]=True
         return
         
@@ -68,7 +87,7 @@ class Synchronizer:
         
         self.boolean_array[self.cpu_index]=False
         while self.boolean_array[self.gpu_index] == True:
-            time.sleep(0.1)
+            a=1
         self.boolean_array[self.gpu_index]=True
             
         return
@@ -81,7 +100,40 @@ class Synchronizer:
         
         self.boolean_array[self.gpu_index]=False
         return
+
     
+    def muri_sync_start(self, idx_on_gpu, stage_id):
+        
+        
+        while True:
+            if self.boolean_array[1,stage_id]==0:
+                leave_to_job_id=self.boolean_array[0,stage_id]
+                if idx_on_gpu==leave_to_job_id:
+                    break
+                if self.boolean_array[2,leave_to_job_id] == 1:
+                    break
+                
+        self.boolean_array[1,stage_id]=1
+        
+        return
+    
+    def muri_sync_end(self, idx_on_gpu, stage_id):
+        next_job_idx=idx_on_gpu
+        while True:
+            next_job_idx=next_job_idx+1 if next_job_idx<3 else 0
+            
+            if self.boolean_array[2,next_job_idx] == 0:
+                    break 
+            
+        
+        self.boolean_array[0,stage_id]=next_job_idx
+        self.boolean_array[1,stage_id]=0
+        
+    def muri_job_end(self, idx_on_gpu):
+        self.boolean_array[2,idx_on_gpu]=1
+
+        
+        return
     
     def close_unlink(self):
         #是否发挥作用
