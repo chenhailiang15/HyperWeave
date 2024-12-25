@@ -14,12 +14,12 @@ import gc
 from Recorder import Record
 from models.Model_ResNet_etal import ResNet_etal_class
 from models.Model_Bert import Bert_class
-from models.Model_GCN import GCN_class
+# from models.Model_GCN import GCN_class
 from models.Model_GraphSage import GraphSage_class
 from models.Model_Transformer import Transformer_class
 from util import *
 # torch.backends.cudnn.enabled = False
-
+from models.Framework import model_framework
 
 def ddp_setup(local_rank, args):
     """
@@ -43,7 +43,7 @@ def ddp_setup(local_rank, args):
         torch.cuda.set_device(local_rank)
     
 
-def single_training(local_rank,args,model):
+def single_training(local_rank,args):
     """
        Main training function for distributed data parallel (DDP) setup.
     """
@@ -51,21 +51,22 @@ def single_training(local_rank,args,model):
     print("ddp setup...")
     ddp_setup(local_rank, args)
     #set device for model and data
-    model.set_local_rank(local_rank)
+    model_frame=model_framework(local_rank, args)
+    
     print("model sync setup...")
     #判断要不要启动同步器
     if args.node_rank in args.shm_name_list:
         gpu_id=args.gpu_id_list[args.node_rank][local_rank]
         if gpu_id in args.shm_name_list[args.node_rank]:
-            model.set_shm_name( args.shm_name_list[args.node_rank][gpu_id], args.prior)
+            model_frame.set_shm_name( args.shm_name_list[args.node_rank][gpu_id], args.prior)
         else:
-            model.set_shm_name("", args.prior, enable_flage=False)
+            model_frame.set_shm_name("", args.prior, enable_flage=False)
     else:
-        model.set_shm_name("", args.prior, enable_flage=False)
+        model_frame.set_shm_name("", args.prior, enable_flage=False)
     # Load the necessary training objects - dataset, model, and optimizer.
-    model.load_mode_data()
+    model_frame.load_mode_data()
     # Train the model for the specified number of epochs.
-    model.run()
+    model_frame.run()
     # Cleanup the distributed environment after training is complete.
     destroy_process_group()
 
@@ -92,22 +93,9 @@ def Record_resource(args, gpu_id, out_dir, out_file_name,event):
     record=Record(gpu_id=gpu_id,net_card=args.net_card, sample_interval=args.sample_interval,out_dir=out_dir, out_file_name=out_file_name,event=event,print_flage=args.print_flage)
     record.run()
 
-def Run_model_training(args_t,dataset_dir):
-    if args_t.model_name == "ResNet18" or args_t.model_name == "ResNet50" or args_t.model_name =="AlexNet"\
-        or args_t.model_name =="VGG16" or args_t.model_name =="MobileNetv2":
-        model=ResNet_etal_class(args_t,dataset_dir, "train")
-    elif args_t.model_name == "Bert":
-        model=Bert_class(args_t,dataset_dir)
-    elif args_t.model_name == "GCN":
-        model=GCN_class(args_t,dataset_dir)
-    elif args_t.model_name == "GraphSage":
-        model=GraphSage_class(args_t,dataset_dir)
-    elif args_t.model_name == "Transformer":
-        model=Transformer_class(args_t,dataset_dir)
-    else:
-        print("model_name wrong!")
-        exit(-1)
-    mp.spawn(single_training, args=(args_t,model), nprocs=args_t.nprocs_list[args_t.node_rank])
+def Run_model_training(args_t):
+    
+    mp.spawn(single_training, args=(args_t,), nprocs=args_t.nprocs_list[args_t.node_rank])
 
 
 if __name__=="__main__":
@@ -129,13 +117,14 @@ if __name__=="__main__":
     #模型通用参数
     parser.add_argument('--model_name',default="GCN",help='model name, such as ResNet18, GCN, Bert...')
     parser.add_argument('--batch_size', default=16, type=int, help='Input batch size on each device (default: 32)')
+    parser.add_argument('--batch_num', default=16, type=int)
     parser.add_argument('--total_epochs', default=2,type=int, help='Total epochs to train the model')
     parser.add_argument('--worker_num', default= 4,type=int, help='Number of worker for data load')
     
     #模型特定参数
     parser.add_argument('--squad_data_size',default=1000,type=int,help='Size of squad dataset for Bert')
-    parser.add_argument('--layer_num',default=100,type=int,help='Layer number for GCN')
-    parser.add_argument('--layer_feature',default=100,type=int,help='Layer feature number for GCN')
+    parser.add_argument('--layer_num',default=10,type=int,help='Layer number for GCN')
+    parser.add_argument('--layer_feature',default=10,type=int,help='Layer feature number for GCN')
 
     #记录参数
     parser.add_argument("--sample_interval", default=1, type=float,help='sample interval for recorder')
@@ -153,6 +142,8 @@ if __name__=="__main__":
     parser.add_argument("--print_level",default=10, type=int)
 
     args = parser.parse_args()
+    args=args_weave(args)
+    
     
     os.environ["MASTER_ADDR"]=args.MASTER_ADDR
     os.environ["MASTER_PORT"]=args.MASTER_PORT
@@ -175,7 +166,8 @@ if __name__=="__main__":
     out_dir     = parent_dir + "/output/"
 
     
-
+    args.dataset_dir=dataset_dir
+    
     # print("record flage:",args.record_flage)
     if args.record_flage:
         
@@ -214,7 +206,7 @@ if __name__=="__main__":
         subTread_record.start()
         time.sleep(1)
     #主线程
-    Run_model_training(args,dataset_dir)
+    Run_model_training(args)
     
     if args.record_flage: 
         event.set()

@@ -167,6 +167,13 @@ class args_weave:
         
     def init_with_default(self):
         self.prior=True
+        
+        #
+        self.system="Weave"
+        self.mode="train"
+        self.job_idx=0
+        self.idx_on_gpu=0
+        
         #系统参数
         self.nnodes=1
         self.node_rank=0
@@ -197,6 +204,10 @@ class args_weave:
         self.MASTER_ADDR="localhost"
         self.MASTER_PORT="12355"
         self.net_card="eno1"
+        
+        self.device=None
+        self.dataset_dir=None
+        self.idx=0
         
         
     def set_queue(self, queue):

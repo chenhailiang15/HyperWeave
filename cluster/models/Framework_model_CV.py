@@ -33,15 +33,15 @@ class CVModel:
         '''
         self.device=self.args.device
         data_dir = self.args.dataset_dir + "tiny-ImageNet"
+        
         train_dataset = \
             datasets.ImageFolder(os.path.join(data_dir, "train"),
-                            transform=transforms.Compose([
-                                transforms.RandomResizedCrop(224),
-                                transforms.RandomHorizontalFlip(),
+                            transform= transforms.Compose([
                                 transforms.ToTensor(),
                                 transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                                     std=[0.229, 0.224, 0.225])
-                            ]))
+                            ])
+                            )
 
         self.train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
         self.train_loader = torch.utils.data.DataLoader(
@@ -120,9 +120,12 @@ class CVModel:
         
     def train(self):
 
-        
+        batch_idx=0
         while True:
             try:
+                if batch_idx%500 == 0:
+                    print(f"job_idx: {self.args.job_idx} batch_idx: {batch_idx}/{self.total_batch_num}...")
+                
                 data,target = next(self.dataloader_iter)
                 data=data.to(self.device)
                 target=target.to(self.device)
@@ -132,7 +135,7 @@ class CVModel:
                 loss =  self.criterion(output, target)
                 loss.backward()
                 self.optimizer.step()
-                
+                batch_idx+=1
             except StopIteration:
                 break
             
