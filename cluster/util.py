@@ -183,6 +183,7 @@ class args_weave:
         #模型通用参数
         self.model_name="AlexNet"
         self.batch_size=16
+        self.batch_num=100        #只有GCN使用
         self.total_epochs=10
         self.worker_num= 4
         

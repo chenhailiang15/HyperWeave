@@ -79,8 +79,10 @@ class GCNModel:
         self.data=self.train_loader.dataset[0].to(self.device)
         
     def train(self):
-        for epoch in range(self.args.total_epochs):  # 进行训练循环，共200个epoch
-            for _ in range(self.total_batch_num):
+            for batch_idx in range(self.total_batch_num):
+                if batch_idx%500 == 0:
+                    print(f"job_idx: {self.args.job_idx} batch_idx: {batch_idx}/{self.total_batch_num}...")
+                
                 self.optimizer.zero_grad()  # 梯度清零
                 out = self.model(self.data)  # 前向传播，得到模型输出
                 loss = F.nll_loss(out[self.data.train_mask], self.data.y[self.data.train_mask])  # 计算损失，使用负对数似然损失函数

@@ -205,6 +205,10 @@ class GraphSageModel:
     def train(self):
 
         for index in range(self.total_batch_num):
+            if index%500 == 0:
+                    print(f"job_idx: {self.args.job_idx} batch_idx: {index}/{self.total_batch_num}...")
+                
+                
             nodes_batch = self.train_nodes[index*self.b_sz:(index+1)*self.b_sz]
 
             # extend nodes batch for unspervised learning

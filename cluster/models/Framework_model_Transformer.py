@@ -1,26 +1,9 @@
-import torch.nn as nn
+
 from torch.utils.data.distributed import DistributedSampler
 from torch.nn.parallel import DistributedDataParallel as DDP
-import torch.nn as nn
-from torchvision import datasets, transforms, models
-import torch.optim as optim
-from torch.utils.data import DataLoader, RandomSampler, BatchSampler
+from torch.utils.data import DataLoader
 import torch
-import copy
-import os
-import torchvision
-import psutil
-import time
-import threading
-from WeaveSynchronizer import Synchronizer
-import numpy as np
-import torch
-import torch.nn as nn
-import torch.optim as optim
-# from torchtext.data import Field, BucketIterator
 from torch.nn import Transformer, TransformerEncoder, TransformerEncoderLayer
-from torchtext.datasets import IMDB
-from torchtext import data
 # 导入经典文本相关数据集的工具包
 import torchtext
 # 导入专门用于英文分词的工具
@@ -150,9 +133,12 @@ class TransformerModel:
         
     def train(self):
 
-        
+        batch_idx=0
         while True:
             try:
+                if batch_idx%500 == 0:
+                    print(f"job_idx: {self.args.job_idx} batch_idx: {batch_idx}/{self.total_batch_num}...")
+                # print(f"batch idx{batch_idx}")
                 data_all = next(self.dataloader_iter)
                 data, targets = self.get_batch(data_all, 0)
                 # 设置优化器初始采样梯度为0梯度
@@ -168,6 +154,7 @@ class TransformerModel:
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), 0.5)
                 # 模型参数进行更新
                 self.optimizer.step()
+                batch_idx+=1
                 
             except StopIteration:
                 break

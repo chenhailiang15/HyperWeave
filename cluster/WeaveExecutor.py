@@ -12,11 +12,6 @@ import ast
 import gc
 
 from Recorder import Record
-from models.Model_ResNet_etal import ResNet_etal_class
-from models.Model_Bert import Bert_class
-# from models.Model_GCN import GCN_class
-from models.Model_GraphSage import GraphSage_class
-from models.Model_Transformer import Transformer_class
 from util import *
 # torch.backends.cudnn.enabled = False
 from models.Framework import model_framework

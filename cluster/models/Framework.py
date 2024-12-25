@@ -98,7 +98,7 @@ class model_framework:
     def run(self):
         if self.system=="Weave":
             for epoch in range(self.args.total_epochs):
-                print(f"job_idx: {self.job_idx} idx on gpu: {self.idx_on_gpu} epoch: {epoch}/{self.args.total_epochs}...")
+                print(f"job_idx: {self.job_idx} idx on gpu: {self.idx_on_gpu} epoch: {epoch+1}/{self.args.total_epochs}...")
                 
                 if self.mode == "train":
                     self.sync_er.sync_in_start_epoch(epoch==0)
