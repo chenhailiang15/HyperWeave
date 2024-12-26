@@ -5,7 +5,7 @@ import multiprocessing
 import numpy as np
 
 class Synchronizer:
-    def __init__(self,shm_name,shm_size=3,prior=True,enable_flage=True):
+    def __init__(self,shm_name,shm_size=3,prior=True,enable_flage=True,max_sync_num=0):
         if shm_size==3:
             self.cpu_index=0
             self.gpu_index=1
@@ -13,6 +13,8 @@ class Synchronizer:
             self.shm_name=shm_name
             self.shm_size=shm_size
             self.enable_flage=enable_flage
+            
+            
             if self.enable_flage:
                 
                 if self.load_share_memory():#为True，表示创建新的，需要初始化
@@ -32,11 +34,23 @@ class Synchronizer:
             else:
                 self.boolean_array = np.ndarray((4,), dtype=np.int8, buffer=self.shm.buf)
         elif shm_size==12:
+            
             self.shm_name=shm_name
             self.shm_size=shm_size
             if self.load_share_memory():#为True，表示创建新的，需要初始化
                 self.boolean_array = np.ndarray((3,4), dtype=np.int8, buffer=self.shm.buf)
-                new_values = np.array([[0, 0, 0, 0],[0, 0, 0, 0],[0, 0, 0, 0]], dtype=np.int8)
+                if max_sync_num==4:
+                    new_values = np.array([[0, 0, 0, 0],[0, 0, 0, 0],[0, 0, 0, 0]], dtype=np.int8)
+                elif max_sync_num==3:
+                    new_values = np.array([[0, 0, 0, 0],[0, 0, 0, 0],[0, 0, 0, 1]], dtype=np.int8)
+                elif max_sync_num==2:
+                    new_values = np.array([[0, 0, 0, 0],[0, 0, 0, 0],[0, 0, 1, 1]], dtype=np.int8)
+                elif max_sync_num==1:
+                    new_values = np.array([[0, 0, 0, 0],[0, 0, 0, 0],[0, 1, 1, 1]], dtype=np.int8)
+                else:
+                    print("max sync wrong!")
+                    exit(-1)
+                    
                 self.boolean_array[:]=new_values.astype(np.int8)
             else:
                 self.boolean_array = np.ndarray((3,4), dtype=np.int8, buffer=self.shm.buf)

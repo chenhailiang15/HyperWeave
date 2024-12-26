@@ -105,6 +105,7 @@ if __name__=="__main__":
     parser.add_argument("--job_idx", default=0,type=int)
     parser.add_argument("--idx_on_gpu",default=0, type=int)
     
+    
     #系统参数
     parser.add_argument('--world_size', default=1, type=int)
     parser.add_argument('--nprocs_list', default=[1,0], type=parse_list_arg)
@@ -115,10 +116,10 @@ if __name__=="__main__":
     # parser.add_argument('--gpu_id_list', default=[], type=parse_list_arg,help='gpu id for each node used')
     
     #模型通用参数
-    parser.add_argument('--model_name',default="Bert",help='model name, such as ResNet18, GCN, Bert...')
+    parser.add_argument('--model_name',default="AlexNet",help='model name, such as ResNet18, GCN, Bert...')
     parser.add_argument('--batch_size', default=8, type=int, help='Input batch size on each device (default: 32)')
     parser.add_argument('--batch_num', default=16, type=int)
-    parser.add_argument('--total_epochs', default=2,type=int, help='Total epochs to train the model')
+    parser.add_argument('--total_epochs', default=10,type=int, help='Total epochs to train the model')
     parser.add_argument('--worker_num', default= 4,type=int, help='Number of worker for data load')
     
     #模型特定参数
@@ -132,7 +133,7 @@ if __name__=="__main__":
     parser.add_argument("--print_flage", action='store_true')
     
     #同步参数
-    # parser.add_argument("--max_sync_num",default=0,type=int)
+    parser.add_argument("--max_sync_num",default=0,type=int)
     parser.add_argument("--shm_name_list",default="{}",type=parse_list_arg)
     
     #其他参数

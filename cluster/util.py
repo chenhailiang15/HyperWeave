@@ -149,7 +149,7 @@ class args_weave:
         self.mode=args.mode
         self.job_idx=args.job_idx
         self.idx_on_gpu=args.idx_on_gpu
-        
+
         #系统参数
         self.world_size=args.world_size
         self.node_rank=args.node_rank
@@ -174,7 +174,7 @@ class args_weave:
         self.print_flage=args.print_flage
         
         #同步参数
-        # self.max_sync_num=args.max_sync_num
+        self.max_sync_num=args.max_sync_num
         self.shm_name_list=args.shm_name_list
         
         #其他参数

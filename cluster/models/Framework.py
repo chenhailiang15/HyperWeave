@@ -74,7 +74,7 @@ class model_framework:
                 self.sync_er=Synchronizer(shm_name, shm_size=4)
         elif self.system == "Muri":
             if self.args.mode=="train":
-                self.sync_er=Synchronizer(shm_name,shm_size=8)
+                self.sync_er=Synchronizer(shm_name,shm_size=12,max_sync_num=self.args.max_sync_num)
             elif self.args.mode == "analyze":
                 self.sync_er=Synchronizer(shm_name, shm_size=16)  #用来将测试出来的耗时传递出去
         else:
@@ -93,7 +93,10 @@ class model_framework:
                 time.sleep(10)
         if self.system == "Muri":
             if self.mode == "train":
+                
                 self.sync_er.muri_sync_start(self.idx_on_gpu, 0)
+                print(f"job {self.job_idx} start stage 0...")
+                # print(f"job {self.job_idx} start stage 0...")
             elif self.mode == "analyze":
                 stage0_start_time=time.time()
         #************************
@@ -108,6 +111,7 @@ class model_framework:
             self.model.prepare_sub()
             #************************
             if self.mode == "train":
+                # print(f"job {self.job_idx} end stage 0...")
                 self.sync_er.muri_sync_end(self.idx_on_gpu, 0)
             elif self.mode == "analyze":
                 stage0_end_time=time.time()
@@ -164,25 +168,35 @@ class model_framework:
                 record_num=0
                 
             while not self.model.is_end():
+                if self.model.batch_idx==0 or self.model.batch_idx==self.model.total_batch_num:
+                    print(f"job_idx: {self.job_idx} idx on gpu: {self.device} epoch: {self.model.cur_epoch+1}/{self.args.total_epochs}...")
+                if self.model.batch_idx%500 == 1:
+                    print(f"job_idx: {self.args.job_idx} batch_idx: {self.model.batch_idx}/{self.model.total_batch_num}...")
+                
                 if self.mode == "train":
                     self.sync_er.muri_sync_start(self.idx_on_gpu,1)
+                    # print(f"job {self.job_idx} start stage 1...")
                 elif self.mode == "analyze":
                     stage1_start_time=time.time()
                 #************************
-                self.model.get_data()
+                data=self.model.get_data()
                 #************************
                 
                 if self.mode == "train":
                     self.sync_er.muri_sync_end(self.idx_on_gpu,1)
+                    
                     self.sync_er.muri_sync_start(self.idx_on_gpu,2)
+                    # print(f"job {self.job_idx} start stage 2...")
                 elif self.mode == "analyze":
                     stage2_start_time=time.time()
                 #************************
-                self.model.forward_backward()
+                self.model.forward_backward(data)
                 #************************
                 if self.mode == "train":
                     self.sync_er.muri_sync_end(self.idx_on_gpu,2)
+                    
                     self.sync_er.muri_sync_start(self.idx_on_gpu,3)
+                    # print(f"job {self.job_idx} start stage 3...")
                 elif self.mode == "analyze":
                     stage3_start_time=time.time()
                 #************************

@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 import torch
 from torch_geometric.datasets import Planetoid
 from torch_geometric.nn import GCNConv  # 从PyTorch几何库中导入图卷积网络层（GCNConv）
-
+import time
 
 
 
@@ -38,15 +38,16 @@ class GCNModel:
     
     def prepare_sub(self):  
         self.batch_idx = 0
+        # time.sleep(2)
 
-    def is_epoch_end(self):
-        if self.batch_idx==self.total_batch_num-1:
-            return True
-        else:
-            return False
+    # def is_epoch_end(self):
+    #     if self.batch_idx==self.total_batch_num-1:
+    #         return True
+    #     else:
+    #         return False
         
     def is_end(self):
-        if self.cur_epoch==self.args.total_epoch_num-1 and self.batch_idx==self.total_batch_num-1:
+        if self.cur_epoch==self.args.total_epochs-1 and self.batch_idx==self.total_batch_num:
             return True
         else:
             return False
@@ -56,13 +57,14 @@ class GCNModel:
         '''
         get data
         '''
-        data=self.train_loader.dataset[0].to(self.device)
-        if self.batch_idx < self.total_batch_num:
-            self.batch_idx +=1
-        else:
-            self.batch_idx=1
-            self.cur_epoch += 1
-
+        if self.batch_idx==self.total_batch_num:
+            self.cur_epoch+=1
+            self.batch_idx=0
+            
+        data=self.train_loader.dataset[0].to(self.device)            
+        self.batch_idx += 1
+        
+        # time.sleep(2)
         return data
     
     def forward_backward(self, data):
@@ -72,13 +74,14 @@ class GCNModel:
         out = self.model(data)  # 前向传播，得到模型输出
         loss = F.nll_loss(out[data.train_mask], data.y[data.train_mask])  # 计算损失，使用负对数似然损失函数
         loss.backward()  # 反向传播计算梯度
+        # time.sleep(2)
         
     def comm(self):
         '''
         sync for communication
         '''
         self.optimizer.step()
-    
+        # time.sleep(2)
     
     
     def sample(self):

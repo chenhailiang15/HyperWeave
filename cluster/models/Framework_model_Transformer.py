@@ -75,14 +75,14 @@ class TransformerModel:
         self.dataloader_iter = iter(self.train_loader)
         self.batch_idx = 0
 
-    def is_epoch_end(self):
-        if self.batch_idx==self.total_batch_num-1:
-            return True
-        else:
-            return False
+    # def is_epoch_end(self):
+    #     if self.batch_idx==self.total_batch_num-1:
+    #         return True
+    #     else:
+    #         return False
         
     def is_end(self):
-        if self.cur_epoch==self.args.total_epoch_num-1 and self.batch_idx==self.total_batch_num-1:
+        if self.cur_epoch==self.args.total_epochs-1 and self.batch_idx==self.total_batch_num:
             return True
         else:
             return False

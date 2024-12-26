@@ -198,7 +198,7 @@ class AnalyzeDataLoader:
     
 if __name__=="__main__":
     
-    offline_analyze("Weave")
+    offline_analyze("Muri")
     # analyze_data=AnalyzeDataLoader("Analyzer-NVIDIA_GeForce_RTX_2080.csv")
     
     
