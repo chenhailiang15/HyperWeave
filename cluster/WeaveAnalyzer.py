@@ -55,7 +55,7 @@ def single_training(local_rank,args):
 
     #判断要不要启动同步器
     
-    model.set_shm_name( args.shm_name)
+    model.init_sync_er()
     # Load the necessary training objects - dataset, model, and optimizer.
     model.load_mode_data()
     # Train the model for the specified number of epochs.
@@ -79,11 +79,11 @@ def analyze_tasks(args,dataset_dir,queue,sync=None):
     args.node_rank=0
     args.dataset_dir=dataset_dir
     
-    model_name_list=["AlexNet", "GraphSage","Transformer"]#"AlexNet","ResNet18","ResNet50","MobileNetv2","VGG16"
-    max_parrallel=3
+    model_name_list=["AlexNet","ResNet18","ResNet50","MobileNetv2","VGG16", "GCN", "GraphSage","Transformer", "Bert"]#"AlexNet","ResNet18","ResNet50","MobileNetv2","VGG16"
+    max_parrallel=4
     for model_name in model_name_list:
         for batch_size in model_to_batch_size_g[model_name]:
-            for parrallel in range(2,max_parrallel+1):
+            for parrallel in range(1,max_parrallel+1):
                 if model_name =="GCN":
                     args.layer_num=100
                     args.layer_feature=100
@@ -123,7 +123,7 @@ def offline_analyze(system):
     args.system=system
     args.mode="analyze"
     shm_name=generate_shm_name()
-    args.set_shm_name(shm_name)
+    args.shm_name_list={0:{0:shm_name}}
     my_queue=queue.Queue()
     # args.set_queue(my_queue)
     dataset_dir=get_dataset_dir()

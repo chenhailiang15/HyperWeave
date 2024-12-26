@@ -68,7 +68,11 @@ class model_framework:
         
     def init_sync_er(self):
         try:
-            gpu_id=self.args.gpu_id_list[self.args.node_rank][self.local_rank]
+            try:
+                gpu_id=self.args.gpu_id_list[self.args.node_rank][self.local_rank]
+            except:
+                gpu_id=self.local_rank
+                
             shm_name=self.args.shm_name_list[self.args.node_rank][gpu_id]
             enable_flage=True
         except:
@@ -83,7 +87,7 @@ class model_framework:
         elif self.system == "Muri":
             if self.args.mode=="train":
                 self.sync_er=Synchronizer(shm_name, shm_size=12, max_sync_num=self.args.max_sync_num,enable_flage=enable_flage)
-            elif self.args.mode == "analyze":
+            elif self.args.mode == "analyze" and self.local_rank==0:
                 self.sync_er=Synchronizer(shm_name, shm_size=16)  #用来将测试出来的耗时传递出去
         else:
             print(f"system name wrong! {self.system}")    
@@ -174,13 +178,15 @@ class model_framework:
                 stage2_time_all=0
                 stage3_time_all=0
                 record_num=0
+            elif self.mode=="analyze":
+                record_num=0
                 
             while not self.model.is_end():
                 if self.model.batch_idx==0 or self.model.batch_idx==self.model.total_batch_num:
                     print(f"job_idx: {self.job_idx} idx on gpu: {self.device} epoch: {self.model.cur_epoch+1}/{self.args.total_epochs}...")
                 if self.model.batch_idx%500 == 1:
                     print(f"job_idx: {self.args.job_idx} batch_idx: {self.model.batch_idx}/{self.model.total_batch_num}...")
-                
+                print(f"batch id: {self.model.batch_idx}")
                 if self.mode == "train":
                     self.sync_er.muri_sync_start(self.idx_on_gpu,1)
                     # print(f"job {self.job_idx} start stage 1...")
@@ -218,6 +224,11 @@ class model_framework:
                     stage1_time_all+=stage2_start_time-stage1_start_time
                     stage2_time_all+=stage3_start_time-stage2_start_time
                     stage3_time_all+=stage_end_time-stage3_start_time
+                    record_num+=1
+                    if record_num>=20:
+                        break
+                    
+                elif self.mode == "analyze":
                     record_num+=1
                     if record_num>=20:
                         break

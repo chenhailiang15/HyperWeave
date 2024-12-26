@@ -224,7 +224,7 @@ class args_weave:
         
         #同步参数
         self.max_sync_num=0
-        self.shm_name_list=[]
+        self.shm_name_list={}
         
         #其他参数
         self.MASTER_ADDR="localhost"
@@ -241,8 +241,8 @@ class args_weave:
         self.queue=queue
     def set_event(self, event):
         self.event=event
-    def set_shm_name(self, shm_name):
-        self.shm_name=shm_name
+    # def set_shm_name(self, shm_name):
+    #     self.shm_name=shm_name
     
     
     
