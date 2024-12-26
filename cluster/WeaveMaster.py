@@ -50,9 +50,9 @@ class WeaveMaster:
         self.schedule_interval=10
         
         
-        self.model_name_list=["AlexNet","VGG16","ResNet18","ResNet50","MobileNetv2"]#
-        self.batch_size_list=[64,128]
-        self.epoch_list=[]
+        self.model_name_list=model_list_g    #
+        self.batch_size_dict=model_to_batch_size_g
+
         
 
         self.max_cross=1           #最大跨node任务数量
@@ -63,7 +63,7 @@ class WeaveMaster:
         self.single_job_max_plan_mem=10*1024
         self.single_job_max_plan_gpu=4*100
         
-        self.ali_trace_file_name="ali_trace_job_info_sub.csv"
+        self.ali_trace_file_name="ali_trace_job_info.csv"
         self.analyze_file_name="Analyzer-NVIDIA_GeForce_RTX_2080-tim_12_19_16_38_14.csv"
         ##################################################《--设置区域--》结束####################################################
         
@@ -185,7 +185,7 @@ class WeaveMaster:
         job_name=ali_trace["job_name"]
         while True:
             model_name=random.choice(self.model_name_list)
-            batch_size=random.choice(self.batch_size_list)
+            batch_size=random.choice(self.batch_size_dict[model_name])
 
             plan_gpu=ali_trace["plan_gpu"] if ali_trace["plan_gpu"]<=self.single_job_max_plan_gpu else self.single_job_max_plan_gpu
             
@@ -393,7 +393,7 @@ class WeaveMaster:
         temp_string+=f"single_job_max_plan_cpu:{self.single_job_max_plan_cpu}, \tsingle_job_max_plan_mem:{self.single_job_max_plan_mem}, \tsingle_job_max_plan_gpu:{self.single_job_max_plan_gpu}\n"
         temp_string+=f"clock_time_factor:{self.clock_time_factor}, \tjob_time_factor:{self.job_time_factor}, \tjob_ddl_factor:{self.job_ddl_factor}\n"
         temp_string+=f"model_name_list:{self.model_name_list}\n"
-        temp_string+=f"batch_size_list:{self.batch_size_list}, \tepoch_list:{self.epoch_list}\n"
+        temp_string+=f"batch_size_dict:{self.batch_size_dict}\n"
         temp_string+=f"schedule_interval:{self.schedule_interval}\n"
         temp_string+=f"ali_trace_file_name:{self.ali_trace_file_name}\n"
         temp_string+=f"analyze_file_name:{self.analyze_file_name}\n"
