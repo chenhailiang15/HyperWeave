@@ -16,9 +16,9 @@ system="Weave"
 mode="train"
 
 node_rank=0
-net_card="eno1"
-MASTER_ADDR="10.26.128.51"   # one node:localhost  multi node: master ip
-MASTER_PORT="12355"
+net_card="eno2"
+MASTER_ADDR="localhost"   # one node:localhost  multi node: master ip
+MASTER_PORT="12345"
 
 model_name="ResNet18"
 world_size=2
@@ -42,7 +42,7 @@ sample_interval=0.1
 python WeaveExecutor.py --MASTER_ADDR ${MASTER_ADDR} --MASTER_PORT ${MASTER_PORT} --net_card ${net_card}  --model_name ${model_name} --node_rank ${node_rank} \
 --world_size ${world_size} --nprocs_list ${nprocs_list} --gpu_id_list ${gpu_id_list} --layer_num ${layer_num} --layer_feature ${layer_feature} \
 --batch_size ${batch_size} --total_epochs ${total_epochs} --worker_num ${worker_num} --squad_data_size ${squad_data_size} \
---sample_interval ${sample_interval}  --job_idx ${job_idx} --system ${system} #--record_flage #--print_flage
+--sample_interval ${sample_interval}  --job_idx ${job_idx} --system ${system} --mode ${mode} #--record_flage #--print_flage
 
 
 # model_name="Bert"

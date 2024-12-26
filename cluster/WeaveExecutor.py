@@ -51,7 +51,6 @@ def single_training(local_rank,args):
     #判断要不要启动同步器
     model_frame.init_sync_er()
     
-    
     # Load the necessary training objects - dataset, model, and optimizer.
     model_frame.load_mode_data()
     # Train the model for the specified number of epochs.
@@ -59,24 +58,21 @@ def single_training(local_rank,args):
     # Cleanup the distributed environment after training is complete.
     destroy_process_group()
 
-def parse_list_shm(list_arg):
-    list_arg=list_arg.replace("]","").replace("[","").split(",")
-    shm_list=[]
-    for shm in list_arg:
-        shm_list.append(shm)
+# def parse_list_shm(list_arg):
+#     list_arg=list_arg.replace("]","").replace("[","").split(",")
+#     shm_list=[]
+#     for shm in list_arg:
+#         shm_list.append(shm)
         
-    return shm_list
+#     return shm_list
     
     
+# def parse_list_arg(list_arg):
     
-    
-    
-def parse_list_arg(list_arg):
-    
-    try:
-        return ast.literal_eval(list_arg)
-    except (ValueError, SyntaxError) as e:
-        raise argparse.ArgumentTypeError(f"Invalid list argument: {list_arg}")
+#     try:
+#         return ast.literal_eval(list_arg)
+#     except (ValueError, SyntaxError) as e:
+#         raise argparse.ArgumentTypeError(f"Invalid list argument: {list_arg}")
 
 def Record_resource(args, gpu_id, out_dir, out_file_name,event):
     record=Record(gpu_id=gpu_id,net_card=args.net_card, sample_interval=args.sample_interval,out_dir=out_dir, out_file_name=out_file_name,event=event,print_flage=args.print_flage)

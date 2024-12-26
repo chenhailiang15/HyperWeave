@@ -16,8 +16,8 @@
 system="Muri"
 mode="train"
 node_rank=0
-net_card="eno1"
-MASTER_ADDR="10.26.128.51"   # one node:localhost  multi node: master ip
+net_card="eno2"
+MASTER_ADDR="localhost"   # one node:localhost  multi node: master ip
 MASTER_PORT0="12345"
 MASTER_PORT1="12346"
 MASTER_PORT2="12347"
@@ -43,7 +43,7 @@ layer_feature=100        #100 for GCN (default:10)
 sample_interval=0.1
 
 max_sync_num=1
-shm_name_list="{}"
+# shm_name_list="{}"
 
 idx_on_gpu0=0
 job_idx0=10
@@ -58,8 +58,8 @@ job_idx3=13
 python WeaveExecutor.py --MASTER_ADDR ${MASTER_ADDR} --MASTER_PORT ${MASTER_PORT0} --net_card ${net_card}  --model_name ${model_name0} --node_rank ${node_rank} \
 --world_size ${world_size} --nprocs_list ${nprocs_list} --gpu_id_list ${gpu_id_list} --layer_num ${layer_num} --layer_feature ${layer_feature} \
 --batch_size ${batch_size} --total_epochs ${total_epochs} --worker_num ${worker_num} --squad_data_size ${squad_data_size} \
---sample_interval ${sample_interval} --max_sync_num=${max_sync_num} --shm_name_list=${shm_name_list} \
---idx_on_gpu ${idx_on_gpu0} --job_idx ${job_idx0} --system ${system} 
+--sample_interval ${sample_interval} --max_sync_num=${max_sync_num} --idx_on_gpu ${idx_on_gpu0} --job_idx ${job_idx0} --system ${system} 
+#--shm_name_list=${shm_name_list} \
 # & python WeaveExecutor.py --MASTER_ADDR ${MASTER_ADDR} --MASTER_PORT ${MASTER_PORT1} --net_card ${net_card}  --model_name ${model_name1} --node_rank ${node_rank} \
 # --world_size ${world_size} --nprocs_list ${nprocs_list} --gpu_id_list ${gpu_id_list} --layer_num ${layer_num} --layer_feature ${layer_feature} \
 # --batch_size ${batch_size} --total_epochs ${total_epochs1} --worker_num ${worker_num} --squad_data_size ${squad_data_size} \
