@@ -186,7 +186,7 @@ class model_framework:
                     print(f"job_idx: {self.job_idx} idx on gpu: {self.device} epoch: {self.model.cur_epoch+1}/{self.args.total_epochs}...")
                 if self.model.batch_idx%500 == 1:
                     print(f"job_idx: {self.args.job_idx} batch_idx: {self.model.batch_idx}/{self.model.total_batch_num}...")
-                print(f"batch id: {self.model.batch_idx}")
+                # print(f"batch id: {self.model.batch_idx}")
                 if self.mode == "train":
                     self.sync_er.muri_sync_start(self.idx_on_gpu,1)
                     # print(f"job {self.job_idx} start stage 1...")
@@ -225,12 +225,12 @@ class model_framework:
                     stage2_time_all+=stage3_start_time-stage2_start_time
                     stage3_time_all+=stage_end_time-stage3_start_time
                     record_num+=1
-                    if record_num>=20:
+                    if record_num>=100:
                         break
                     
                 elif self.mode == "analyze":
                     record_num+=1
-                    if record_num>=20:
+                    if record_num>=100:
                         break
             
             
