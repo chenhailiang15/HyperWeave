@@ -18,6 +18,7 @@ from models.Framework_model_Bert import BertModel
 from models.Framework_model_Transformer import TransformerModel
 from models.Framework_model_GraphSage import GraphSageModel
 from models.Framework_model_GCN import GCNModel
+import torch, gc
 
 
 
@@ -172,6 +173,9 @@ class model_framework:
                     print("model mode wrong!")
                     exit(-1)
                 
+                gc.collect()
+                torch.cuda.empty_cache()
+                
         elif self.system == "Muri":
             if self.mode=="analyze" and self.local_rank==0:
                 stage1_time_all=0
@@ -183,6 +187,8 @@ class model_framework:
                 
             while not self.model.is_end():
                 if self.model.batch_idx==0 or self.model.batch_idx==self.model.total_batch_num:
+                    gc.collect()
+                    torch.cuda.empty_cache()
                     print(f"job_idx: {self.job_idx} idx on gpu: {self.device} epoch: {self.model.cur_epoch+1}/{self.args.total_epochs}...")
                 if self.model.batch_idx%500 == 1:
                     print(f"job_idx: {self.args.job_idx} batch_idx: {self.model.batch_idx}/{self.model.total_batch_num}...")

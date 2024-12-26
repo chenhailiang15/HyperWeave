@@ -108,25 +108,32 @@ class WeaveSchedulor:
     
     #muri 调度主线
     def schedule_muri(self,job_list):
-        multi_gpu_jobs, single_gpu_jobs=self.__over_sharing_classify_jobs(job_list)         #job 根据其并行数量（GPU数量）分类为多GPU任务和单GPU任务
-        matched_multi_jobs_list=self.__over_sharing_match_jobs(multi_gpu_jobs)                    #对多GPU任务进行匹配
-        matched_single_jobs_list=self.__over_sharing_match_jobs(single_gpu_jobs)                   #对单GPU任务进行匹配
+        all_matched_job_list=[]
+        job_group={}
+        #将Job根据GPU使用数量打包
+        for job in job_list:
+            if job.parallel_num in job_group:
+                job_group[job.parallel_num].append(job)
+            else:
+                job_group[job.parallel_num]=[job]
+                
+        #将按照GPU数量分组的job采用blossom 进行匹配
+        for spec_gpu_num in job_group.keys():
+            job_list_spec=job_group[spec_gpu_num]
+            job_pair_with_score=schedule_muri_score(job_list_spec)
+            #wait to do 
+            
+            mat
         
-        if self.strategy=="FIFO":
-            rest_job=self.schedule_weave_FIFO(matched_multi_jobs_list, matched_single_jobs_list)
-        elif self.strategy=="SRTF":
-            rest_job=self.schedule_weave_SRTF(matched_multi_jobs_list, matched_single_jobs_list)
-        elif self.strategy=="SRSF":
-            rest_job=self.schedule_weave_SRSF(matched_multi_jobs_list, matched_single_jobs_list)
-        else:
-            print("strategy wrong!")
-            exit(-1)
+        
 
         return rest_job
     
     
     
-    
+    def schedule_muri_score(self, job_list_spec):
+        for job_i in job_list_spec:
+            for job_j in job_list_spec
     
     
     

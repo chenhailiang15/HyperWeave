@@ -30,7 +30,7 @@ class WeaveMaster:
         self.master_is_2080=False
         self.single_node_mode=True
         
-        self.system="Weave"  #"Muri" or "Normal"
+        self.system="Muri"  #"Muri" or "Normal"
         self.schedule_strategy=stragey # "FIFO", "SRTF"，"SRSF", "BNPF"   Bucket-based non-blocking parallel first
 
         
@@ -65,6 +65,7 @@ class WeaveMaster:
         
         self.ali_trace_file_name="ali_trace_job_info.csv"
         self.analyze_file_name="Analyzer-NVIDIA_GeForce_RTX_2080-tim_12_19_16_38_14.csv"
+        self.model_time_file_name="Muri_Analyzer-NVIDIA_GeForce_RTX_2080_Ti-tim_12_26_15_24_41.csv"
         ##################################################《--设置区域--》结束####################################################
         
 
@@ -101,7 +102,9 @@ class WeaveMaster:
         
         if self.print_level>0:
             print("master init analyze loader...")
-        self.analyze_loader=AnalyzeDataLoader(self.analyze_file_name,print_level)
+        self.analyze_loader=AnalyzeDataLoader(self.analyze_file_name, print_level)
+        if self.system=="Muri":
+            self.analyze_time_loader=AnalyzeTimeLoader(self.model_time_file_name, print_level)
         # self.analyze_2080ti_loader=AnalyzeDataLoader("Analyzer-NVIDIA_GeForce_RTX_2080_Ti.csv",print_level)
         
         #资源监视器

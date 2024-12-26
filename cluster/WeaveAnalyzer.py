@@ -202,7 +202,35 @@ class AnalyzeDataLoader:
         pack_resource=[max(cpu0,cpu1,cpu2), max(mem0, mem1,mem2), max(gpu0, gpu1, gpu2), max(gmem0, gmem1, gmem2)]
         return pack_resource
 
+
+class AnalyzeTimeLoader:
+    def __init__(self, file_name, print_level=0):
+        self.data={}
+        self.load_csv(file_name)
         
+        
+    def load_csv(self, file_name,header=None):
+        dataset_dir=get_dataset_dir()
+        file=open(dataset_dir+"cluster_exp_data"+"/"+file_name,"r")
+        for line in file.readlines():
+            model_info=line.split("-[")[0]
+            # base_cost=np.array(ast.literal_eval(line.split("-[(")[1].split("), (")[0]))
+            stage0_time=float(line.split("-[")[1].split(",")[0])
+            stage1_time=float(line.split("-[")[1].split(",")[1])
+            stage2_time=float(line.split("-[")[1].split(",")[2])
+            stage3_time=float(line.split("-[")[1].split(",")[3].split("]")[0])
+            
+            
+            self.data[model_info]=[stage0_time, stage1_time, stage2_time, stage3_time]
+    
+    def get_value(self, model_info, index):
+        try:
+            value=self.data[model_info][index]
+        except:
+            print("model info is wrong!")
+            exit(-1)
+            
+        return value
     
 if __name__=="__main__":
     
