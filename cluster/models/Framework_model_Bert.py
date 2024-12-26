@@ -15,7 +15,7 @@ class BertModel:
     def prepare(self):
         self.device=self.args.device
         
-        with open(self.args.dataset_dir+'SQuAD_train_features.pkl', 'rb') as f:
+        with open(self.args.dataset_dir+'/SQuAD_train_features.pkl', 'rb') as f:
             train_features = pickle.load(f)
             
         # 将特征转换为PyTorch张量
@@ -36,8 +36,9 @@ class BertModel:
                 all_token_type_ids[:num_samples],
                 all_start_positions[:num_samples],
                 all_end_positions[:num_samples])
-        train_sampler = RandomSampler(train_dataset)
-        self.train_dataloader = DataLoader(train_dataset, sampler=DistributedSampler(train_sampler), batch_size=self.args.batch_size)
+        # self.train_sampler = RandomSampler(train_dataset)
+        self.train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
+        self.train_dataloader = DataLoader(train_dataset, sampler=DistributedSampler(self.train_sampler), batch_size=self.args.batch_size)
         #num_workers = worker_num,
         # 加载BERT模型和优化器
         # 下载未经微调的BERT
@@ -108,6 +109,7 @@ class BertModel:
     
     
     def sample(self):
+        self.train_sampler.set_epoch(self.cur_epoch)
         self.dataloader_iter = iter(self.train_dataloader)
         self.cur_epoch += 1
         

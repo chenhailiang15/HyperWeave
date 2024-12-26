@@ -32,7 +32,7 @@ class CVModel:
         prepare dataloader, model, optimizer for training
         '''
         self.device=self.args.device
-        data_dir = self.args.dataset_dir + "tiny-ImageNet"
+        data_dir = self.args.dataset_dir + "/tiny-ImageNet"
         
         train_dataset = \
             datasets.ImageFolder(os.path.join(data_dir, "train"),

@@ -122,6 +122,7 @@ def offline_analyze(system):
     args=args_weave()
     args.system=system
     args.mode="analyze"
+    args.net_card="eno1"
     shm_name=generate_shm_name()
     args.shm_name_list={0:{0:shm_name}}
     my_queue=queue.Queue()

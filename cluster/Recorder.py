@@ -37,7 +37,7 @@ class Record:
         subTread_record=threading.Thread(target=self.get_netIO,args=(self.net_card, self.sample_interval*10, self.unit, self.event))
         subTread_record.start()
 
-        file=open(self.out_dir+self.out_file_name,"w")
+        file=open(self.out_dir+"/"+self.out_file_name,"w")
         start_time=time.time()
         while not self.event.is_set():
             cpu_util=self.get_cpu_util()
@@ -75,7 +75,7 @@ class Record:
     def run_analyze(self,queue, shm_name):
         self.gpu_id_analyze=0
         self.sync_er=Synchronizer(shm_name,shm_size=4)
-        file=open(self.out_dir+self.out_file_name,"w")
+        file=open(self.out_dir+"/"+self.out_file_name,"w")
         
         self.cpu=[]
         self.mem=[]
@@ -302,7 +302,7 @@ if __name__=="__main__":
 
     event=threading.Event()
     # event.set()
-    out_dir="../output/"
+    out_dir="../output"
     out_file_name="Recorder_test.csv"
     print_flage=True
     recorder=Record(gpu_id=-1,net_card="eno1",sample_interval=1,out_dir=out_dir, out_file_name=out_file_name,event=event,print_flage=print_flage)

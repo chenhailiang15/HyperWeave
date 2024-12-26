@@ -19,47 +19,116 @@ class WeaveSchedulor:
         if self.print_level>2:
             print(f"start schedule ({self.strategy})...")
             
-        if self.master.start_weave:
-            rest_job=self.schedule_weave_over_sharing(job_list)
+        if self.master.system=="Weave":
+            rest_job=self.schedule_weave(job_list)
+        elif self.master.system=="Muri":
+            rest_job=self.schedule_muri(job_list)
+        elif self.master.system == "Normal":
+            rest_job=self.schedule_normal(job_list)
         else:
-            if self.strategy=="FIFO":
-                rest_job=self.schedule_FIFO(job_list)
-            elif self.strategy=="SRTF":
-                rest_job=self.schedule_SRTF(job_list)
-            elif self.strategy=="SRSF":
-                rest_job=self.schedule_SRSF(job_list)
-            else:
-                print("strategy wrong!")
-                exit(-1)
-        return rest_job
-    
-    
-    
-    def schedule_FIFO(self, job_list):
-        #按照到来的先后顺序排序
-        job_list.sort(key=lambda x: x.arrive_time)
-        rest_job=self.schedule_ordered_single_job_list(job_list)
+            print(f"system name wrong! {self.master.system} (should be Weave, Muri or Normal)")
             
         return rest_job
     
-    def schedule_SRTF(self, job_list):
-        time_now=time.time()
-        #按照到来的先后顺序排序
-        job_list.sort(key=lambda x: x.ddl_time-time_now-x.duration_time)
-        rest_job=self.schedule_ordered_single_job_list(job_list)
-            
-        return rest_job
-    
-    def schedule_SRSF(self, job_list):
+    #Weave 调度主线
+    def schedule_weave(self,job_list):
+        multi_gpu_jobs, single_gpu_jobs=self.__over_sharing_classify_jobs(job_list)         #job 根据其并行数量（GPU数量）分类为多GPU任务和单GPU任务
+        matched_multi_jobs_list=self.__over_sharing_match_jobs(multi_gpu_jobs)                    #对多GPU任务进行匹配
+        matched_single_jobs_list=self.__over_sharing_match_jobs(single_gpu_jobs)                   #对单GPU任务进行匹配
         
-        time_now=time.time()
-        # for job in job_list:
-        #     job.set_schedule_order(time_now)
-            
-        #按照到来的先后顺序排序
-        job_list.sort(key=lambda x: (x.ddl_time-time_now-x.duration_time)*x.parallel_num)
-        rest_job=self.schedule_ordered_single_job_list(job_list)
+        if self.strategy=="FIFO":
+            rest_job=self.schedule_weave_FIFO(matched_multi_jobs_list, matched_single_jobs_list)
+        elif self.strategy=="SRTF":
+            rest_job=self.schedule_weave_SRTF(matched_multi_jobs_list, matched_single_jobs_list)
+        elif self.strategy=="SRSF":
+            rest_job=self.schedule_weave_SRSF(matched_multi_jobs_list, matched_single_jobs_list)
+        else:
+            print("strategy wrong!")
+            exit(-1)
+
         return rest_job
+    
+    def schedule_weave_FIFO(self, multi_gpu_jobs, single_gpu_jobs):
+        order_matched_jobs=[]
+        matched_jobs= multi_gpu_jobs+single_gpu_jobs
+        for [job1,job2,pack_resource] in matched_jobs:
+            if job2 != None:
+                arrive_time=min(job1.arrive_time, job2.arrive_time)
+            else:
+                arrive_time=job1.arrive_time
+            order_matched_jobs.append([job1, job2, pack_resource, arrive_time])
+        #matched_jobs排序
+        order_matched_jobs.sort(key=lambda x : x[3])
+        rest_job=self.schedule_weave_ordered_matched_job_list(order_matched_jobs)
+        return rest_job
+    
+    
+    
+    def schedule_weave_SRTF(self, multi_gpu_jobs, single_gpu_jobs):
+        order_matched_jobs=[]
+        time_now=time.time()
+        matched_jobs= multi_gpu_jobs+single_gpu_jobs
+        for [job1,job2,pack_resource] in matched_jobs:
+            if job2 != None:
+                rest_time1=job1.ddl_time-time_now-job1.duration_time
+                rest_time2=job2.ddl_time-time_now-job2.duration_time
+                rest_time=min(rest_time1, rest_time2)
+            else:
+                rest_time=job1.ddl_time-time_now-job1.duration_time  
+            order_matched_jobs.append([job1, job2, pack_resource, rest_time])
+        
+        #match_jobs排序
+        order_matched_jobs.sort(key=lambda x : x[3])
+        rest_job=self.schedule_weave_ordered_matched_job_list(order_matched_jobs)
+        return rest_job
+        
+        
+    def schedule_weave_SRSF(self, multi_gpu_jobs, single_gpu_jobs):
+        order_matched_jobs=[]
+        time_now=time.time()
+        matched_jobs= multi_gpu_jobs+single_gpu_jobs
+        for [job1,job2,pack_resource] in matched_jobs:
+            if job2 != None:
+                rest_time1=(job1.ddl_time-time_now-job1.duration_time)*job1.parallel_num
+                rest_time2=(job2.ddl_time-time_now-job2.duration_time)*job2.parallel_num
+                rest_time=min(rest_time1, rest_time2)
+            else:
+                rest_time=job1.ddl_time-time_now-job1.duration_time  
+            order_matched_jobs.append([job1, job2, pack_resource, rest_time])
+        
+        #match_jobs排序
+        order_matched_jobs.sort(key=lambda x : x[3])
+        rest_job=self.schedule_weave_ordered_matched_job_list(order_matched_jobs)
+        return rest_job
+    
+    
+    
+    
+    
+    
+    #muri 调度主线
+    def schedule_muri(self,job_list):
+        multi_gpu_jobs, single_gpu_jobs=self.__over_sharing_classify_jobs(job_list)         #job 根据其并行数量（GPU数量）分类为多GPU任务和单GPU任务
+        matched_multi_jobs_list=self.__over_sharing_match_jobs(multi_gpu_jobs)                    #对多GPU任务进行匹配
+        matched_single_jobs_list=self.__over_sharing_match_jobs(single_gpu_jobs)                   #对单GPU任务进行匹配
+        
+        if self.strategy=="FIFO":
+            rest_job=self.schedule_weave_FIFO(matched_multi_jobs_list, matched_single_jobs_list)
+        elif self.strategy=="SRTF":
+            rest_job=self.schedule_weave_SRTF(matched_multi_jobs_list, matched_single_jobs_list)
+        elif self.strategy=="SRSF":
+            rest_job=self.schedule_weave_SRSF(matched_multi_jobs_list, matched_single_jobs_list)
+        else:
+            print("strategy wrong!")
+            exit(-1)
+
+        return rest_job
+    
+    
+    
+    
+    
+    
     
     
     def schedule_ordered_single_job_list(self, job_list):
@@ -88,80 +157,11 @@ class WeaveSchedulor:
         return rest_job
     
     
-    #over share 调度主线
-    def schedule_weave_over_sharing(self,job_list):
-        multi_gpu_jobs, single_gpu_jobs=self.__over_sharing_classify_jobs(job_list)         #job 根据其并行数量（GPU数量）分类为多GPU任务和单GPU任务
-        matched_multi_jobs_list=self.__over_sharing_match_jobs(multi_gpu_jobs)                    #对多GPU任务进行匹配
-        matched_single_jobs_list=self.__over_sharing_match_jobs(single_gpu_jobs)                   #对单GPU任务进行匹配
+    
+    
+    
+    
         
-        if self.strategy=="FIFO":
-            rest_job=self.schedule_weave_FIFO(matched_multi_jobs_list, matched_single_jobs_list)
-        elif self.strategy=="SRTF":
-            rest_job=self.schedule_weave_SRTF(matched_multi_jobs_list, matched_single_jobs_list)
-        elif self.strategy=="SRSF":
-            rest_job=self.schedule_weave_SRSF(matched_multi_jobs_list, matched_single_jobs_list)
-        else:
-            print("strategy wrong!")
-            exit(-1)
-
-        return rest_job
-    
-    
-    def schedule_weave_FIFO(self, multi_gpu_jobs, single_gpu_jobs):
-        order_matched_jobs=[]
-        matched_jobs= multi_gpu_jobs+single_gpu_jobs
-        for [job1,job2,pack_resource] in matched_jobs:
-            if job2 != None:
-                arrive_time=min(job1.arrive_time, job2.arrive_time)
-            else:
-                arrive_time=job1.arrive_time
-            order_matched_jobs.append([job1, job2, pack_resource, arrive_time])
-        #matched_jobs排序
-        order_matched_jobs.sort(key=lambda x : x[3])
-        rest_job=self.schedule_weave_ordered_matched_job_list(order_matched_jobs)
-        return rest_job
-    
-    
-    
-    
-    
-    
-    
-    def schedule_weave_SRTF(self, multi_gpu_jobs, single_gpu_jobs):
-        order_matched_jobs=[]
-        time_now=time.time()
-        matched_jobs= multi_gpu_jobs+single_gpu_jobs
-        for [job1,job2,pack_resource] in matched_jobs:
-            if job2 != None:
-                rest_time1=job1.ddl_time-time_now-job1.duration_time
-                rest_time2=job2.ddl_time-time_now-job2.duration_time
-                rest_time=min(rest_time1, rest_time2)
-            else:
-                rest_time=job1.ddl_time-time_now-job1.duration_time  
-            order_matched_jobs.append([job1, job2, pack_resource, rest_time])
-        
-        #match_jobs排序
-        order_matched_jobs.sort(key=lambda x : x[3])
-        rest_job=self.schedule_weave_ordered_matched_job_list(order_matched_jobs)
-        return rest_job
-        
-    def schedule_weave_SRSF(self, multi_gpu_jobs, single_gpu_jobs):
-        order_matched_jobs=[]
-        time_now=time.time()
-        matched_jobs= multi_gpu_jobs+single_gpu_jobs
-        for [job1,job2,pack_resource] in matched_jobs:
-            if job2 != None:
-                rest_time1=(job1.ddl_time-time_now-job1.duration_time)*job1.parallel_num
-                rest_time2=(job2.ddl_time-time_now-job2.duration_time)*job2.parallel_num
-                rest_time=min(rest_time1, rest_time2)
-            else:
-                rest_time=job1.ddl_time-time_now-job1.duration_time  
-            order_matched_jobs.append([job1, job2, pack_resource, rest_time])
-        
-        #match_jobs排序
-        order_matched_jobs.sort(key=lambda x : x[3])
-        rest_job=self.schedule_weave_ordered_matched_job_list(order_matched_jobs)
-        return rest_job
         
     def schedule_weave_ordered_matched_job_list(self, match_jobs):
         #初始化未被调度的job
@@ -401,6 +401,48 @@ class WeaveSchedulor:
     
     
     
+    #********************************************************************************Normal***********************************************************************************************
+    #normal 调度主线
+    def schedule_normal(self,job_list):
+        if self.strategy=="FIFO":
+            rest_job=self.schedule_normal_FIFO(job_list)
+        elif self.strategy=="SRTF":
+            rest_job=self.schedule_normal_SRTF(job_list)
+        elif self.strategy=="SRSF":
+            rest_job=self.schedule_normal_SRSF(job_list)
+        else:
+            print("strategy wrong!")
+            exit(-1)
+
+        return rest_job
+    
+    
+    
+    def schedule_normal_FIFO(self, job_list):
+        #按照到来的先后顺序排序
+        job_list.sort(key=lambda x: x.arrive_time)
+        rest_job=self.schedule_ordered_single_job_list(job_list)
+            
+        return rest_job
+    
+    def schedule_normal_SRTF(self, job_list):
+        time_now=time.time()
+        #按照到来的先后顺序排序
+        job_list.sort(key=lambda x: x.ddl_time-time_now-x.duration_time)
+        rest_job=self.schedule_ordered_single_job_list(job_list)
+            
+        return rest_job
+    
+    def schedule_normal_SRSF(self, job_list):
+        
+        time_now=time.time()
+        # for job in job_list:
+        #     job.set_schedule_order(time_now)
+            
+        #按照到来的先后顺序排序
+        job_list.sort(key=lambda x: (x.ddl_time-time_now-x.duration_time)*x.parallel_num)
+        rest_job=self.schedule_ordered_single_job_list(job_list)
+        return rest_job
     
     # #over share 调度主线
     # def schedule_weave_over_sharing_back(self,job_list):

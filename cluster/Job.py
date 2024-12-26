@@ -6,20 +6,26 @@ import math
 
 
 class Job:
-    def __init__(self):
+    def __init__(self,job_idx, system):
         self.arrive_time=0
         self.start_time=0
         self.end_time=0
         self.succeed_flage=None
+        self.job_idx=job_idx
+        self.idx_on_gou=0
+        self.system=system
+        
+
         
     
         
     #模型信息        
-    def set_model_info(self,job_name, model_name,total_epochs, batch_size, worker_num=4, layer_num=10, layer_feature=10,squad_data_size=1000 ):
+    def set_model_info(self,job_name, model_name,total_epochs, batch_size, batch_num=100, worker_num=4, layer_num=10, layer_feature=10,squad_data_size=1000 ):
         self.job_name=job_name
         self.model_name=model_name
         self.total_epochs=total_epochs
         self.batch_size=batch_size
+        self.batch_num=batch_num
         self.worker_num=worker_num
         self.layer_num=layer_num
         self.layer_feature=layer_feature
@@ -85,21 +91,24 @@ class Job:
         
         self.command=f"python WeaveExecutor.py --MASTER_ADDR {MASTER_ADDR} --MASTER_PORT {MASTER_PORT} --net_card {net_card}  --node_rank {node_rank} \
             --world_size {world_size} --nprocs_list {nprocs_list_c} --gpu_id_list {gpu_id_list_c} --model_name {self.model_name} --batch_size {self.batch_size} \
-            --total_epochs {self.total_epochs} --worker_num {self.worker_num} --layer_num {self.layer_num} --layer_feature {self.layer_feature} \
-            --squad_data_size {self.squad_data_size} --shm_name_list {shm_name_list_c}"
+            --batch_num {self.batch_num} --total_epochs {self.total_epochs} --worker_num {self.worker_num} --layer_num {self.layer_num} --layer_feature {self.layer_feature} \
+            --squad_data_size {self.squad_data_size} --shm_name_list {shm_name_list_c} --job_idx {self.job_idx} --idx_on_gpu {self.idx_on_gou} --system {self.system}"
         if prior:
             self.command=self.command+" --prior"
-        
-    
+
     
     def to_string(self):
         json_dict={}
         
+        json_dict["job_idx"]=self.job_idx
+        json_dict["idx_on_gou"]=self.idx_on_gou
+        json_dict["system"]=self.system
         
         json_dict["job_name"]=self.job_name
         json_dict["model_name"]=self.model_name
         json_dict["total_epochs"]=self.total_epochs
         json_dict["batch_size"]=self.batch_size
+        json_dict["batch_num"]=self.batch_num
         json_dict["worker_num"]=self.worker_num
         json_dict["layer_num"]=self.layer_num
         json_dict["layer_feature"]=self.layer_feature
@@ -144,11 +153,15 @@ class Job:
     def load_string(self, json_string):
         json_dict=json.loads(json_string)
         
+        self.job_idx=json_dict["job_idx"]
+        self.idx_on_gou=json_dict["idx_on_gou"]
+        self.system =json_dict["system"]
         
         self.job_name=json_dict["job_name"]
         self.model_name=json_dict["model_name"]
         self.total_epochs=json_dict["total_epochs"]
         self.batch_size=json_dict["batch_size"]
+        self.batch_num=json_dict["batch_num"]
         self.worker_num=json_dict["worker_num"]
         self.layer_num=json_dict["layer_num"]
         self.layer_feature=json_dict["layer_feature"]

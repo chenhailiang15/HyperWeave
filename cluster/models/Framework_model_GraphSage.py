@@ -121,6 +121,9 @@ class GraphSageModel:
         else:
             self.cur_epoch += 1
             self.prepare_sub()
+            nodes_batch = self.train_nodes[self.batch_idx*self.b_sz:(self.batch_idx+1)*self.b_sz]
+            nodes_batch = np.asarray(list(self.unsupervised_loss.extend_nodes(nodes_batch, num_neg=self.num_neg)))
+            
             
         self.batch_idx +=1
         

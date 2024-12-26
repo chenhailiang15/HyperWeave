@@ -27,11 +27,12 @@ class WeaveMaster:
         
         
         ##################################################《--设置区域--》开始####################################################
-        self.master_is_2080=True
+        self.master_is_2080=False
         self.single_node_mode=True
         
-        self.schedule_strategy=stragey # "FIFO"
-        self.start_weave=True
+        self.system="Weave"  #"Muri" or "Normal"
+        self.schedule_strategy=stragey # "FIFO", "SRTF"，"SRSF", "BNPF"   Bucket-based non-blocking parallel first
+
         
         self.sync_mode=True
         #需要最好手动确认
@@ -39,7 +40,7 @@ class WeaveMaster:
         
         self.overshared_factor=2   #等于1存在GPU资源不够的情况
              
-        self.password=" "
+        self.password="sim2024"      #"sim2024"for sim812 " "for jf
         
         self.print_level=print_level
         self.clock_time_factor=10000
@@ -62,13 +63,11 @@ class WeaveMaster:
         self.single_job_max_plan_mem=10*1024
         self.single_job_max_plan_gpu=4*100
         
-        self.ali_trace_file_name="ali_trace_job_info.csv"
+        self.ali_trace_file_name="ali_trace_job_info_sub.csv"
         self.analyze_file_name="Analyzer-NVIDIA_GeForce_RTX_2080-tim_12_19_16_38_14.csv"
         ##################################################《--设置区域--》结束####################################################
         
-        # if self.start_weave:
-        #     self.sync_mode=True
-        #     self.MPS_mode=True
+
         
         self.queue_length=[]
         self.block_index=[]   #
@@ -179,7 +178,7 @@ class WeaveMaster:
         data_pd=pd.read_csv(dataset_dir+"cluster_exp_data"+"/"+file_name,header=header)
         return data_pd
 
-    def generate_job(self, ali_trace):
+    def generate_job(self, ali_trace,job_idx):
         
         if ali_trace["cpu_usage"]==0 or ali_trace["avg_mem"]==0:
             return None
@@ -212,8 +211,12 @@ class WeaveMaster:
         
         ddl_time=arrive_time+duration_time*self.job_ddl_factor
         
-        job=Job()
-        job.set_model_info(job_name, model_name,total_epochs, batch_size)
+        job=Job(job_idx,self.system)
+        if model_name == "GCN":
+            job.set_model_info(job_name, model_name,total_epochs, batch_size, layer_num=100, layer_feature=100)
+        else:
+            job.set_model_info(job_name, model_name,total_epochs, batch_size)
+        
         job.set_plan_resource(plan_cpu, plan_mem, plan_gpu)
         job.set_arrive_time(arrive_time)
         job.set_ddl_time(ddl_time)
@@ -249,7 +252,7 @@ class WeaveMaster:
         sub_thread_schedule.start()
         
         for index in range(len(self.ali_trace_pd)):
-            job=self.generate_job(self.ali_trace_pd.iloc[index,:])
+            job=self.generate_job(self.ali_trace_pd.iloc[index,:], self.job_come_num)
             if job ==None: #由于数据原因，可能无法生成Job，因此跳过
                 continue
             if self.print_level>=2:
@@ -329,7 +332,7 @@ class WeaveMaster:
             print("end a job:", job.job_name)
         
         #回收资源(需要修改，有配对的，在两个都结束后，再释放资源)
-        if self.start_weave:
+        if self.system=="Weave" or self.system=="Muri":
             self.monitor.takeback_resource(job)
         else:
             self.monitor.takeback_resource(job,plan=True)
@@ -385,7 +388,7 @@ class WeaveMaster:
         temp_string=f"****************************************************{self.schedule_strategy}***********************************************************\n"
         temp_string+="    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    parameters in experiment    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    \n"
         temp_string+=f"master_is_2080:{self.master_is_2080}, single_node_mode:{self.single_node_mode}\n"
-        temp_string+=f"weave state:{self.start_weave}, \tMPS:{self.MPS_mode}, \tSync:{self.sync_mode}\n"
+        temp_string+=f"system name:{self.system}, \tMPS:{self.MPS_mode}, \tSync:{self.sync_mode}\n"
         temp_string+=f"overshared_factor:{self.overshared_factor}, \tmax_cross:{self.max_cross}, \tmax_gpu_cross:{self.max_gpu_cross}\n"
         temp_string+=f"single_job_max_plan_cpu:{self.single_job_max_plan_cpu}, \tsingle_job_max_plan_mem:{self.single_job_max_plan_mem}, \tsingle_job_max_plan_gpu:{self.single_job_max_plan_gpu}\n"
         temp_string+=f"clock_time_factor:{self.clock_time_factor}, \tjob_time_factor:{self.job_time_factor}, \tjob_ddl_factor:{self.job_ddl_factor}\n"

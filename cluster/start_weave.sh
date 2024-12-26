@@ -16,7 +16,7 @@ system="Weave"
 mode="train"
 
 node_rank=0
-net_card="eno2"
+net_card="eno1"
 MASTER_ADDR="localhost"   # one node:localhost  multi node: master ip
 MASTER_PORT="12345"
 

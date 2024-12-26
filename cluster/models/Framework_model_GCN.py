@@ -23,7 +23,7 @@ class GCNModel:
         '''
         self.device=self.args.device
         
-        dataset = Planetoid(root=self.args.dataset_dir+"Cora_Planetoid", name='Cora')  # 加载Cora数据集
+        dataset = Planetoid(root=self.args.dataset_dir+"/Cora_Planetoid", name='Cora')  # 加载Cora数据集
 
         self.model = GCN(dataset.num_node_features, dataset.num_classes, self.args.layer_num, self.args.layer_feature, self.device).to(self.device)  # 实例化GNN模型，并移动到对应设备
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=0.01, weight_decay=5e-4)  # 定义Adam优化器

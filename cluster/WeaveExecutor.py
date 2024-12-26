@@ -154,8 +154,8 @@ if __name__=="__main__":
     # 获取当前文件所在目录的上级目录
     path=os.path.abspath(os.curdir)
     parent_dir  = os.path.dirname(os.path.abspath(os.curdir))
-    dataset_dir = parent_dir + '/dataset/'
-    out_dir     = parent_dir + "/output/"
+    dataset_dir = parent_dir + '/dataset'
+    out_dir     = parent_dir + "/output"
 
     
     args.dataset_dir=dataset_dir

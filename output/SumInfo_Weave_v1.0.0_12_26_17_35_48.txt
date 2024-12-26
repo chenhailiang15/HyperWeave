@@ -1,0 +1,60 @@
+****************************************************FIFO***********************************************************
+    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    parameters in experiment    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    
+master_is_2080:False, single_node_mode:True
+system name:Weave, 	MPS:True, 	Sync:True
+overshared_factor:2, 	max_cross:1, 	max_gpu_cross:1
+single_job_max_plan_cpu:500, 	single_job_max_plan_mem:10240, 	single_job_max_plan_gpu:400
+clock_time_factor:10000, 	job_time_factor:1, 	job_ddl_factor:1
+model_name_list:['AlexNet', 'VGG16', 'ResNet18', 'ResNet50', 'MobileNetv2']
+batch_size_list:[64, 128], 	epoch_list:[]
+schedule_interval:10
+ali_trace_file_name:ali_trace_job_info_sub.csv
+analyze_file_name:Analyzer-NVIDIA_GeForce_RTX_2080-tim_12_19_16_38_14.csv
+    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    time info in following    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    
+all job num:2, 	succeed job num:2, 	failed job num:0
+makespan:99.66726112365723
+queue length[2]
+job wait time: size-2, 	mean-10.02, 	min-10.01, 	max-10.03, 	percentile50-10.02, 	percentile90-10.02, 	percentile95-10.03
+job complete time(JCT): size-2, 	mean-93.11, 	min-86.56, 	max-99.66, 	percentile50-93.11, 	percentile90-98.35, 	percentile95-99.01
+
+
+****************************************************SRTF***********************************************************
+    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    parameters in experiment    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    
+master_is_2080:False, single_node_mode:True
+system name:Weave, 	MPS:True, 	Sync:True
+overshared_factor:2, 	max_cross:1, 	max_gpu_cross:1
+single_job_max_plan_cpu:500, 	single_job_max_plan_mem:10240, 	single_job_max_plan_gpu:400
+clock_time_factor:10000, 	job_time_factor:1, 	job_ddl_factor:1
+model_name_list:['AlexNet', 'VGG16', 'ResNet18', 'ResNet50', 'MobileNetv2']
+batch_size_list:[64, 128], 	epoch_list:[]
+schedule_interval:10
+ali_trace_file_name:ali_trace_job_info_sub.csv
+analyze_file_name:Analyzer-NVIDIA_GeForce_RTX_2080-tim_12_19_16_38_14.csv
+    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    time info in following    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    
+all job num:2, 	succeed job num:2, 	failed job num:0
+makespan:115.12142586708069
+queue length[2]
+job wait time: size-2, 	mean-10.02, 	min-10.01, 	max-10.03, 	percentile50-10.02, 	percentile90-10.02, 	percentile95-10.03
+job complete time(JCT): size-2, 	mean-104.87, 	min-94.63, 	max-115.11, 	percentile50-104.87, 	percentile90-113.06, 	percentile95-114.09
+
+
+****************************************************SRSF***********************************************************
+    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    parameters in experiment    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    
+master_is_2080:False, single_node_mode:True
+system name:Weave, 	MPS:True, 	Sync:True
+overshared_factor:2, 	max_cross:1, 	max_gpu_cross:1
+single_job_max_plan_cpu:500, 	single_job_max_plan_mem:10240, 	single_job_max_plan_gpu:400
+clock_time_factor:10000, 	job_time_factor:1, 	job_ddl_factor:1
+model_name_list:['AlexNet', 'VGG16', 'ResNet18', 'ResNet50', 'MobileNetv2']
+batch_size_list:[64, 128], 	epoch_list:[]
+schedule_interval:10
+ali_trace_file_name:ali_trace_job_info_sub.csv
+analyze_file_name:Analyzer-NVIDIA_GeForce_RTX_2080-tim_12_19_16_38_14.csv
+    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    time info in following    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    
+all job num:2, 	succeed job num:2, 	failed job num:0
+makespan:100.73072504997253
+queue length[2]
+job wait time: size-2, 	mean-10.01, 	min-10.0, 	max-10.02, 	percentile50-10.01, 	percentile90-10.02, 	percentile95-10.02
+job complete time(JCT): size-2, 	mean-90.4, 	min-80.07, 	max-100.72, 	percentile50-90.4, 	percentile90-98.66, 	percentile95-99.69
+
+
