@@ -66,15 +66,23 @@ class model_framework:
         
         
         
-    def set_shm_name(self,shm_name, prior=True, enable_flage=True):
+    def init_sync_er(self):
+        try:
+            gpu_id=self.args.gpu_id_list[self.args.node_rank][self.local_rank]
+            shm_name=self.args.shm_name_list[self.args.node_rank][gpu_id]
+            enable_flage=True
+        except:
+            shm_name=""
+            enable_flage=False
+        
         if self.system == "Weave":
             if self.args.mode=="train":
-                self.sync_er=Synchronizer(shm_name,prior=prior, enable_flage=enable_flage)
+                self.sync_er=Synchronizer(shm_name, shm_size=3, prior=self.args.prior, enable_flage=enable_flage)
             elif self.args.mode == "analyze":
                 self.sync_er=Synchronizer(shm_name, shm_size=4)
         elif self.system == "Muri":
             if self.args.mode=="train":
-                self.sync_er=Synchronizer(shm_name,shm_size=12,max_sync_num=self.args.max_sync_num)
+                self.sync_er=Synchronizer(shm_name, shm_size=12, max_sync_num=self.args.max_sync_num,enable_flage=enable_flage)
             elif self.args.mode == "analyze":
                 self.sync_er=Synchronizer(shm_name, shm_size=16)  #用来将测试出来的耗时传递出去
         else:
@@ -97,7 +105,7 @@ class model_framework:
                 self.sync_er.muri_sync_start(self.idx_on_gpu, 0)
                 print(f"job {self.job_idx} start stage 0...")
                 # print(f"job {self.job_idx} start stage 0...")
-            elif self.mode == "analyze":
+            elif self.mode == "analyze" and self.local_rank==0:
                 stage0_start_time=time.time()
         #************************
         self.model.prepare()
@@ -113,7 +121,7 @@ class model_framework:
             if self.mode == "train":
                 # print(f"job {self.job_idx} end stage 0...")
                 self.sync_er.muri_sync_end(self.idx_on_gpu, 0)
-            elif self.mode == "analyze":
+            elif self.mode == "analyze" and self.local_rank==0:
                 stage0_end_time=time.time()
                 self.sync_er.set_value(0, stage0_end_time-stage0_start_time)
                 
@@ -161,7 +169,7 @@ class model_framework:
                     exit(-1)
                 
         elif self.system == "Muri":
-            if self.mode=="analyze":
+            if self.mode=="analyze" and self.local_rank==0:
                 stage1_time_all=0
                 stage2_time_all=0
                 stage3_time_all=0
@@ -176,7 +184,7 @@ class model_framework:
                 if self.mode == "train":
                     self.sync_er.muri_sync_start(self.idx_on_gpu,1)
                     # print(f"job {self.job_idx} start stage 1...")
-                elif self.mode == "analyze":
+                elif self.mode == "analyze" and self.local_rank==0:
                     stage1_start_time=time.time()
                 #************************
                 data=self.model.get_data()
@@ -187,7 +195,7 @@ class model_framework:
                     
                     self.sync_er.muri_sync_start(self.idx_on_gpu,2)
                     # print(f"job {self.job_idx} start stage 2...")
-                elif self.mode == "analyze":
+                elif self.mode == "analyze" and self.local_rank==0:
                     stage2_start_time=time.time()
                 #************************
                 self.model.forward_backward(data)
@@ -197,7 +205,7 @@ class model_framework:
                     
                     self.sync_er.muri_sync_start(self.idx_on_gpu,3)
                     # print(f"job {self.job_idx} start stage 3...")
-                elif self.mode == "analyze":
+                elif self.mode == "analyze" and self.local_rank==0:
                     stage3_start_time=time.time()
                 #************************
                 self.model.comm()
@@ -205,7 +213,7 @@ class model_framework:
                 
                 if self.mode == "train":
                     self.sync_er.muri_sync_end(self.idx_on_gpu,3)
-                elif self.mode == "analyze":
+                elif self.mode == "analyze" and self.local_rank==0:
                     stage_end_time=time.time()
                     stage1_time_all+=stage2_start_time-stage1_start_time
                     stage2_time_all+=stage3_start_time-stage2_start_time
@@ -217,7 +225,7 @@ class model_framework:
             
             if self.mode == "train":
                 self.sync_er.muri_job_end(self.idx_on_gpu)
-            elif self.mode == "analyze":
+            elif self.mode == "analyze" and self.local_rank==0:
                 self.sync_er.set_value(1, stage1_time_all/record_num)
                 self.sync_er.set_value(2, stage2_time_all/record_num)
                 self.sync_er.set_value(3, stage3_time_all/record_num)

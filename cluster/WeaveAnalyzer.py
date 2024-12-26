@@ -72,17 +72,18 @@ def Record_resource(args, gpu_id, out_dir, out_file_name,event,queue):
 
 
 def analyze_tasks(args,dataset_dir,queue,sync=None):
-    
+    if args.system=="Muri":
+        file_writer=open(args.muri_file_path_name, "w")
     args.total_epochs=2
     # args.gpu_id_list=[0,1,2,3]
     args.node_rank=0
     args.dataset_dir=dataset_dir
-    args.mode="analyze"
-    model_name_list=["GCN", "GraphSage","Transformer"]#"AlexNet","ResNet18","ResNet50","MobileNetv2","VGG16"
+    
+    model_name_list=["AlexNet", "GraphSage","Transformer"]#"AlexNet","ResNet18","ResNet50","MobileNetv2","VGG16"
     max_parrallel=3
     for model_name in model_name_list:
         for batch_size in model_to_batch_size_g[model_name]:
-            for parrallel in range(1,max_parrallel+1):
+            for parrallel in range(2,max_parrallel+1):
                 if model_name =="GCN":
                     args.layer_num=100
                     args.layer_feature=100
@@ -90,12 +91,17 @@ def analyze_tasks(args,dataset_dir,queue,sync=None):
                     
                 # try:
                 print("start analyze: ", model_name+"-"+batch_size.__str__()+"-"+parrallel.__str__())
-                queue.put(model_name+"-"+batch_size.__str__()+"-"+parrallel.__str__())
+                if args.system=="Weave":
+                    queue.put(model_name+"-"+batch_size.__str__()+"-"+parrallel.__str__())
                 args.model_name=model_name
                 args.batch_size=batch_size
                 args.nprocs_per_node=parrallel
                 mp.spawn(single_training, args=(args,), nprocs=args.nprocs_per_node)
-                print(f"time:{sync.get_value(0)},{sync.get_value(1)},{sync.get_value(2)},{sync.get_value(3)}")
+                if args.system=="Muri":
+                    out_line=f"{model_name}-{batch_size}-{parrallel}-[{sync.get_value(0)},{sync.get_value(1)},{sync.get_value(2)},{sync.get_value(3)}]"
+                    file_writer.write(out_line+"\n")
+                    file_writer.flush()
+                # print(f"time:{sync.get_value(0)},{sync.get_value(1)},{sync.get_value(2)},{sync.get_value(3)}")
                 sync.set_value(0,0)
                 sync.set_value(1,0)
                 sync.set_value(2,0)
@@ -115,6 +121,7 @@ def offline_analyze(system):
 
     args=args_weave()
     args.system=system
+    args.mode="analyze"
     shm_name=generate_shm_name()
     args.set_shm_name(shm_name)
     my_queue=queue.Queue()
@@ -128,6 +135,7 @@ def offline_analyze(system):
         subthread_record.start()
         sync_er=None
     elif args.system == "Muri":
+        args.muri_file_path_name=output_dir+"/Muri_"+record_file_name
         sync_er=Synchronizer(shm_name, shm_size=16)
     #*************************************************
     analyze_tasks(args,dataset_dir,my_queue,sync_er)
@@ -136,8 +144,7 @@ def offline_analyze(system):
     if args.system == "Weave":
         event.set()
         subthread_record.join()
-    elif args.system == "Muri":
-        args.file_writer.close()
+    
         
     print("process end!")
     

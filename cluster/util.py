@@ -233,7 +233,7 @@ class args_weave:
         
         self.device=None
         self.dataset_dir=None
-        self.file_writer=None
+        self.muri_file_path_name=None
         
         
         

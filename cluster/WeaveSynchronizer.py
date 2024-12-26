@@ -6,6 +6,11 @@ import numpy as np
 
 class Synchronizer:
     def __init__(self,shm_name,shm_size=3,prior=True,enable_flage=True,max_sync_num=0):
+        self.enable_flage=enable_flage
+        
+        if not enable_flage:
+            return    
+            
         if shm_size==3:
             self.cpu_index=0
             self.gpu_index=1
@@ -117,7 +122,9 @@ class Synchronizer:
 
     
     def muri_sync_start(self, idx_on_gpu, stage_id):
-        
+        #是否发挥作用
+        if not self.enable_flage:
+            return
         
         while True:
             if self.boolean_array[1,stage_id]==0:
@@ -132,6 +139,9 @@ class Synchronizer:
         return
     
     def muri_sync_end(self, idx_on_gpu, stage_id):
+        #是否发挥作用
+        if not self.enable_flage:
+            return
         next_job_idx=idx_on_gpu
         while True:
             next_job_idx=next_job_idx+1 if next_job_idx<3 else 0

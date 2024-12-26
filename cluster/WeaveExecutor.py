@@ -49,14 +49,9 @@ def single_training(local_rank,args):
     
     print("model sync setup...")
     #判断要不要启动同步器
-    if args.node_rank in args.shm_name_list:
-        gpu_id=args.gpu_id_list[args.node_rank][local_rank]
-        if gpu_id in args.shm_name_list[args.node_rank]:
-            model_frame.set_shm_name( args.shm_name_list[args.node_rank][gpu_id], args.prior)
-        else:
-            model_frame.set_shm_name("", args.prior, enable_flage=False)
-    else:
-        model_frame.set_shm_name("", args.prior, enable_flage=False)
+    model_frame.init_sync_er()
+    
+    
     # Load the necessary training objects - dataset, model, and optimizer.
     model_frame.load_mode_data()
     # Train the model for the specified number of epochs.
@@ -100,15 +95,15 @@ if __name__=="__main__":
     #优先级参数
     parser.add_argument('--prior', action='store_true',help='A flage for label it is prior to run or not in Synchronizer')
     
-    parser.add_argument("--system", default="Weave",type=str)
+    parser.add_argument("--system", default="Muri",type=str)
     parser.add_argument("--mode", default="train",type=str)
     parser.add_argument("--job_idx", default=0,type=int)
     parser.add_argument("--idx_on_gpu",default=0, type=int)
     
     
     #系统参数
-    parser.add_argument('--world_size', default=1, type=int)
-    parser.add_argument('--nprocs_list', default=[1,0], type=parse_list_arg)
+    parser.add_argument('--world_size', default=2, type=int)
+    parser.add_argument('--nprocs_list', default=[2,0], type=parse_list_arg)
     parser.add_argument('--node_rank', default=0, type=int, help='The rank of the node in multi-node training')
     parser.add_argument('--gpu_id_list', default=[[0,1],[]], type=parse_list_arg,help='gpu id for each node used')
     # parser.add_argument('--nnodes', default=1, type=int, help='The number of nodes in multi-node training')
@@ -150,8 +145,8 @@ if __name__=="__main__":
     os.environ["MASTER_PORT"]=args.MASTER_PORT
     os.environ["NCCL_SOCKET_IFNAME"]=args.net_card
     os.environ["PYTORCH_CUDA_ALLOC_CONF"]="max_split_size_mb:128"
-    gc.collect()
-    torch.cuda.empty_cache()
+    # gc.collect()
+    # torch.cuda.empty_cache()
     
     if args.print_level>0:
         print("addr:",args.MASTER_ADDR,"port:",args.MASTER_PORT,"netcard:",args.net_card)
