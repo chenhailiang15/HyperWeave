@@ -113,13 +113,14 @@ class WeaveSchedulor:
         self.job_idx_to_job={}
         all_matched_job_list=[]
         job_group={}
+        match_job_num=0
         #将Job根据GPU使用数量打包
         for job in job_list:
-            self.job_idx_to_job[job.job_dix]=job
+            self.job_idx_to_job[job.job_idx]=job
             job_mini={}
             job_mini["num_gpu"]=job.parallel_num
             job_mini['resource_time']=self.master.analyze_time_loader.get_time_all(job.get_name_batchsize_epoch())
-            job_mini['job_idx']=job.job_dix
+            job_mini['job_idx']=job.job_idx
             job_mini['iteration_time']=job.total_epochs
             
             if job.parallel_num in job_group:
@@ -132,27 +133,48 @@ class WeaveSchedulor:
         succeed_matched_job_idx=set()
         faile_matched_job_idx=set()
         for gpu_num in packings:
-            matched_job=[]
-            matched_falge=True
-            for _pack in packings[gpu_num]:    #obj _pack : _Packing
-                for job_t in _pack.best_permutation:
+            # print(f"blossom gpu num:{gpu_num} ... ")
+            
+            for _pack in packings[gpu_num]:    #obj _pack : _Packing  这里面每个循环是一个匹配
+                matched_job=[]
+                matched_flage=True
+                # print(f"one pack:\t", end="")
+                for job_t in _pack.best_permutation: #这里总共是一个匹配
+                    # print(job_t.job_idx,end="\t")
                     matched_job.append(self.job_idx_to_job[job_t.job_idx]) 
                     #如果有一个已经属于被匹配了的，本次匹配失败，后续单独处理
                     if job_t.job_idx in succeed_matched_job_idx:
-                        matched_falge=False
-            if matched_falge==True:
-                all_matched_job_list.append(matched_job)
-                for job in matched_job:
-                    succeed_matched_job_idx.add(job.job_idx)
-            else:
-                for job in matched_job:
+                        matched_flage=False
+                # print("")
+            
+            
+                #处理一个匹配
+                if matched_flage==True:
+                    if self.is_max_resource_satisfy(matched_job): #判断资源是否足够，足够才能算匹配成功
+                        all_matched_job_list.append(matched_job)
+                        match_job_num+=len(matched_job)
+                        # print(f"0000000000000000000000000000000000000000000000000 match num:  {len(matched_job)}")
+                        for job in matched_job:
+                            succeed_matched_job_idx.add(job.job_idx)
+                    else:
+                        for job in matched_job:
+                            faile_matched_job_idx.add(job.job_idx)
+                else:
                     for job in matched_job:
-                        faile_matched_job_idx.add(job.job_idx)
+                        for job in matched_job:
+                            faile_matched_job_idx.add(job.job_idx)
         #将失败的单独调度
         for job_idx in faile_matched_job_idx:
             if job_idx not in succeed_matched_job_idx:
                 all_matched_job_list.append([self.job_idx_to_job[job_idx]])
-        
+                match_job_num+=1
+        try:     
+            assert match_job_num==len(job_list)
+        except:
+            for job in job_list:
+                if job.job_idx not in faile_matched_job_idx and job.job_idx not in succeed_matched_job_idx:
+                    print(f"******************fix blossom with add job:{job.job_idx}")
+                    all_matched_job_list.append([job])
         
         if self.strategy=="FIFO":
             rest_job=self.schedule_muri_FIFO(all_matched_job_list)
@@ -166,7 +188,19 @@ class WeaveSchedulor:
 
         return rest_job
     
-    
+    def is_max_resource_satisfy(self, matched_job):
+        max_mem=0
+        max_gmem=0
+        for job in matched_job:
+            max_mem+=self.master.analyze_loader.get_job_pack_resource(job)[1]
+            max_gmem+=self.master.analyze_loader.get_job_pack_resource(job)[3]
+        if max_mem<= self.master.monitor.max_mem and max_gmem<= self.master.monitor.max_gmem:
+            return True
+        else:
+            return False
+        
+        
+        
     
     def schedule_muri_FIFO(self, job_matched_end):
         order_matched_jobs=[]
@@ -253,6 +287,8 @@ class WeaveSchedulor:
                 for job in job_list:
                     job.idx_on_gou=idx_on_gou
                     idx_on_gou+=1
+                    print(f"start do job:{job.job_idx}")
+                    self.master.monitor.alloc_resource(job, None,job_gpu_id_list, plan=True)
                     self.execute_schedule(job, job_gpu_id_list, False, shm_name_dict)
             else:
                 rest_job.extend(job_list)
@@ -336,7 +372,7 @@ class WeaveSchedulor:
                     else:
                         max_couple_job_gpu_id_list=job2_gpu_id_list
                     self.master.monitor.alloc_resource(job1, job2,max_couple_job_gpu_id_list)
-                    if self.master.sync_mode==False:
+                    if self.master.weave_sync_mode==False:
                         shm_name_dict={}
                     self.execute_schedule(job1, job1_gpu_id_list, True, shm_name_dict)
                     self.execute_schedule(job2, job2_gpu_id_list, False,  shm_name_dict)

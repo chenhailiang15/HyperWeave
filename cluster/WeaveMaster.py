@@ -35,7 +35,7 @@ class WeaveMaster:
         self.schedule_strategy=stragey # "FIFO", "SRTF"，"SRSF", "BNPF"   Bucket-based non-blocking parallel first
 
         
-        self.sync_mode=True
+        self.weave_sync_mode=True
         #需要最好手动确认
         self.MPS_mode=True 
         
@@ -44,11 +44,11 @@ class WeaveMaster:
         self.password="sim2024"      #"sim2024"for sim812 " "for jf
         
         self.print_level=print_level
-        self.clock_time_factor=10000
+        self.clock_time_factor=100000
         self.job_time_factor=1
         self.job_ddl_factor=1             #ddl是任务持续时间的job_ddl_factor倍
         
-        self.schedule_interval=10
+        self.schedule_interval=2
         
         
         self.model_name_list=model_list_g    #
@@ -260,7 +260,7 @@ class WeaveMaster:
             if job ==None: #由于数据原因，可能无法生成Job，因此跳过
                 continue
             if self.print_level>=2:
-                print(f"job ${job.job_name}$ come ( detailed info :{job.job_key_info()})")
+                print(f"job ${job.job_idx}$ come ( detailed info :{job.job_key_info()})")
             self.wait_schedule_queue.put(job)
             self.job_come_num+=1
             if index+1<len(self.ali_trace_pd):
@@ -319,7 +319,9 @@ class WeaveMaster:
         if self.print_level>5:
             print(f"******master start job ${job.job_name}$ with command:\t {command}")
         job.set_start_time(time.time())
-        back=os.system(command)
+        # back=os.system(command)
+        time.sleep(1)
+        back=0
         if back==0:
             job.succeed()
         else:
@@ -333,10 +335,10 @@ class WeaveMaster:
     def statistic_end_job(self,job):
         
         if self.print_level>3:
-            print("end a job:", job.job_name)
+            print("end a job:", job.job_idx)
         
         #回收资源(需要修改，有配对的，在两个都结束后，再释放资源)
-        if self.system=="Weave" or self.system=="Muri":
+        if self.system=="Weave":
             self.monitor.takeback_resource(job)
         else:
             self.monitor.takeback_resource(job,plan=True)
@@ -392,7 +394,7 @@ class WeaveMaster:
         temp_string=f"****************************************************{self.schedule_strategy}***********************************************************\n"
         temp_string+="    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    parameters in experiment    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    \n"
         temp_string+=f"master_is_2080:{self.master_is_2080}, single_node_mode:{self.single_node_mode}\n"
-        temp_string+=f"system name:{self.system}, \tMPS:{self.MPS_mode}, \tSync:{self.sync_mode}\n"
+        temp_string+=f"system name:{self.system}, \tMPS:{self.MPS_mode}, \tSync:{self.weave_sync_mode}\n"
         temp_string+=f"overshared_factor:{self.overshared_factor}, \tmax_cross:{self.max_cross}, \tmax_gpu_cross:{self.max_gpu_cross}\n"
         temp_string+=f"single_job_max_plan_cpu:{self.single_job_max_plan_cpu}, \tsingle_job_max_plan_mem:{self.single_job_max_plan_mem}, \tsingle_job_max_plan_gpu:{self.single_job_max_plan_gpu}\n"
         temp_string+=f"clock_time_factor:{self.clock_time_factor}, \tjob_time_factor:{self.job_time_factor}, \tjob_ddl_factor:{self.job_ddl_factor}\n"
@@ -444,7 +446,7 @@ def experiment_all(file, strategy,formatted_time, version):
 
 
 if __name__=="__main__":
-    version="v1.0.0"
+    version="v2.0.0"
     parent_dir  = os.path.dirname(os.path.abspath(os.curdir))
     # 格式化输出
     now_time    = datetime.datetime.now()
