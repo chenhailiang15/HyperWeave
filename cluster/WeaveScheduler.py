@@ -5,6 +5,8 @@ import threading
 from util import *
 import copy
 import time
+from blossom import Blossom_Same
+
 
 class WeaveSchedulor:
     def __init__(self,master, print_level=0):
@@ -108,34 +110,154 @@ class WeaveSchedulor:
     
     #muri 调度主线
     def schedule_muri(self,job_list):
+        self.job_idx_to_job={}
         all_matched_job_list=[]
         job_group={}
         #将Job根据GPU使用数量打包
         for job in job_list:
-            if job.parallel_num in job_group:
-                job_group[job.parallel_num].append(job)
-            else:
-                job_group[job.parallel_num]=[job]
-                
-        #将按照GPU数量分组的job采用blossom 进行匹配
-        for spec_gpu_num in job_group.keys():
-            job_list_spec=job_group[spec_gpu_num]
-            job_pair_with_score=schedule_muri_score(job_list_spec)
-            #wait to do 
+            self.job_idx_to_job[job.job_dix]=job
+            job_mini={}
+            job_mini["num_gpu"]=job.parallel_num
+            job_mini['resource_time']=self.master.analyze_time_loader.get_time_all(job.get_name_batchsize_epoch())
+            job_mini['job_idx']=job.job_dix
+            job_mini['iteration_time']=job.total_epochs
             
-            mat
+            if job.parallel_num in job_group:
+                job_group[job.parallel_num].append(job_mini)
+            else:
+                job_group[job.parallel_num]=[job_mini]
+        
+        packings=Blossom_Same.run(job_group, self.master.monitor.get_idle_gpu_num())
+        
+        succeed_matched_job_idx=set()
+        faile_matched_job_idx=set()
+        for gpu_num in packings:
+            matched_job=[]
+            matched_falge=True
+            for _pack in packings[gpu_num]:    #obj _pack : _Packing
+                for job_t in _pack.best_permutation:
+                    matched_job.append(self.job_idx_to_job[job_t.job_idx]) 
+                    #如果有一个已经属于被匹配了的，本次匹配失败，后续单独处理
+                    if job_t.job_idx in succeed_matched_job_idx:
+                        matched_falge=False
+            if matched_falge==True:
+                all_matched_job_list.append(matched_job)
+                for job in matched_job:
+                    succeed_matched_job_idx.add(job.job_idx)
+            else:
+                for job in matched_job:
+                    for job in matched_job:
+                        faile_matched_job_idx.add(job.job_idx)
+        #将失败的单独调度
+        for job_idx in faile_matched_job_idx:
+            if job_idx not in succeed_matched_job_idx:
+                all_matched_job_list.append([self.job_idx_to_job[job_idx]])
         
         
+        if self.strategy=="FIFO":
+            rest_job=self.schedule_muri_FIFO(all_matched_job_list)
+        elif self.strategy=="SRTF":
+            rest_job=self.schedule_muri_SRTF(all_matched_job_list)
+        elif self.strategy=="SRSF":
+            rest_job=self.schedule_muri_SRSF(all_matched_job_list)
+        else:
+            print("strategy wrong!")
+            exit(-1)
 
         return rest_job
     
     
     
-    def schedule_muri_score(self, job_list_spec):
-        for job_i in job_list_spec:
-            for job_j in job_list_spec
+    def schedule_muri_FIFO(self, job_matched_end):
+        order_matched_jobs=[]
+        for job_list in job_matched_end:
+            arrive_time=float('inf')
+            for job in job_list:
+                arrive_time=min(arrive_time, job.arrive_time)
+            order_matched_jobs.append([arrive_time, job_list])
+        #matched_jobs排序
+        order_matched_jobs.sort(key=lambda x : x[0])
+        rest_job=self.schedule_muri_ordered_matched_job_list(order_matched_jobs)
+        return rest_job
     
+    def schedule_muri_SRTF(self, job_matched_end):
+        order_matched_jobs=[]
+        time_now=time.time()
+        for job_list in job_matched_end:
+            rest_time=float('inf')
+            for job in job_list:
+                rest_time_t=job.ddl_time-time_now-job.duration_time
+                rest_time=min(rest_time, rest_time_t)
+            order_matched_jobs.append([rest_time, job_list])
+        #matched_jobs排序
+        order_matched_jobs.sort(key=lambda x : x[0])
+        rest_job=self.schedule_muri_ordered_matched_job_list(order_matched_jobs)
+        return rest_job
     
+    def schedule_muri_SRSF(self, job_matched_end):
+        order_matched_jobs=[]
+        time_now=time.time()
+        for job_list in job_matched_end:
+            rest_time=float('inf')
+            for job in job_list:
+                rest_time_t=(job.ddl_time-time_now-job.duration_time)**job.parallel_num
+                rest_time=min(rest_time, rest_time_t)
+            order_matched_jobs.append([rest_time, job_list])
+        #matched_jobs排序
+        order_matched_jobs.sort(key=lambda x : x[0])
+        rest_job=self.schedule_muri_ordered_matched_job_list(order_matched_jobs)
+        return rest_job
+    
+    def schedule_muri_ordered_matched_job_list(self, match_jobs):
+        #初始化未被调度的job
+        rest_job=[]
+        #是否继续调度的标志，当遇到一个无法调度的任务时，停止调度等待下一轮调度，将剩余的job返回
+        continue_schedule_flage=True
+        #循环调度
+        for [order_value, job_list] in match_jobs:
+            if continue_schedule_flage:
+                #正常调度
+                need_gpu_num = job_list[0].parallel_num
+                
+                #[[node_index, score, [[gpu_id, score],...]],...]
+                satisfy_gpu_list=self.master.monitor.get_satisfy_gpu()
+                #对优先级进行排序
+                
+                all_satisfy_gpu_num=0
+                for [node_index, score, temp_gpu_list] in satisfy_gpu_list:
+                    all_satisfy_gpu_num+=len(temp_gpu_list)
+                
+                if all_satisfy_gpu_num< need_gpu_num:
+                    rest_job.extend(job_list)
+                    continue_schedule_flage=False
+                    continue
+                
+                job_gpu_id_list=[]
+                shm_name_dict={}
+                
+                for [node_index, score, temp_gpu_list] in satisfy_gpu_list:
+                    job_temp_gpu_id_list=[]
+                    shm_name_dict_temp={}
+                    for gpu_id in temp_gpu_list:
+                        
+                        if need_gpu_num>0:
+                            job_temp_gpu_id_list.append(gpu_id)
+                            shm_name=generate_shm_name()
+                            shm_name_dict_temp[gpu_id]=shm_name
+                            
+                            need_gpu_num-=1
+                    job_gpu_id_list.append([node_index, job_temp_gpu_id_list])    
+                    shm_name_dict[node_index]=shm_name_dict_temp
+                
+                idx_on_gou=0
+                for job in job_list:
+                    job.idx_on_gou=idx_on_gou
+                    idx_on_gou+=1
+                    self.execute_schedule(job, job_gpu_id_list, False, shm_name_dict)
+            else:
+                rest_job.extend(job_list)
+                
+        return rest_job
     
     
     def schedule_ordered_single_job_list(self, job_list):
@@ -659,9 +781,66 @@ class WeaveSchedulor:
     
     
     
+    # def schedule_muri_score(self, job_list_spec):
+    #     pair_score=[]
+    #     for i_index in range(len(job_list_spec)):
+    #         for j_index in range(i_index+1, len(job_list_spec)):
+    #             if type(job_list_spec[i_index])==list:
+    #                 score1=self.schedule_muri_score_one(job_list_spec[i_index], job_list_spec[j_index])
+    #                 score2=self.schedule_muri_score_one(job_list_spec[j_index], job_list_spec[i_index])
+    #                 if score1>=score2:
+    #                     pair_score.append([score1, [job_list_spec[i_index], job_list_spec[j_index]]])
+    #                 else:
+    #                     pair_score.append([score2, [job_list_spec[j_index], job_list_spec[i_index]]])
+    #             else:
+    #                 score1=self.schedule_muri_score_one([job_list_spec[i_index]], [job_list_spec[j_index]])
+    #                 score2=self.schedule_muri_score_one([job_list_spec[j_index]], [job_list_spec[i_index]])
+    #                 if score1>=score2:
+    #                     pair_score.append([score1, [[job_list_spec[i_index]], [job_list_spec[j_index]]]    ])
+    #                 else:
+    #                     pair_score.append([score2, [[job_list_spec[j_index]], [job_list_spec[i_index]]]    ])
+                
+    #     return pair_score
+    
+    # def schedule_muri_score_one(self, job_list1, job_list2):
+    #     job_list_all = job_list1+job_list2
+        
+    #     #首先判断当前系统最大资源是否可以同时运行这些任务
+    #     mem_need=0
+    #     gmem_need=0
+    #     for job in job_list_all:
+    #         pack_resource=self.master.analyze_loader.get_job_pack_resource(job)
+    #         mem_need+=pack_resource[1]
+    #         gmem_need+=pack_resource[3]
+        
+    #     if mem_need >self.master.monitor.max_mem or gmem_need>self.master.monitor.max_gmem:
+    #         return 0
+            
+    #     T=0
+    #     resource_kind_num=4
+    #     for i in range(resource_kind_num):
+    #         t_i_max=0
+    #         for index, job in enumerate(job_list_all):
+    #             t_i_max=max(t_i_max, self.master.analyze_time_loader.get_time(job.get_name_batchsize_epoch(), (index+i)%resource_kind_num))
+    #         T+=t_i_max
+        
+        
+        
+    #     s_temp=0
+    #     for i in range(resource_kind_num):
+            
+    #         sum_resource_i=0
+    #         for index, job in enumerate(job_list_all):
+    #             sum_resource_i+=self.master.analyze_time_loader.get_time(job.get_name_batchsize_epoch(),i)
+    #         s_temp+=(T-sum_resource_i)/T
+    #     score=1-s_temp/resource_kind_num
+        
+    #     return score
     
     
-    
-    
-    
+    # def schedule_muri_blossom(self,job_pair_with_score):
+    #     matched_pair=[]
+        
+        
+        
     

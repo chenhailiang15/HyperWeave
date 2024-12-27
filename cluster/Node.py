@@ -59,27 +59,35 @@ class Node:
             
             
     def get_satisfy_gpu_id(self,pack_resource):
+        
         with self.lock:
-            cpu_need=pack_resource[0]
-            mem_need=pack_resource[1]
-            gpu_need=pack_resource[2]
-            gmem_need=pack_resource[3]
             satisfy_gpu_id_list=[]
             satisfy_score=0
-            if self.cpu_rest<cpu_need or self.mem_rest<mem_need:
-                return satisfy_gpu_id_list, satisfy_score
-            cpu_rest_per=(self.cpu_rest-cpu_need)/self.cpu
-            mem_rest_per=(self.mem_rest-mem_need)/self.mem
-            
-            for i in range(self.gpu_num):
-                if self.gpu_rest[i]>=gpu_need and self.gmem_rest[i]>=gmem_need:
-                    gpu_rest_per=(self.gpu_rest[i]-gpu_need)/self.gpu[i]
-                    gmem_rest_per=(self.gmem_rest[i]-gmem_need)/self.gmem[i]
-                    ave_per=(cpu_rest_per+mem_rest_per+gpu_rest_per+gmem_rest_per)/4
-                    satisfy_gpu_id_list.append([i,ave_per])
-                    satisfy_score+=ave_per
-            if len(satisfy_gpu_id_list)>0:
-                satisfy_gpu_id_list.sort(key=lambda x:x[1], reverse=True)  #进行排序，降序
+            if pack_resource ==None:
+                for gpu_id in range(self.gpu_num):
+                    if self.gpu_rest[gpu_id]==100*self.overshared_factor:
+                        satisfy_gpu_id_list.append(gpu_id)
+                        satisfy_score+=1
+            else:
+                cpu_need=pack_resource[0]
+                mem_need=pack_resource[1]
+                gpu_need=pack_resource[2]
+                gmem_need=pack_resource[3]
+                
+                if self.cpu_rest<cpu_need or self.mem_rest<mem_need:
+                    return satisfy_gpu_id_list, satisfy_score
+                cpu_rest_per=(self.cpu_rest-cpu_need)/self.cpu
+                mem_rest_per=(self.mem_rest-mem_need)/self.mem
+                
+                for i in range(self.gpu_num):
+                    if self.gpu_rest[i]>=gpu_need and self.gmem_rest[i]>=gmem_need:
+                        gpu_rest_per=(self.gpu_rest[i]-gpu_need)/self.gpu[i]
+                        gmem_rest_per=(self.gmem_rest[i]-gmem_need)/self.gmem[i]
+                        ave_per=(cpu_rest_per+mem_rest_per+gpu_rest_per+gmem_rest_per)/4
+                        satisfy_gpu_id_list.append([i,ave_per])
+                        satisfy_score+=ave_per
+                if len(satisfy_gpu_id_list)>0:
+                    satisfy_gpu_id_list.sort(key=lambda x:x[1], reverse=True)  #进行排序，降序
             return satisfy_gpu_id_list, satisfy_score
     
     
@@ -100,5 +108,10 @@ class Node:
             return idle_port
         
         
-    
+    def get_idle_gpu_num(self):
+        idel_gpu_num=0
+        for gpu_id in range(self.gpu_num):
+            if self.gpu_rest[gpu_id]==100*self.overshared_factor:
+                idel_gpu_num+=1
+        return idel_gpu_num
         

@@ -232,6 +232,9 @@ class AnalyzeTimeLoader:
             
         return value
     
+    def get_time_all(self, model_info):
+        return [self.get_value(model_info,0), self.get_value(model_info,1), self.get_value(model_info,2), self.get_value(model_info,3)]
+    
 if __name__=="__main__":
     
     offline_analyze("Muri")
