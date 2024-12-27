@@ -154,6 +154,9 @@ class Synchronizer:
         self.boolean_array[1,stage_id]=0
         
     def muri_job_end(self, idx_on_gpu):
+        #是否发挥作用
+        if not self.enable_flage:
+            return
         self.boolean_array[2,idx_on_gpu]=1
 
         

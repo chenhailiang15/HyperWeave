@@ -14,7 +14,7 @@ class Job:
         self.job_idx=job_idx
         self.idx_on_gou=0
         self.system=system
-        
+        self.max_sync_num=0
 
         
     
@@ -92,7 +92,8 @@ class Job:
         self.command=f"python WeaveExecutor.py --MASTER_ADDR {MASTER_ADDR} --MASTER_PORT {MASTER_PORT} --net_card {net_card}  --node_rank {node_rank} \
             --world_size {world_size} --nprocs_list {nprocs_list_c} --gpu_id_list {gpu_id_list_c} --model_name {self.model_name} --batch_size {self.batch_size} \
             --batch_num {self.batch_num} --total_epochs {self.total_epochs} --worker_num {self.worker_num} --layer_num {self.layer_num} --layer_feature {self.layer_feature} \
-            --squad_data_size {self.squad_data_size} --shm_name_list {shm_name_list_c} --job_idx {self.job_idx} --idx_on_gpu {self.idx_on_gou} --system {self.system}"
+            --squad_data_size {self.squad_data_size} --shm_name_list {shm_name_list_c} --job_idx {self.job_idx} --idx_on_gpu {self.idx_on_gou} --system {self.system} \
+            --max_sync_num {self.max_sync_num}"
         if prior:
             self.command=self.command+" --prior"
 

@@ -284,8 +284,12 @@ class WeaveSchedulor:
                     shm_name_dict[node_index]=shm_name_dict_temp
                 
                 idx_on_gou=0
+                
+                if len(job_list)==1:
+                    shm_name_dict={}
                 for job in job_list:
                     job.idx_on_gou=idx_on_gou
+                    job.max_sync_num=len(job_list)
                     idx_on_gou+=1
                     print(f"start do job:{job.job_idx}")
                     self.master.monitor.alloc_resource(job, None,job_gpu_id_list, plan=True)

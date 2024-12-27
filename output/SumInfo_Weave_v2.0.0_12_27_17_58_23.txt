@@ -1,0 +1,60 @@
+****************************************************FIFO***********************************************************
+    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    parameters in experiment    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    
+master_is_2080:True, single_node_mode:True
+system name:Muri, 	MPS:True, 	Sync:True
+overshared_factor:1, 	max_cross:1, 	max_gpu_cross:1
+single_job_max_plan_cpu:500, 	single_job_max_plan_mem:10240, 	single_job_max_plan_gpu:400
+clock_time_factor:10000, 	job_time_factor:1, 	job_ddl_factor:1
+model_name_list:['AlexNet', 'ResNet18', 'ResNet50', 'MobileNetv2', 'VGG16', 'Bert', 'Transformer', 'GCN', 'GraphSage']
+batch_size_dict:{'AlexNet': [8, 16, 32, 64, 128], 'ResNet18': [8, 16, 32, 64, 128], 'ResNet50': [8, 16, 32, 64, 128], 'MobileNetv2': [8, 16, 32, 64, 128], 'VGG16': [8, 16, 32, 64, 128], 'Bert': [8, 16], 'Transformer': [8, 16, 32, 64], 'GCN': [8, 16, 32, 64, 128], 'GraphSage': [8, 16, 32, 64, 128]}
+schedule_interval:10
+ali_trace_file_name:ali_trace_job_info_sub.csv
+analyze_file_name:Analyzer-NVIDIA_GeForce_RTX_2080-tim_12_19_16_38_14.csv
+    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    time info in following    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    
+all job num:2, 	succeed job num:2, 	failed job num:0
+makespan:79.45822215080261
+queue length[2]
+job wait time: size-2, 	mean-10.02, 	min-10.02, 	max-10.02, 	percentile50-10.02, 	percentile90-10.02, 	percentile95-10.02
+job complete time(JCT): size-2, 	mean-76.95, 	min-74.44, 	max-79.45, 	percentile50-76.95, 	percentile90-78.95, 	percentile95-79.2
+
+
+****************************************************SRTF***********************************************************
+    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    parameters in experiment    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    
+master_is_2080:True, single_node_mode:True
+system name:Muri, 	MPS:True, 	Sync:True
+overshared_factor:1, 	max_cross:1, 	max_gpu_cross:1
+single_job_max_plan_cpu:500, 	single_job_max_plan_mem:10240, 	single_job_max_plan_gpu:400
+clock_time_factor:10000, 	job_time_factor:1, 	job_ddl_factor:1
+model_name_list:['AlexNet', 'ResNet18', 'ResNet50', 'MobileNetv2', 'VGG16', 'Bert', 'Transformer', 'GCN', 'GraphSage']
+batch_size_dict:{'AlexNet': [8, 16, 32, 64, 128], 'ResNet18': [8, 16, 32, 64, 128], 'ResNet50': [8, 16, 32, 64, 128], 'MobileNetv2': [8, 16, 32, 64, 128], 'VGG16': [8, 16, 32, 64, 128], 'Bert': [8, 16], 'Transformer': [8, 16, 32, 64], 'GCN': [8, 16, 32, 64, 128], 'GraphSage': [8, 16, 32, 64, 128]}
+schedule_interval:10
+ali_trace_file_name:ali_trace_job_info_sub.csv
+analyze_file_name:Analyzer-NVIDIA_GeForce_RTX_2080-tim_12_19_16_38_14.csv
+    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    time info in following    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    
+all job num:2, 	succeed job num:2, 	failed job num:0
+makespan:153.80197262763977
+queue length[2]
+job wait time: size-2, 	mean-10.01, 	min-10.01, 	max-10.01, 	percentile50-10.01, 	percentile90-10.01, 	percentile95-10.01
+job complete time(JCT): size-2, 	mean-134.72, 	min-115.64, 	max-153.79, 	percentile50-134.72, 	percentile90-149.98, 	percentile95-151.89
+
+
+****************************************************SRSF***********************************************************
+    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    parameters in experiment    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    
+master_is_2080:True, single_node_mode:True
+system name:Muri, 	MPS:True, 	Sync:True
+overshared_factor:1, 	max_cross:1, 	max_gpu_cross:1
+single_job_max_plan_cpu:500, 	single_job_max_plan_mem:10240, 	single_job_max_plan_gpu:400
+clock_time_factor:10000, 	job_time_factor:1, 	job_ddl_factor:1
+model_name_list:['AlexNet', 'ResNet18', 'ResNet50', 'MobileNetv2', 'VGG16', 'Bert', 'Transformer', 'GCN', 'GraphSage']
+batch_size_dict:{'AlexNet': [8, 16, 32, 64, 128], 'ResNet18': [8, 16, 32, 64, 128], 'ResNet50': [8, 16, 32, 64, 128], 'MobileNetv2': [8, 16, 32, 64, 128], 'VGG16': [8, 16, 32, 64, 128], 'Bert': [8, 16], 'Transformer': [8, 16, 32, 64], 'GCN': [8, 16, 32, 64, 128], 'GraphSage': [8, 16, 32, 64, 128]}
+schedule_interval:10
+ali_trace_file_name:ali_trace_job_info_sub.csv
+analyze_file_name:Analyzer-NVIDIA_GeForce_RTX_2080-tim_12_19_16_38_14.csv
+    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    time info in following    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    
+all job num:2, 	succeed job num:2, 	failed job num:0
+makespan:131.66515278816223
+queue length[2]
+job wait time: size-2, 	mean-10.01, 	min-10.01, 	max-10.01, 	percentile50-10.01, 	percentile90-10.01, 	percentile95-10.01
+job complete time(JCT): size-2, 	mean-112.13, 	min-92.61, 	max-131.66, 	percentile50-112.13, 	percentile90-127.75, 	percentile95-129.71
+
+

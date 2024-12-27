@@ -28,7 +28,7 @@ class WeaveMaster:
         
         
         ##################################################《--设置区域--》开始####################################################
-        self.master_is_2080=False
+        self.master_is_2080=True
         self.single_node_mode=True
         
         self.system="Muri"  #"Muri" or "Normal"
@@ -39,9 +39,9 @@ class WeaveMaster:
         #需要最好手动确认
         self.MPS_mode=True 
         
-        self.overshared_factor=2   #等于1存在GPU资源不够的情况
+        self.overshared_factor=1   #等于1存在GPU资源不够的情况
              
-        self.password="sim2024"      #"sim2024"for sim812 " "for jf
+        self.password=" "      #"sim2024"for sim812 " "for jf
         
         self.print_level=print_level
         self.clock_time_factor=10000
@@ -320,8 +320,6 @@ class WeaveMaster:
             print(f"******master start job ${job.job_name}$ with command:\t {command}")
         job.set_start_time(time.time())
         back=os.system(command)
-        # time.sleep(1)
-        back=0
         if back==0:
             job.succeed()
         else:
