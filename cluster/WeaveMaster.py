@@ -44,11 +44,11 @@ class WeaveMaster:
         self.password="sim2024"      #"sim2024"for sim812 " "for jf
         
         self.print_level=print_level
-        self.clock_time_factor=100000
+        self.clock_time_factor=10000
         self.job_time_factor=1
         self.job_ddl_factor=1             #ddl是任务持续时间的job_ddl_factor倍
         
-        self.schedule_interval=2
+        self.schedule_interval=10
         
         
         self.model_name_list=model_list_g    #
@@ -319,8 +319,8 @@ class WeaveMaster:
         if self.print_level>5:
             print(f"******master start job ${job.job_name}$ with command:\t {command}")
         job.set_start_time(time.time())
-        # back=os.system(command)
-        time.sleep(1)
+        back=os.system(command)
+        # time.sleep(1)
         back=0
         if back==0:
             job.succeed()
