@@ -91,17 +91,17 @@ if __name__=="__main__":
     #优先级参数
     parser.add_argument('--prior', action='store_true',help='A flage for label it is prior to run or not in Synchronizer')
     
-    parser.add_argument("--system", default="Muri",type=str)
+    parser.add_argument("--system", default="Weave",type=str)
     parser.add_argument("--mode", default="train",type=str)
     parser.add_argument("--job_idx", default=0,type=int)
     parser.add_argument("--idx_on_gpu",default=0, type=int)
     
     
     #系统参数
-    parser.add_argument('--world_size', default=2, type=int)
-    parser.add_argument('--nprocs_list', default=[2,0], type=parse_list_arg)
+    parser.add_argument('--world_size', default=1, type=int)
+    parser.add_argument('--nprocs_list', default=[1,0], type=parse_list_arg)
     parser.add_argument('--node_rank', default=0, type=int, help='The rank of the node in multi-node training')
-    parser.add_argument('--gpu_id_list', default=[[0,1],[]], type=parse_list_arg,help='gpu id for each node used')
+    parser.add_argument('--gpu_id_list', default=[], type=parse_list_arg,help='gpu id for each node used')
     # parser.add_argument('--nnodes', default=1, type=int, help='The number of nodes in multi-node training')
     # parser.add_argument('--nprocs_per_node', default=1, type=int,help='used gpu number for each node')
     # parser.add_argument('--gpu_id_list', default=[], type=parse_list_arg,help='gpu id for each node used')
@@ -159,6 +159,7 @@ if __name__=="__main__":
 
     
     args.dataset_dir=dataset_dir
+    
     
     # print("record flage:",args.record_flage)
     if args.record_flage:
