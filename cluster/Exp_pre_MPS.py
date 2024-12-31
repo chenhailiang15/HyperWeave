@@ -15,7 +15,7 @@ def do_experiment(mps_state):
         for para_num in range(1, max_parallel_num+1):
             
             run_model(model_name, para_num)
-            file_writer.write(f"{model_name},{mps_state},{para_num},{end_time_list}\n")
+            file_writer.write(f"{model_name},mps={mps_state},ddp={ddp_flag},para_num={para_num},time_list={end_time_list}\n")
             file_writer.flush()
  
  
@@ -26,7 +26,7 @@ def run_model(model_name,para_num):
     
     for index in range(para_num):
         
-        command = generate_command(model_name)
+        command = generate_command(model_name, index)
         sub_thread=threading.Thread(target=run_command,args=(command, model_name))
         sub_thread.start()
         thread_hand.append(sub_thread)
@@ -45,7 +45,7 @@ def generate_command(model_name, index):
     gpu_id_list="[[1],[]]"
     net_card="eno1"
 
-    total_epochs=1
+    total_epochs=2
     if model_name == "Bert":
         batch_size=8
     else:
@@ -63,7 +63,7 @@ def generate_command(model_name, index):
     while is_port_in_use("localhost",port_id):
         port_id+=1
     
-    command_head
+    
     if ddp_flag==1 or ( ddp_flag==0 and index==0) :
         command_head="python WeaveExecutor.py "
     elif ddp_flag==-1 or (ddp_flag==0 and index!=0) :
@@ -71,7 +71,7 @@ def generate_command(model_name, index):
     else:
         print("wrong")
         exit(-1)
-    command=f"python WeaveExecutor_no_ddp.py --model_name {model_name}  --net_card {net_card}  --MASTER_PORT {port_id}\
+    command=command_head+f"--model_name {model_name}  --net_card {net_card}  --MASTER_PORT {port_id}\
     --nprocs_list {nprocs_list} --gpu_id_list {gpu_id_list} --layer_num {layer_num} --layer_feature {layer_feature} \
     --batch_size {batch_size} --total_epochs {total_epochs}"
     return command
@@ -153,7 +153,7 @@ def run_command( command, model_name):
 
 
 
-with_mps=True
+with_mps=False
 ddp_flag=1       #1全是ddp    0混合   -1  全非ddp
 
 
@@ -162,7 +162,7 @@ now_time    = datetime.datetime.now()
 formatted_time = now_time.strftime('%m_%d_%H_%M_%S')
 out_file_name="Exp_pre_MPS_"+formatted_time+".txt"
 max_parallel_num=3
-model_list=["AlexNet"]#"ResNet50", "MobileNetv2", "VGG16",  "Transformer", "GCN" 
+model_list=["AlexNet","ResNet50", "MobileNetv2", "VGG16",  "Transformer", "GCN"]#"ResNet50", "MobileNetv2", "VGG16",  "Transformer", "GCN" 
 file_writer=open(get_output_dir()+out_file_name,"w")
 
 end_time_list=[]

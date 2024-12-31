@@ -1,2 +1,0 @@
-AlexNet,True,2,[]
-AlexNet,True,3,[]

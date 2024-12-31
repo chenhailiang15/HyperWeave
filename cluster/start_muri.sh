@@ -25,10 +25,10 @@ MASTER_PORT3="12348"
 
 model_name0="AlexNet"
 model_name1="GCN"
-world_size=2
-nprocs_list=[2,0]
+world_size=1
+nprocs_list=[1,0]
 
-gpu_id_list="[[0,1],[]]"
+gpu_id_list="[[0],[]]"
 
 
 total_epochs=2
@@ -55,6 +55,7 @@ idx_on_gpu3=3
 job_idx3=13
 
 
+# conda activate torch_mp_chl 
 python WeaveExecutor.py --MASTER_ADDR ${MASTER_ADDR} --MASTER_PORT ${MASTER_PORT0} --net_card ${net_card}  --model_name ${model_name0} --node_rank ${node_rank} \
 --world_size ${world_size} --nprocs_list ${nprocs_list} --gpu_id_list ${gpu_id_list} --layer_num ${layer_num} --layer_feature ${layer_feature} \
 --batch_size ${batch_size} --total_epochs ${total_epochs} --worker_num ${worker_num} --squad_data_size ${squad_data_size} \
