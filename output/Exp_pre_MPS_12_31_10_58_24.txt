@@ -1,0 +1,3 @@
+AlexNet,False,1,[-1]
+AlexNet,False,2,[-1, -1]
+AlexNet,False,3,[-1, -1, -1]

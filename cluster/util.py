@@ -29,8 +29,24 @@ model_list_g=["AlexNet", "ResNet18", "ResNet50", "MobileNetv2", "VGG16", "Bert",
 
 
 
-
-
+def set_GPU_exclude(password):
+    command = "nvidia-smi -c 3"
+    (status, result)=subprocess.getstatusoutput('echo %s| sudo -S %s' %(password,command))
+    
+    if status==0:
+        return True
+    else:
+        return False
+    
+def set_GPU_default(password):
+    command = "nvidia-smi -c 0"
+    (status, result)=subprocess.getstatusoutput('echo %s| sudo -S %s' %(password,command))
+    
+    if status==0:
+        return True
+    else:
+        return False
+    
 def start_MPS(password):
     command="nvidia-cuda-mps-control -d"
     (status, result)=subprocess.getstatusoutput('echo %s| sudo -S %s' %(password,command))
