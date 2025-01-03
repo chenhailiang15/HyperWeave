@@ -11,12 +11,14 @@ def do_experiment(mps_state):
         if not stop_MPS(password):
             print("MPS close wrong")
             exit(-1)
-    for model_name in model_list:
-        for para_num in range(1, max_parallel_num+1):
-            
-            run_model(model_name, para_num)
-            file_writer.write(f"{model_name},mps={mps_state},ddp={ddp_flag},para_num={para_num},time_list={end_time_list}\n")
-            file_writer.flush()
+    
+    for _ in range(10):
+        for model_name in model_list:
+            for para_num in range(1, max_parallel_num+1):
+                
+                run_model(model_name, para_num)
+                file_writer.write(f"{model_name},mps={mps_state},ddp={ddp_flag},para_num={para_num},time_list={end_time_list}\n")
+                file_writer.flush()
  
  
 def run_model(model_name,para_num):
@@ -160,9 +162,9 @@ ddp_flag=1       #1全是ddp    0混合   -1  全非ddp
 password="sim2024"
 now_time    = datetime.datetime.now()
 formatted_time = now_time.strftime('%m_%d_%H_%M_%S')
-out_file_name="Exp_pre_MPS_"+formatted_time+".txt"
+out_file_name="Exp_pre_MPS_"+str(with_mps)+"_"+formatted_time+".txt"
 max_parallel_num=3
-model_list=["AlexNet","ResNet50", "MobileNetv2", "VGG16",  "Transformer", "GCN"]#"ResNet50", "MobileNetv2", "VGG16",  "Transformer", "GCN" 
+model_list=["AlexNet","ResNet18", "ResNet50", "MobileNetv2", "VGG16",  "Transformer", "GCN"]#"ResNet50", "MobileNetv2", "VGG16",  "Transformer", "GCN" 
 file_writer=open(get_output_dir()+out_file_name,"w")
 
 end_time_list=[]

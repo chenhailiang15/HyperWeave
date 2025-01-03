@@ -1,3 +1,0 @@
-AlexNet,mps=False,ddp=0,para_num=1,time_list=[81.98290705680847]
-AlexNet,mps=False,ddp=0,para_num=2,time_list=[109.37600255012512, 120.3605797290802]
-AlexNet,mps=False,ddp=0,para_num=3,time_list=[164.5226104259491, 165.77990174293518, 171.53398180007935]
