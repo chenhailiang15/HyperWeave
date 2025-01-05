@@ -126,6 +126,8 @@ class WeaveMaster:
         self.nodes=[]
         node_info_pd = self.load_csv(file_name,header=0)
         self.node_num = len(node_info_pd)
+
+        # gpu_num=0
         for index in range(len(node_info_pd)):
             name=node_info_pd.loc[index, "machine"]
             cpu_cap= node_info_pd.loc[index, "cap_cpu"]*100
@@ -134,10 +136,14 @@ class WeaveMaster:
             if gpu_cap==0:
                 gmem_cap=0
             else:
+
                 gmem_cap=gpu_mem_dict[node_info_pd.loc[index, "gpu_type"]]*1024
             node=Node(self, self.env,name,index, self.overshared_factor, self.print_level)
             node.set_init_resouce( cpu_cap, mem_cap, gpu_cap, gmem_cap )
             self.nodes.append(node)
+            # gpu_num+=gpu_cap
+            # if gpu_num>6:
+            #     break
 
             
     def init_model_info(self):
@@ -212,7 +218,7 @@ class WeaveMaster:
         epoch_time=self.analyze_loader.get_value(model_info,"stage_sample","time")+self.analyze_loader.get_value(model_info,"stage_train","time")
         model_duration_time=init_time+epoch_time
 
-        if model_duration_time<duration_time:
+        if model_duration_time>=duration_time:
             print("duration time is too small...")
             return None
 
@@ -221,9 +227,6 @@ class WeaveMaster:
         total_epochs=math.ceil((ali_trace["duration_s"]/self.job_time_factor-init_time)/epoch_time)
         each_batch_time=self.analyze_loader.get_time_value(model_info, 1)+self.analyze_loader.get_time_value(model_info, 2)+self.analyze_loader.get_time_value(model_info, 3)
         batch_num=math.ceil(self.analyze_loader.get_value(model_info,"stage_train","time")/each_batch_time)
-
-
-
 
         job = Job(job_idx, self.system)
         job_name = ali_trace["job_name"]
@@ -238,6 +241,11 @@ class WeaveMaster:
         job.time_forward_back=self.analyze_loader.get_time_value(model_info,2)
         job.time_commu=self.analyze_loader.get_time_value(model_info,3)
         #设置计划资源使用量
+        pack_resource=[ali_trace["plan_cpu"], ali_trace["plan_mem"], ali_trace["plan_gpu"],0]
+        if self.monitor.judge_runable_with_resource(pack_resource) == False:
+            print("plan resource not runable!")
+            return None
+
         job.set_plan_resource(ali_trace["plan_cpu"], ali_trace["plan_mem"], ali_trace["plan_gpu"])
         #设置各阶段实际资源使用量[init stage, pre-iteration stage, iteration stage]
         job.used_resource_cpu = [ali_trace["cpu_usage"]*self.analyze_loader.get_value(model_info,"stage_init", "cpu")/self.analyze_loader.get_value(model_info,"stage_train", "cpu"),\
@@ -252,7 +260,10 @@ class WeaveMaster:
         job.used_resource_gmem = [1024*ali_trace["avg_gpu_wrk_mem"]*self.analyze_loader.get_value(model_info,"stage_init", "gmem")/self.analyze_loader.get_value(model_info,"stage_train", "gmem"),\
                                  1024*ali_trace["avg_gpu_wrk_mem"]*self.analyze_loader.get_value(model_info,"stage_sample", "gmem")/self.analyze_loader.get_value(model_info,"stage_train", "gmem"),\
                                  1024*ali_trace["avg_gpu_wrk_mem"]]
-
+        pack_resource=[max(job.used_resource_cpu), max(job.used_resource_mem), max(max(job.used_resource_gpu), ali_trace["plan_gpu"]), max(job.used_resource_gmem)]
+        if self.monitor.judge_runable_with_resource(pack_resource) == False:
+            print(f"used resource not runable!{pack_resource}")
+            return None
         #设置job到达时间
         arrive_time = self.env.now
         ddl_time = arrive_time + duration_time * self.job_ddl_factor

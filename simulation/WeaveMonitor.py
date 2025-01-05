@@ -1,6 +1,6 @@
 import threading
 import numpy as np
-
+import math
 class WeaveMonitor:
     def __init__(self,nodes, print_level):
         self.print_level=print_level
@@ -125,16 +125,16 @@ class WeaveMonitor:
         return satisfy_gpu_list  # [[node_index, score, [[gpu_id, score],...]],...]
     
     def init_max_resource(self):
-        self.max_cpu=float('inf')
-        self.max_mem=float('inf')
-        self.max_gpu=float('inf')
-        self.max_gmem=float('inf')
+        self.max_cpu=9600
+        self.max_mem=512*1024
+        self.max_gpu=800
+        self.max_gmem=32*1024
         # for i in range(self.node_num):
         #     self.max_cpu=self.nodes[i].cpu if self.nodes[i].cpu>self.max_cpu else self.max_cpu
         #     self.max_mem=self.nodes[i].mem if self.nodes[i].mem>self.max_mem else self.max_mem
         #     self.max_gpu=self.nodes[i].gpu[0] if self.nodes[i].gpu[0]>self.max_gpu else self.max_gpu
         #     self.max_gmem=self.nodes[i].gmem[0] if self.nodes[i].gmem[0]>self.max_gmem else self.max_gmem
-            
+
     def get_max_resource(self):
         return [self.max_cpu, self.max_mem, self.max_gpu, self.max_gmem]
     
@@ -143,7 +143,36 @@ class WeaveMonitor:
         for node in self.nodes:
             idel_gpu_num+=node.get_idle_gpu_num()
         return idel_gpu_num
-    
+
+
+    def judge_runable_with_resource(self,resource):
+        cpu_need=resource[0]
+        mem_need=resource[1]
+        gpu_need=resource[2]
+        gmem_need=resource[3]
+
+        if gpu_need <= 100:
+            pack_resource = [cpu_need, mem_need, gpu_need, gmem_need]
+            for i in range(self.node_num):
+                satisfy_gpu_num = self.nodes[i].get_satisfy_gpu_num_by_cap(pack_resource)
+                if satisfy_gpu_num>0:
+                    return True
+
+        else:
+            pack_resource = [cpu_need/gpu_need/100, mem_need/gpu_need/100, 100, gmem_need/gpu_need/100]
+            need_gpu_num=math.ceil(gpu_need/100)
+
+            for i in range(self.node_num):
+                satisfy_gpu_num = self.nodes[i].get_satisfy_gpu_num_by_cap(pack_resource)
+                need_gpu_num-=satisfy_gpu_num
+                if need_gpu_num<=0:
+                    return True
+        return False
+
+
+
+
+
     # def __get_satisfy_gpu_node(self,node_kind, pack_resource):
     #     cpu_need=pack_resource[0]
     #     mem_need=pack_resource[1]

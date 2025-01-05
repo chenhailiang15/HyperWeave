@@ -625,6 +625,8 @@ class WeaveSchedulor:
                         self.master.monitor.alloc_resource(instance, None, selected_gpu_id_list, plan=True)
                         self.execute_schedule(instance, selected_gpu_id_list, False, {})
                     else:
+                        if self.master.job_dealing_num==0:
+                            a=0
                         rest_job.append(job)
                         continue_schedule_flage=False
                         break

@@ -133,6 +133,23 @@ class Node:
 
             return satisfy_gpu_id_list, len(satisfy_gpu_id_list)
 
+    def get_satisfy_gpu_num_by_cap(self,pack_resource):
+        cpu_need = pack_resource[0]
+        mem_need = pack_resource[1]
+        gpu_need = pack_resource[2]
+        gmem_need = pack_resource[3]
+
+        if self.cpu < cpu_need or self.mem < mem_need or self.gpu_num==0:
+            return 0
+        if self.gmem[0]<gmem_need :
+            return 0
+        satisfy_gpu_num = min(math.floor(self.cpu / cpu_need), math.floor(self.mem / mem_need), self.gpu_num)
+
+        return satisfy_gpu_num
+
+
+
+
 
     def get_over_corss_num(self):
         with self.lock:
