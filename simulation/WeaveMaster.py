@@ -198,23 +198,24 @@ class WeaveMaster:
         if ali_trace["cpu_usage"]==0 or ali_trace["avg_mem"]==0:
             return None
 
-        while True: #从自己生成的模型信息中获取一个，满足持续时间要求
-            model_name=self.model_info_list[self.model_info_list_index%self.model_info_list_max].split("-")[0]
-            batch_size=int(self.model_info_list[self.model_info_list_index%self.model_info_list_max].split("-")[1])
-            self.model_info_list_index+=1
-            
-            plan_gpu=ali_trace["plan_gpu"]
-            
-            parrallel_num=math.ceil(min(plan_gpu, 400)/100)
-            model_info=model_name+"-"+str(batch_size)+"-"+str(parrallel_num)
-            duration_time=ali_trace["duration_s"]/self.job_time_factor
-            init_time=self.analyze_loader.get_value(model_info,"stage_init","time")
-            epoch_time=self.analyze_loader.get_value(model_info,"stage_sample","time")+self.analyze_loader.get_value(model_info,"stage_train","time")
-            model_duration_time=init_time+epoch_time
+        # while True: #从自己生成的模型信息中获取一个，满足持续时间要求
+        model_name=self.model_info_list[self.model_info_list_index%self.model_info_list_max].split("-")[0]
+        batch_size=int(self.model_info_list[self.model_info_list_index%self.model_info_list_max].split("-")[1])
+        self.model_info_list_index+=1
 
-            if model_duration_time<duration_time:
-                break
-            print("re generate job...")
+        plan_gpu=ali_trace["plan_gpu"]
+
+        parrallel_num=math.ceil(min(plan_gpu, 400)/100)
+        model_info=model_name+"-"+str(batch_size)+"-"+str(parrallel_num)
+        duration_time=ali_trace["duration_s"]/self.job_time_factor
+        init_time=self.analyze_loader.get_value(model_info,"stage_init","time")
+        epoch_time=self.analyze_loader.get_value(model_info,"stage_sample","time")+self.analyze_loader.get_value(model_info,"stage_train","time")
+        model_duration_time=init_time+epoch_time
+
+        if model_duration_time<duration_time:
+            print("duration time is too small...")
+            return None
+
         
         
         total_epochs=math.ceil((ali_trace["duration_s"]/self.job_time_factor-init_time)/epoch_time)
