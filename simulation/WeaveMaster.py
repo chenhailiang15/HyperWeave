@@ -31,15 +31,15 @@ random.seed(3)
 #################################################
 class WeaveMaster:
     
-    def __init__(self,stragey, print_level=0):
+    def __init__(self,system, strategy, mps_flage, sync_flage, print_level=0):
         
         
         ##################################################《--设置区域--》开始####################################################
 
-        self.system="Normal"             #"Muri" or "Normal"
-        self.schedule_strategy="FIFO"   # "FIFO", "SRTF"，"SRSF", "BNPF"   Bucket-based non-blocking parallel first
-        self.weave_sync_mode=False
-        self.MPS_mode=True              #需要最好手动确认
+        self.system=system           #"Muri" or "Normal"
+        self.schedule_strategy=strategy   # "FIFO", "SRTF"，"SRSF", "BNPF"   Bucket-based non-blocking parallel first
+        self.weave_sync_mode=sync_flage
+        self.MPS_mode=mps_flage              #需要最好手动确认
         
         self.overshared_factor=1   #等于1存在GPU资源不够的情况
         self.clock_time_factor = 1
@@ -162,8 +162,10 @@ class WeaveMaster:
 
 
     def run(self):
+        self.start_time_real_world=time.time()
         self.env.process(self.job_come())
         self.env.process(self.schedule())
+        self.env.process(self.print_system_state())
         self.env.run(until=99999999)
 
     # job到来的函数，持续运行，直到读取的文件中的job结束
@@ -222,7 +224,7 @@ class WeaveMaster:
 
 
 
-        job = Job(str(job_idx), self.system)
+        job = Job(job_idx, self.system)
         job_name = ali_trace["job_name"]
         job.set_model_info(job_name, model_name,total_epochs, batch_size)
         job.batch_num=batch_num    #设置batch numbere
@@ -267,17 +269,19 @@ class WeaveMaster:
         yield self.env.timeout(self.schedule_interval)
         if self.job_come_flage or self.wait_schedule_queue.qsize()>0:
             wait_schedule_list=[]
-            self.queue_length.append(self.wait_schedule_queue.qsize())
-            
+            # self.queue_length.append(self.wait_schedule_queue.qsize())
+
             while self.wait_schedule_queue.qsize()>0:
                 wait_schedule_list.append(self.wait_schedule_queue.get())
             
             
             rest_jobs=self.scheduler.do_schedule(wait_schedule_list)
-            
+
             for job in rest_jobs:
                 # print(f"wait for next scheduling:job name({job.job_name})")
                 self.wait_schedule_queue.put(job)
+            self.queue_length.append(self.wait_schedule_queue.qsize())
+
             self.env.process(self.schedule())
                 
             
@@ -293,6 +297,7 @@ class WeaveMaster:
             if instance_t.is_main:
                 self.instance_start_num += 1
                 self.instance_dealing_num+=1
+
                 if instance_t.job.instance_num==len(instance_t.job.instance_list)+1:
                     self.job_start_num += 1
                     self.job_dealing_num += 1
@@ -324,25 +329,34 @@ class WeaveMaster:
                     if instance.job.succeed_instance_num == instance.job.instance_num:
                         self.succeed_job_num+=1
                         self.job_wait_time_list.append(instance.job.start_time-instance.job.arrive_time)
-                        self.job_complete_time_list.append(instance.job.end_time-instance.job.arrive_time)
+                        self.job_complete_time_list.append(self.env.now-instance.job.arrive_time)
                     else:
                         self.failed_job_num+=1
                     
             if self.job_come_flage==False and self.job_come_num == self.job_end_num and self.command_start_num == self.command_end_num:
                 print("event set")
                 self.end_event.set()
+                self.set_makespan()
 
-            self.print_current_state()
+            # self.print_current_state()
 
+    def print_system_state(self):
+        self.print_current_state()
+        yield self.env.timeout(10000)
+        if not self.end_event.is_set():
+            self.env.process(self.print_system_state())
 
     def print_current_state(self):
         self.update_job_not_start_num()
-        print("********************************** current status **********************************")
-        print(f"job come number:{self.job_come_num}\tjob not start number:{self.job_not_start_num}")
-        print(f"job start number:{self.job_start_num}\tjob dealing number:{self.job_dealing_num}\tjob end number:{self.job_end_num}(S:{self.succeed_job_num}/F:{self.failed_job_num})")
-        print(f"instance start number:{self.instance_start_num}\tinstance dealing number:{self.instance_dealing_num}\tinstance end number:{self.instance_end_num}")
-        print(f"command start number:{self.command_start_num}\tcommand dealing number:{self.command_dealing_num}\tcommand end number:{self.command_end_num}")
-        print("************************************************************************************")
+        # if self.job_come_num!=self.job_not_start_num+self.job_start_num:
+        #     a=1
+        assert self.job_come_num==self.job_not_start_num+self.job_start_num
+        out_string=f"************************current status (now:{self.env.now}) *******************************\n"
+        out_string+=f"job come number:{self.job_come_num}\tjob not start number:{self.job_not_start_num}\n"
+        out_string+=f"job start number:{self.job_start_num}\tjob dealing number:{self.job_dealing_num}\tjob end number:{self.job_end_num}(S:{self.succeed_job_num}/F:{self.failed_job_num})\n"
+        out_string+=f"instance start number:{self.instance_start_num}\tinstance dealing number:{self.instance_dealing_num}\tinstance end number:{self.instance_end_num}\n"
+        out_string+=f"command start number:{self.command_start_num}\tcommand dealing number:{self.command_dealing_num}\tcommand end number:{self.command_end_num}\n\n"
+        print(out_string)
 
     def update_job_not_start_num(self):
         job_waiting_list=list(self.wait_schedule_queue.queue)
@@ -363,12 +377,9 @@ class WeaveMaster:
         self.sum_string=out_string1+"\n"+out_string2
 
 
-    def wait(self):
-        self.end_event.wait()
-        
 
-        
-    def close(self):
+
+    def set_makespan(self):
         self.makespan=self.env.now-self.start_time
 
             
@@ -384,10 +395,10 @@ class WeaveMaster:
         temp_string+=f"batch_size_dict:{self.batch_size_dict}\n"
         temp_string+=f"schedule_interval:{self.schedule_interval}\n"
         temp_string+=f"ali_trace_job_info_file_name:{self.ali_trace_job_info_file_name}\n"
-        temp_string += f"ali_trace_node_info_file_name:{self.ali_trace_node_info_file_name}\n"
+        temp_string+=f"ali_trace_node_info_file_name:{self.ali_trace_node_info_file_name}\n"
         temp_string+=f"analyze_file_name:{self.analyze_file_name}\n"
         temp_string+="    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    time info in following    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    \n"
-        
+        temp_string+=f"time cost(s){time.time()-self.start_time_real_world}\n"
         temp_string+=f"all job num:{self.job_come_num}, \tsucceed job num:{self.succeed_job_num}, \tfailed job num:{self.failed_job_num}\n"
         temp_string+=f"makespan:{self.makespan}\n"
         temp_string+=f"queue length{self.queue_length}\n"
@@ -399,35 +410,55 @@ class WeaveMaster:
 
     
     
-def experiment_all(file, strategy):
+def experiment_one_group_parameters(system, strategy, mps_flage, sync_flage, file, print_level):
 
-    print_level=2
-    weave_master=WeaveMaster(strategy, print_level)
+    weave_master=WeaveMaster(system, strategy, mps_flage, sync_flage, print_level)
     weave_master.run()
-    weave_master.wait()
     weave_master.print_job_time_info()
-    weave_master.close()
-    out_string=weave_master.get_sum_info()
-    # file.write(out_string)
-    # file.flush()
-    print(f"The process end (by master) with {strategy}!")
+
+    if file != None:
+        out_string=weave_master.get_sum_info()
+        file.write(out_string)
+        file.flush()
+
+    print(f"The simulation end (system:{strategy}, strategy:{strategy}, mps:{mps_flage}, sync:{sync_flage}, file:{file != None}) !")
 
 
 
 
 if __name__=="__main__":
+    # parser = argparse.ArgumentParser(description='simulation for DL training job')
+    # parser.add_argument("--system",default="normal",type=str)
+    # parser.add_argument("--strategy", default="FIFO", type=str)
+    #
+    # parser.add_argument("--write_flage", action='store_true')
+    # parser.add_argument("--mps_flage", action='store_true')
+    # parser.add_argument("--sync_flage", action='store_true')
+
+
+    #control parameters
     version="sim_v1.0.0"
-    parent_dir  = os.path.dirname(os.path.abspath(os.curdir))
+    write_flage=True
+    system="Normal"
+    strategy="FIFO"
+    mps_flage=False
+    sync_flage=False
+    print_level=0
+
+    parent_dir= os.path.dirname(os.path.abspath(os.curdir))
     # 格式化输出
-    now_time    = datetime.datetime.now()
+    now_time= datetime.datetime.now()
     formatted_time = now_time.strftime('%m_%d_%H_%M_%S')
     sum_info_file_name="SumInfo_Weave_"+version+"_"+formatted_time+".txt"
-    # file=open(parent_dir+"/output/"+sum_info_file_name,"w")
+    if write_flage:
+        file=open(parent_dir+"/output/"+sum_info_file_name,"w")
+    else:
+        file=None
 
-
-    experiment_all("file", "FIFO")
+    experiment_one_group_parameters(system, strategy, mps_flage, sync_flage, file,print_level)
     # experiment_all(file, "SRTF",formatted_time, version)
     # experiment_all(file, "SRSF",formatted_time, version)
-    # file.close()
+    if write_flage:
+        file.close()
     
     

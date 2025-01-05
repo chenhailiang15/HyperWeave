@@ -221,7 +221,7 @@ class Job:
         
         
     def job_key_info(self):
-        return f"jn:{self.job_name}-mn:{self.model_name}-tep:{self.total_epochs}-bts:{self.batch_size}-gpu:{self.plan_gpu}"
+        return f"jn:{self.job_name}-mn:{self.model_name}-epo:{self.total_epochs}-bts:{self.batch_size}-gpu:{self.plan_gpu}"
     
     def get_name_batchsize_epoch(self): #这里主要用于从分析中拿取数据，因此最大并行度为4
         parallel_num=min(self.parallel_num, 4)# 后续可能需要调整

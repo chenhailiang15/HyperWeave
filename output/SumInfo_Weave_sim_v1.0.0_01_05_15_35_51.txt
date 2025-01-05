@@ -1,0 +1,19 @@
+****************************************************FIFO***********************************************************
+    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    parameters in experiment    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    
+system name:Normal, 	MPS:False, 	Sync:False
+overshared_factor:1, 	max_cross:1, 	max_gpu_cross:1
+clock_time_factor:1, 	job_time_factor:1, 	job_ddl_factor:1
+model_name_list:['AlexNet', 'ResNet18', 'ResNet50', 'MobileNetv2', 'VGG16', 'Bert', 'Transformer', 'GCN', 'GraphSage']
+batch_size_dict:{'AlexNet': [8, 16, 32, 64, 128], 'ResNet18': [8, 16, 32, 64, 128], 'ResNet50': [8, 16, 32, 64, 128], 'MobileNetv2': [8, 16, 32, 64, 128], 'VGG16': [8, 16, 32, 64, 128], 'Bert': [8, 16], 'Transformer': [8, 16, 32, 64], 'GCN': [8, 16, 32, 64, 128], 'GraphSage': [8, 16, 32, 64, 128]}
+schedule_interval:3600
+ali_trace_job_info_file_name:sim_ali_trace_job_info.csv
+ali_trace_node_info_file_name:sim_ali_trace_machine_info.csv
+analyze_file_name:Analyzer-NVIDIA_GeForce_RTX_2080-tim_12_19_16_38_14.csv
+    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    time info in following    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    
+all job num:101, 	succeed job num:101, 	failed job num:0
+makespan:1223699.0
+queue length[1, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 1, 0, 0, 0, 0, 3, 0, 0, 2, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 1, 4, 0, 0, 1, 0, 2, 0, 0, 0, 1, 1, 0, 0, 0, 2, 3, 3, 1, 2, 0, 2, 0, 0, 0, 2, 2, 4, 1, 2, 3, 0, 0, 0, 1, 4, 60, 113, 168, 221, 278, 333, 387, 434, 481, 526, 570, 614, 659, 707, 753, 807, 851, 895, 939, 983, 1027, 1071, 1115, 1159, 1203, 1247, 1291, 1314, 1337, 1356, 1375, 1394, 1413, 1432, 1451, 1470, 1489, 1506, 1523, 1540, 1557, 1574, 1591, 1608, 1625, 1642, 1659, 1676, 1692, 1702, 1712, 1722, 37, 52, 69, 58, 89, 120, 151, 182, 213, 244, 272, 300, 328, 356, 384, 412, 440, 468, 496, 524, 551, 578, 605, 630, 655, 680, 705, 730, 755, 780, 799, 810, 820, 830, 840, 850, 860, 870, 880, 890, 899, 905, 910, 913]
+job wait time: size-101, 	mean-90442.19, 	min-50.0, 	max-310329.0, 	percentile50-2645.0, 	percentile90-288397.0, 	percentile95-295570.0
+job complete time(JCT): size-101, 	mean-256751.56, 	min-427.0, 	max-741685.0, 	percentile50-206490.0, 	percentile90-620720.0, 	percentile95-702134.0
+
+

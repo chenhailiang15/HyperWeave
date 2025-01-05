@@ -40,7 +40,7 @@ class Node:
         
     def alloc_resource(self, cpu, mem, gpu, gmem, gpu_id_list):
         with self.lock:
-            if self.print_level>5:
+            if self.print_level>10:
                 self.print_node_resource()
                 print(f"      node id: {self.node_id} need resource cpu-{cpu}\tmem-{mem}\tgpu-{gpu}\tgmem-{gmem}\tgpu id list-{gpu_id_list}")
             self.cpu_rest-=cpu
@@ -49,12 +49,12 @@ class Node:
             for gpu_id in gpu_id_list:
                 self.gpu_rest[gpu_id]=self.gpu_rest[gpu_id]-gpu
                 self.gmem_rest[gpu_id]=self.gmem_rest[gpu_id]-gmem
-            if self.print_level > 5:
+            if self.print_level > 10:
                 self.print_node_resource()
         
     def takeback_resource(self, cpu, mem, gpu, gmem, gpu_id_list):
         with self.lock:
-            if self.print_level > 5:
+            if self.print_level > 10:
                 self.print_node_resource()
                 print(f"      node id: {self.node_id} takeback resource cpu-{cpu} mem-{mem} gpu-{gpu} gmem-{gmem}, gpu id list-{gpu_id_list}")
             self.cpu_rest+=cpu
@@ -62,7 +62,7 @@ class Node:
             for gpu_id in gpu_id_list:
                 self.gpu_rest[gpu_id]=self.gpu_rest[gpu_id]+gpu
                 self.gmem_rest[gpu_id]=self.gmem_rest[gpu_id]+gmem
-            if self.print_level>5:
+            if self.print_level>10:
                 self.print_node_resource()
             
             
@@ -156,7 +156,7 @@ class Node:
 
     def execute_instance(self, instance):
         if self.print_level > 5:
-            print(f"node: {self.node_id} execute instance:{instance.instance_idx} ...")
+            print(f"node: {self.node_id} execute instance:{instance.instance_name} ...")
         instance.start_time=self.env.now
         if instance.is_main:
             instance.job.dealing_instance_num+=1

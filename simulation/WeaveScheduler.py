@@ -525,7 +525,7 @@ class WeaveSchedulor:
         nprocs_list=[0]*self.master.node_num
         gpu_id_list=[ [] for i in range(self.master.node_num)]  #需要有顺序
 
-        min_node_index=999    #选取最小的node index作为
+        min_node_index=float("inf")    #选取最小的node index作为
         for [node_index, gpu_list] in select_gpu_list:
             
             world_size+=len(gpu_list)
@@ -627,8 +627,10 @@ class WeaveSchedulor:
                     else:
                         rest_job.append(job)
                         continue_schedule_flage=False
+                        break
             else:
                 rest_job.append(job)
+            assert len(rest_job)<= len(job_list)
         return rest_job
 
     # def place_jobs_to_nodes(self, job_list, mode="plan") :
