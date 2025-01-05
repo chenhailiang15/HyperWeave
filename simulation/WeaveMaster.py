@@ -183,8 +183,8 @@ class WeaveMaster:
                 print(f"time: {self.env.now}\tjob {job.job_idx} \tcome ( detailed info :{job.job_key_info()})")
             self.wait_schedule_queue.put(job)
             self.job_come_num += 1
-            if index>=100:
-                break
+            # if index>=100:
+            #     break
 
             if index + 1 < len(self.ali_trace_pd):
                 yield self.env.timeout(self.ali_trace_pd.loc[index + 1, "start_time"] - self.ali_trace_pd.loc[index, "start_time"])
