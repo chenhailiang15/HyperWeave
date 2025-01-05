@@ -3,13 +3,13 @@ from torch.utils.data.distributed import DistributedSampler
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader
 import torch
-from torch.nn import Transformer, TransformerEncoder, TransformerEncoderLayer
+from torch.nn import TransformerEncoder, TransformerEncoderLayer
 # 导入经典文本相关数据集的工具包
 import torchtext
 # 导入专门用于英文分词的工具
 from torchtext.data.utils import get_tokenizer
 from torchtext.vocab import build_vocab_from_iterator
-import copy
+
 from torch.utils.data import dataset
 from torch import nn, Tensor
 import math

@@ -179,7 +179,7 @@ class WeaveMaster:
                 return False
             
     def init_model_info(self):
-        file=open(get_dataset_dir()+"cluster_exp_data/"+self.model_info_file_name,"r")
+        file=open(get_dataset_dir()+"exp_data/"+self.model_info_file_name,"r")
         for line in file.readlines():
             self.model_info_list.append(line[0:-1])
             self.model_info_list_max+=1
@@ -195,7 +195,7 @@ class WeaveMaster:
 
     def load_csv(self, file_name,header=None):
         dataset_dir=get_dataset_dir()
-        data_pd=pd.read_csv(dataset_dir+"cluster_exp_data"+"/"+file_name,header=header)
+        data_pd=pd.read_csv(dataset_dir+"exp_data"+"/"+file_name,header=header)
         return data_pd
 
     def generate_job(self, ali_trace,job_idx):
@@ -226,7 +226,7 @@ class WeaveMaster:
         
         
         plan_cpu=min(ali_trace["plan_cpu"]/ali_trace["cpu_usage"]*self.analyze_loader.get_value(model_info,"stage_sample","cpu"), self.single_job_max_plan_cpu)
-        plan_mem=min(ali_trace["plan_mem"]/ali_trace["avg_mem"]*self.analyze_loader.get_value(model_info,"stage_sample","mem"),self.single_job_max_plan_cpu)
+        plan_mem=min(ali_trace["plan_mem"]/ali_trace["avg_mem"]*self.analyze_loader.get_value(model_info,"stage_sample","mem"),self.single_job_max_plan_mem)
         
         arrive_time=time.time()
         

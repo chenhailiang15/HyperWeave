@@ -1,0 +1,2 @@
+job_name,task_name,inst_num,gpu_type,start_time_j,cpu_usage,gpu_wrk_util,avg_mem,avg_gpu_wrk_mem,plan_cpu,plan_gpu,plan_mem,duration_s
+ab81a8ed003c5af878460000,worker,16.0,P100,1563282.0,8803.622352922763,2884.4184251081956,230.3964452911124,459.150390625,9000.0,3000.0,439.453125,493827.0

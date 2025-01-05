@@ -5,15 +5,19 @@ import threading
 
 
 class Node:
-    def __init__(self, node_id, ip, net_card, overshared_factor, max_cross_gpu_job_num, print_level):
+    def __init__(self, master, env, node_name, node_id, overshared_factor, print_level):
+        self.ip=0
+        self.port=0
+        self.net_card="0"
+        self.master=master
+        self.env=env
+        self.node_name=node_name
         self.node_id=node_id
         self.overshared_factor=overshared_factor
-        self.max_cross_gpu_job_num=max_cross_gpu_job_num
+
         self.print_level=print_level
         self.cross_gpu_job_num=0
         self.current_port=2000
-        self.ip=ip
-        self.net_card=net_card
         self.lock=threading.Lock()
         
     def set_init_resouce(self, cpu, mem, gpu_num, gmem):
@@ -36,26 +40,30 @@ class Node:
         
     def alloc_resource(self, cpu, mem, gpu, gmem, gpu_id_list):
         with self.lock:
-            self.print_node_resource()
-            print(f"      node id: {self.node_id} need resource cpu-{cpu}\tmem-{mem}\tgpu-{gpu}\tgmem-{gmem}\tgpu id list-{gpu_id_list}")
+            if self.print_level>5:
+                self.print_node_resource()
+                print(f"      node id: {self.node_id} need resource cpu-{cpu}\tmem-{mem}\tgpu-{gpu}\tgmem-{gmem}\tgpu id list-{gpu_id_list}")
             self.cpu_rest-=cpu
             self.mem_rest-=mem
             
             for gpu_id in gpu_id_list:
                 self.gpu_rest[gpu_id]=self.gpu_rest[gpu_id]-gpu
                 self.gmem_rest[gpu_id]=self.gmem_rest[gpu_id]-gmem
-            self.print_node_resource()
+            if self.print_level > 5:
+                self.print_node_resource()
         
     def takeback_resource(self, cpu, mem, gpu, gmem, gpu_id_list):
         with self.lock:
-            self.print_node_resource()
-            print(f"      node id: {self.node_id} takeback resource cpu-{cpu} mem-{mem} gpu-{gpu} gmem-{gmem}, gpu id list-{gpu_id_list}")
+            if self.print_level > 5:
+                self.print_node_resource()
+                print(f"      node id: {self.node_id} takeback resource cpu-{cpu} mem-{mem} gpu-{gpu} gmem-{gmem}, gpu id list-{gpu_id_list}")
             self.cpu_rest+=cpu
             self.mem_rest+=mem
             for gpu_id in gpu_id_list:
                 self.gpu_rest[gpu_id]=self.gpu_rest[gpu_id]+gpu
                 self.gmem_rest[gpu_id]=self.gmem_rest[gpu_id]+gmem
-            self.print_node_resource()
+            if self.print_level>5:
+                self.print_node_resource()
             
             
     def get_satisfy_gpu_id(self,pack_resource):
@@ -63,7 +71,7 @@ class Node:
         with self.lock:
             satisfy_gpu_id_list=[]
             satisfy_score=0
-            if pack_resource ==None:
+            if pack_resource == None:
                 for gpu_id in range(self.gpu_num):
                     if self.gpu_rest[gpu_id]==100*self.overshared_factor:
                         satisfy_gpu_id_list.append(gpu_id)
@@ -89,23 +97,53 @@ class Node:
                 if len(satisfy_gpu_id_list)>0:
                     satisfy_gpu_id_list.sort(key=lambda x:x[1], reverse=True)  #进行排序，降序
             return satisfy_gpu_id_list, satisfy_score
-    
-    
+
+    def get_satisfy_gpu_id_for_sim(self, pack_resource):
+
+        with self.lock:
+            satisfy_gpu_id_list = []
+
+            if pack_resource == None:  #返回空闲的GPU list
+                for gpu_id in range(self.gpu_num):
+                    if self.gpu_rest[gpu_id] == 100 * self.overshared_factor:
+                        satisfy_gpu_id_list.append(gpu_id)
+
+            else:
+                cpu_need = pack_resource[0]
+                mem_need = pack_resource[1]
+                gpu_need = pack_resource[2]
+                gmem_need = pack_resource[3]
+
+                if self.cpu_rest < cpu_need or self.mem_rest < mem_need:
+                    return satisfy_gpu_id_list, len(satisfy_gpu_id_list)
+                cpu_rest_per = (self.cpu_rest - cpu_need) / self.cpu
+                mem_rest_per = (self.mem_rest - mem_need) / self.mem
+
+                for i in range(self.gpu_num):
+                    if self.gpu_rest[i] >= gpu_need and self.gmem_rest[i] >= gmem_need:
+                        gpu_rest_per = (self.gpu_rest[i] - gpu_need) / self.gpu[i]
+                        gmem_rest_per = (self.gmem_rest[i] - gmem_need) / self.gmem[i]
+                        ave_per = (cpu_rest_per + mem_rest_per + gpu_rest_per + gmem_rest_per) / 4
+                        satisfy_gpu_id_list.append([i, ave_per])
+
+                if len(satisfy_gpu_id_list) > 0:
+                    satisfy_gpu_id_list.sort(key=lambda x: x[1], reverse=True)  # 进行排序，降序
+                    max_gpu_num=min(math.floor(self.cpu_rest/cpu_need), math.floor(self.mem_rest/mem_need))
+                    satisfy_gpu_id_list=satisfy_gpu_id_list[:max_gpu_num]
+
+            return satisfy_gpu_id_list, len(satisfy_gpu_id_list)
+
+
     def get_over_corss_num(self):
         with self.lock:
-            if self.cross_gpu_job_num<self.max_cross_gpu_job_num:
-                return 0
-            else:
-                return self.cross_gpu_job_num-self.max_cross_gpu_job_num+1
+            return 0
+            # if self.cross_gpu_job_num<self.max_cross_gpu_job_num:
+            #     return 0
+            # else:
+            #     return self.cross_gpu_job_num-self.max_cross_gpu_job_num+1
         
     def get_idle_port(self):
-        with self.lock:
-            while is_port_in_use(self.ip, self.current_port):
-                self.current_port+=1
-            idle_port=self.current_port
-            self.current_port+=1
-            
-            return idle_port
+        return 0
         
         
     def get_idle_gpu_num(self):
@@ -114,4 +152,29 @@ class Node:
             if self.gpu_rest[gpu_id]==100*self.overshared_factor:
                 idel_gpu_num+=1
         return idel_gpu_num
-        
+
+
+    def execute_instance(self, instance):
+        if self.print_level > 5:
+            print(f"node: {self.node_id} execute instance:{instance.instance_idx} ...")
+        instance.start_time=self.env.now
+        if instance.is_main:
+            instance.job.dealing_instance_num+=1
+            if instance.job.start_time == 0:
+                instance.job.start_time=self.env.now
+
+        self.env.process(self.end_instance(instance))
+
+        return
+
+
+    def end_instance(self,instance):
+        yield self.env.timeout(instance.job.duration_time)
+        if self.print_level > 5:
+            print(f"node: {self.node_id} end instance:{instance.instance_name} !")
+        instance.end_time = self.env.now
+        instance.succeed_flage=True
+        if instance.is_main:
+            instance.job.dealing_instance_num -= 1
+            instance.job.succeed_instance_num += 1
+        self.master.statistic_end_instance(instance)

@@ -167,7 +167,7 @@ class AnalyzeDataLoader:
         
     def load_csv(self, file_name,header=None):
         dataset_dir=get_dataset_dir()
-        file=open(dataset_dir+"cluster_exp_data"+"/"+file_name,"r")
+        file=open(dataset_dir+"exp_data"+"/"+file_name,"r")
         for line in file.readlines():
             model_info=line.split("-[(")[0]
             # base_cost=np.array(ast.literal_eval(line.split("-[(")[1].split("), (")[0]))
@@ -211,7 +211,7 @@ class AnalyzeTimeLoader:
         
     def load_csv(self, file_name,header=None):
         dataset_dir=get_dataset_dir()
-        file=open(dataset_dir+"cluster_exp_data"+"/"+file_name,"r")
+        file=open(dataset_dir+"exp_data"+"/"+file_name,"r")
         for line in file.readlines():
             model_info=line.split("-[")[0]
             # base_cost=np.array(ast.literal_eval(line.split("-[(")[1].split("), (")[0]))

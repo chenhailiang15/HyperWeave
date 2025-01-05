@@ -3,7 +3,6 @@ import torch.utils.data.distributed
 from torch.utils.data.distributed import DistributedSampler
 from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.nn as nn
-from torch.utils.data import DataLoader
 import torch
 import numpy as np
 from torch.utils.data import DataLoader

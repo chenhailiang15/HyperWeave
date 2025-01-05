@@ -1,23 +1,12 @@
-import torch
 import torch.nn.functional as F
-import torch.optim as optim
 import torch.utils.data.distributed
-from torchvision import datasets, transforms, models
-from torch.utils.data.distributed import DistributedSampler
 from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.nn as nn
 from torchvision import datasets, transforms, models
 import torch.optim as optim
-from torch.utils.data import DataLoader, RandomSampler, BatchSampler
 import torch
-import copy
 import os
-import torchvision
-import psutil
-import time
-import threading
-from WeaveSynchronizer import Synchronizer
-import numpy as np
+
 
 
 

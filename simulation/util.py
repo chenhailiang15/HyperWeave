@@ -10,8 +10,14 @@ import socket
 import json
 import numpy as np
 import subprocess
+import math
 
-
+gpu_mem_dict={"T4":16,
+              "MISC":16,
+              "P100":16,
+              "V100":16,
+              "V100M32":32
+              }
 
 model_to_batch_size_g={"AlexNet" : [8,16,32,64,128],
                          "ResNet18" : [8,16,32,64,128],

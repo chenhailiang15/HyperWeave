@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 import torch
 from torch_geometric.datasets import Planetoid
 from torch_geometric.nn import GCNConv  # 从PyTorch几何库中导入图卷积网络层（GCNConv）
-import time
+
 
 
 

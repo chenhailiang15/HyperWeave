@@ -1,3 +1,0 @@
-job_name,task_name,inst_num,gpu_type,start_time_j,cpu_usage,gpu_wrk_util,avg_mem,avg_gpu_wrk_mem,plan_cpu,plan_gpu,plan_mem,duration_s
-15c5e8bf0f7b30e4b6fd62af,worker,1.0,MISC,2126691.0,250.23114213690133,0.8652839697615817,19.405030953188604,0.2197265625,600.0,25.0,29.296875,50.0
-90d7878e3f1de0e08afe1ad6,tensorflow,1.0,T4,2126699.0,81.33333333333333,10,1.33037109375,10,600.0,100.0,29.296875,50.0

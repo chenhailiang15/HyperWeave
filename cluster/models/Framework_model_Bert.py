@@ -3,8 +3,8 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 import torch
 import pickle
 from torch.utils.data import TensorDataset
-from torch.utils.data import DataLoader, RandomSampler
-from transformers import BertTokenizer, BertForQuestionAnswering, AdamW,BertConfig
+from torch.utils.data import DataLoader
+from transformers import BertForQuestionAnswering,BertConfig
 
 
 class BertModel:
