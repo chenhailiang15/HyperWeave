@@ -1,6 +1,6 @@
 import time
 from WeaveSynchronizer import Synchronizer
-from models.Framework_model_CV_no_ddp import CVModel
+from models.Framework_model_CV import CVModel
 from models.Framework_model_Bert import BertModel
 from models.Framework_model_Transformer import TransformerModel
 from models.Framework_model_GraphSage import GraphSageModel

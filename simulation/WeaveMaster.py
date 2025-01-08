@@ -31,21 +31,31 @@ random.seed(3)
 #################################################
 class WeaveMaster:
     
-    def __init__(self,system, strategy, mps_flage, sync_flage, print_level=0):
+    def __init__(self,system, strategy, file_trace, print_level=0):
         
         
         ##################################################《--设置区域--》开始####################################################
 
         self.system=system           #"Muri" or "Normal"
-        self.schedule_strategy=strategy   # "FIFO", "SRTF"，"SRSF", "BNPF"   Bucket-based non-blocking parallel first
-        self.weave_sync_mode=sync_flage
-        self.MPS_mode=mps_flage              #需要最好手动确认
-        
-        self.overshared_factor=1   #等于1存在GPU资源不够的情况
+        self.schedule_strategy=strategy   # "FIFO", "SRTF"，"SRSF", "BNPF"   Bucket-based Non-blocking SRSF
+        if system=="Weave":
+            self.weave_sync_mode=True
+            self.MPS_mode=True              #需要最好手动确认
+            self.overshared_factor=1
+        else:
+            self.weave_sync_mode = False
+            self.MPS_mode = False  # 需要最好手动确认
+            self.overshared_factor = 1  # 等于1存在GPU资源不够的情况
+
+        if strategy=="BN-SRSF":
+            self.bucket_length=1000000
+
+        self.file_trace=file_trace
+
         self.clock_time_factor = 1
         self.job_time_factor = 1
         self.job_ddl_factor = 1  # ddl是任务持续时间的job_ddl_factor倍
-        self.schedule_interval = 3600
+        self.schedule_interval = 360
 
         self.print_level=print_level
 
@@ -93,6 +103,8 @@ class WeaveMaster:
         
         self.job_wait_time_list=[]
         self.job_complete_time_list=[]
+        self.instance_global_idx = 0
+        self.wait_schedule_queue = queue.Queue()
         #################################
 
         if self.print_level>0:
@@ -125,26 +137,27 @@ class WeaveMaster:
     def init_node(self, file_name):
         self.nodes=[]
         node_info_pd = self.load_csv(file_name,header=0)
-        self.node_num = len(node_info_pd)
 
-        # gpu_num=0
+
+        node_idx_order=0
         for index in range(len(node_info_pd)):
             name=node_info_pd.loc[index, "machine"]
-            cpu_cap= node_info_pd.loc[index, "cap_cpu"]*100
-            mem_cap=node_info_pd.loc[index, "cap_mem"]*1024
+            cpu_cap= node_info_pd.loc[index, "cap_cpu"]*100.0
+            mem_cap=node_info_pd.loc[index, "cap_mem"]*1024.0
             gpu_cap=node_info_pd.loc[index, "cap_gpu"]
             if gpu_cap==0:
-                gmem_cap=0
-            else:
-
-                gmem_cap=gpu_mem_dict[node_info_pd.loc[index, "gpu_type"]]*1024
-            node=Node(self, self.env,name,index, self.overshared_factor, self.print_level)
-            node.set_init_resouce( cpu_cap, mem_cap, gpu_cap, gmem_cap )
+                continue
+            gmem_cap=gpu_mem_dict[node_info_pd.loc[index, "gpu_type"]]*1024.0
+            node=Node(self, self.env,name,node_idx_order, self.overshared_factor, self.print_level)
+            node.set_init_resouce(cpu_cap, mem_cap, gpu_cap, gmem_cap)
             self.nodes.append(node)
-            # gpu_num+=gpu_cap
-            # if gpu_num>6:
-            #     break
+            node_idx_order += 1
 
+
+            if node_idx_order>=100:
+                break
+
+        self.node_num = node_idx_order
             
     def init_model_info(self):
         file=open(get_dataset_dir()+"exp_data/"+self.model_info_file_name,"r")
@@ -168,18 +181,19 @@ class WeaveMaster:
 
 
     def run(self):
-        self.start_time_real_world=time.time()
+        self.start_time_real = time.time()
+        self.start_time_sim = self.env.now
+
         self.env.process(self.job_come())
         self.env.process(self.schedule())
-        self.env.process(self.print_system_state())
-        self.env.run(until=99999999)
+        self.env.process(self.print_and_store_current_state())
+        self.env.run()
 
     # job到来的函数，持续运行，直到读取的文件中的job结束
     def job_come(self):
 
-        self.start_time = self.env.now
-        self.wait_schedule_queue = queue.Queue()
         self.job_come_flage = True
+
         for index in range(len(self.ali_trace_pd)):
             job = self.generate_job(self.ali_trace_pd.iloc[index, :], self.job_come_num)
             if job == None:  # 由于数据原因，可能无法生成Job，因此跳过
@@ -189,8 +203,8 @@ class WeaveMaster:
                 print(f"time: {self.env.now}\tjob {job.job_idx} \tcome ( detailed info :{job.job_key_info()})")
             self.wait_schedule_queue.put(job)
             self.job_come_num += 1
-            # if index>=100:
-            #     break
+            if index>=1000-1:
+                break
 
             if index + 1 < len(self.ali_trace_pd):
                 yield self.env.timeout(self.ali_trace_pd.loc[index + 1, "start_time"] - self.ali_trace_pd.loc[index, "start_time"])
@@ -232,36 +246,51 @@ class WeaveMaster:
         job_name = ali_trace["job_name"]
         job.set_model_info(job_name, model_name,total_epochs, batch_size)
         job.batch_num=batch_num    #设置batch numbere
-        job.instance_num=int(ali_trace["inst_num"])
-
+        job.instance_num=1        #多个instance融合为一个
+        if job_idx==254:
+            a=1
         #设置各阶段时间消耗
         job.time_init=self.analyze_loader.get_time_value(model_info,0)
         job.time_init_iter=self.analyze_loader.get_value(model_info,"stage_sample","time")
         job.time_get_data=self.analyze_loader.get_time_value(model_info,1)
         job.time_forward_back=self.analyze_loader.get_time_value(model_info,2)
         job.time_commu=self.analyze_loader.get_time_value(model_info,3)
+        job.time_epoch_no_init_iter=batch_num*(job.time_get_data+job.time_forward_back+job.time_commu)-job.time_get_data
+        # 通过batchnum 和 epoch 以及各阶段时间，计算总持续时间
+        duration_time =job.time_init+total_epochs*(job.time_epoch_no_init_iter+job.time_init_iter)
+
         #设置计划资源使用量
+        job.set_plan_resource(ali_trace["plan_cpu"], ali_trace["plan_mem"], ali_trace["plan_gpu"])
+
         pack_resource=[ali_trace["plan_cpu"], ali_trace["plan_mem"], ali_trace["plan_gpu"],0]
-        if self.monitor.judge_runable_with_resource(pack_resource) == False:
+        if self.monitor.judge_runable_with_resource(pack_resource,job.parallel_num, plan_flage=True, init=True) == False:
             print("plan resource not runable!")
             return None
 
-        job.set_plan_resource(ali_trace["plan_cpu"], ali_trace["plan_mem"], ali_trace["plan_gpu"])
+
         #设置各阶段实际资源使用量[init stage, pre-iteration stage, iteration stage]
-        job.used_resource_cpu = [ali_trace["cpu_usage"]*self.analyze_loader.get_value(model_info,"stage_init", "cpu")/self.analyze_loader.get_value(model_info,"stage_train", "cpu"),\
-                                 ali_trace["cpu_usage"]*self.analyze_loader.get_value(model_info,"stage_sample", "cpu")/self.analyze_loader.get_value(model_info,"stage_train", "cpu"),\
-                                 ali_trace["cpu_usage"]]
-        job.used_resource_mem = [1024*ali_trace["avg_mem"]*self.analyze_loader.get_value(model_info,"stage_init", "mem")/self.analyze_loader.get_value(model_info,"stage_train", "mem"),\
-                                 1024*ali_trace["avg_mem"]*self.analyze_loader.get_value(model_info,"stage_sample", "mem")/self.analyze_loader.get_value(model_info,"stage_train", "mem"),\
-                                 1024*ali_trace["avg_mem"]]
-        job.used_resource_gpu = [ali_trace["gpu_wrk_util"]*self.analyze_loader.get_value(model_info,"stage_init", "gpu")/self.analyze_loader.get_value(model_info,"stage_train", "gpu"),\
-                                 ali_trace["gpu_wrk_util"]*self.analyze_loader.get_value(model_info,"stage_sample", "gpu")/self.analyze_loader.get_value(model_info,"stage_train", "gpu"),\
-                                 ali_trace["gpu_wrk_util"]]
-        job.used_resource_gmem = [1024*ali_trace["avg_gpu_wrk_mem"]*self.analyze_loader.get_value(model_info,"stage_init", "gmem")/self.analyze_loader.get_value(model_info,"stage_train", "gmem"),\
-                                 1024*ali_trace["avg_gpu_wrk_mem"]*self.analyze_loader.get_value(model_info,"stage_sample", "gmem")/self.analyze_loader.get_value(model_info,"stage_train", "gmem"),\
-                                 1024*ali_trace["avg_gpu_wrk_mem"]]
-        pack_resource=[max(job.used_resource_cpu), max(job.used_resource_mem), max(max(job.used_resource_gpu), ali_trace["plan_gpu"]), max(job.used_resource_gmem)]
-        if self.monitor.judge_runable_with_resource(pack_resource) == False:
+        max_cpu_usage=max(self.analyze_loader.get_value(model_info,"stage_init", "cpu"), self.analyze_loader.get_value(model_info,"stage_sample", "cpu"), self.analyze_loader.get_value(model_info,"stage_train", "cpu"))
+        job.used_resource_cpu = [ali_trace["cpu_usage"]*self.analyze_loader.get_value(model_info,"stage_init", "cpu")/max_cpu_usage,\
+                                 ali_trace["cpu_usage"]*self.analyze_loader.get_value(model_info,"stage_sample", "cpu")/max_cpu_usage,\
+                                 ali_trace["cpu_usage"]*self.analyze_loader.get_value(model_info,"stage_train", "cpu")/max_cpu_usage]
+
+        max_mem_usage=max(self.analyze_loader.get_value(model_info,"stage_init", "mem"), self.analyze_loader.get_value(model_info,"stage_sample", "mem"), self.analyze_loader.get_value(model_info,"stage_train", "mem"))
+        job.used_resource_mem = [1024*ali_trace["avg_mem"]*self.analyze_loader.get_value(model_info,"stage_init", "mem")/max_mem_usage,\
+                                 1024*ali_trace["avg_mem"]*self.analyze_loader.get_value(model_info,"stage_sample", "mem")/max_mem_usage,\
+                                 1024*ali_trace["avg_mem"]*self.analyze_loader.get_value(model_info,"stage_train", "mem")/max_mem_usage]
+
+        max_gpu_usage = max(self.analyze_loader.get_value(model_info, "stage_init", "gpu"), self.analyze_loader.get_value(model_info, "stage_sample", "gpu"), self.analyze_loader.get_value(model_info, "stage_train", "gpu"))
+        job.used_resource_gpu = [ali_trace["gpu_wrk_util"]*self.analyze_loader.get_value(model_info,"stage_init", "gpu")/max_gpu_usage,\
+                                 ali_trace["gpu_wrk_util"]*self.analyze_loader.get_value(model_info,"stage_sample", "gpu")/max_gpu_usage,\
+                                 ali_trace["gpu_wrk_util"]*self.analyze_loader.get_value(model_info,"stage_train", "gpu")/max_gpu_usage]
+
+        max_gmem_usage = max(self.analyze_loader.get_value(model_info, "stage_init", "gmem"), self.analyze_loader.get_value(model_info, "stage_sample", "gmem"), self.analyze_loader.get_value(model_info, "stage_train", "gmem"))
+        job.used_resource_gmem = [1024*ali_trace["avg_gpu_wrk_mem"]*self.analyze_loader.get_value(model_info,"stage_init", "gmem")/max_gmem_usage,\
+                                 1024*ali_trace["avg_gpu_wrk_mem"]*self.analyze_loader.get_value(model_info,"stage_sample", "gmem")/max_gmem_usage,\
+                                 1024*ali_trace["avg_gpu_wrk_mem"]*self.analyze_loader.get_value(model_info,"stage_train", "gmem")/max_gmem_usage]
+        pack_resource=[max(job.used_resource_cpu), max(job.used_resource_mem), max(job.used_resource_gpu), max(job.used_resource_gmem)]
+        # 并行度为1，实际使用为188，存在问题
+        if self.monitor.judge_runable_with_resource(pack_resource, job.parallel_num, plan_flage=False, init=True) == False:
             print(f"used resource not runable!{pack_resource}")
             return None
         #设置job到达时间
@@ -270,9 +299,14 @@ class WeaveMaster:
         job.set_arrive_time(arrive_time)
         job.set_ddl_time(ddl_time)
         job.set_duration_time(duration_time)
-        for index in range(int(ali_trace["inst_num"])):
-            instance=Instance(job, index, self.system)
-            job.instance_list.append(instance)
+
+        instance=Instance(job, 0, self.system)
+        instance.instance_global_idx=self.instance_global_idx
+        self.instance_global_idx+=1
+        instance.set_duration_time(duration_time)
+        job.instance_list.append(instance)
+        if system=="Muri":
+            job.set_time_for_muri()
         return job
         
     #调度子线程，间隔schedule_interval（秒）后，执行一次调度。未调度成功的job需要返回，重新放入队列
@@ -318,7 +352,7 @@ class WeaveMaster:
 
     
     def statistic_end_instance(self,instance):
-        if self.print_level>3:
+        if self.print_level>=2:
             print("end a instance:", instance.instance_name)
 
         with self.lock:
@@ -344,31 +378,64 @@ class WeaveMaster:
                         self.job_complete_time_list.append(self.env.now-instance.job.arrive_time)
                     else:
                         self.failed_job_num+=1
-                    
-            if self.job_come_flage==False and self.job_come_num == self.job_end_num and self.command_start_num == self.command_end_num:
-                print("event set")
-                self.end_event.set()
-                self.set_makespan()
+
+            #job不再到来，并且到来的job数量等于结束的job数量。此时仿真结束
+            if self.job_come_flage==False and self.job_come_num == self.job_end_num:
+                self.end_event.set()    #停止out info
+                self.set_makespan()     #统计系统运行时间
 
             # self.print_current_state()
 
-    def print_system_state(self):
+    def print_and_store_current_state(self):
         self.print_current_state()
+        self.write_current_state()
+
         yield self.env.timeout(10000)
         if not self.end_event.is_set():
-            self.env.process(self.print_system_state())
+            self.env.process(self.print_and_store_current_state())
+        else:
+            self.print_current_state()
+            self.write_current_state()
+
 
     def print_current_state(self):
-        self.update_job_not_start_num()
-        # if self.job_come_num!=self.job_not_start_num+self.job_start_num:
-        #     a=1
-        assert self.job_come_num==self.job_not_start_num+self.job_start_num
-        out_string=f"************************current status (now:{self.env.now}) *******************************\n"
-        out_string+=f"job come number:{self.job_come_num}\tjob not start number:{self.job_not_start_num}\n"
-        out_string+=f"job start number:{self.job_start_num}\tjob dealing number:{self.job_dealing_num}\tjob end number:{self.job_end_num}(S:{self.succeed_job_num}/F:{self.failed_job_num})\n"
-        out_string+=f"instance start number:{self.instance_start_num}\tinstance dealing number:{self.instance_dealing_num}\tinstance end number:{self.instance_end_num}\n"
-        out_string+=f"command start number:{self.command_start_num}\tcommand dealing number:{self.command_dealing_num}\tcommand end number:{self.command_end_num}\n\n"
-        print(out_string)
+        # self.update_job_not_start_num()
+        self.job_not_start_num=self.wait_schedule_queue.qsize()
+        # assert self.job_come_num==self.job_not_start_num+self.job_start_num
+        if self.print_level>=1:
+            out_string=f"************************current status (now:{self.env.now}) *******************************\n"
+            out_string+=f"job come number:{self.job_come_num}\tjob not start number (in queue):{self.job_not_start_num}\n"
+            out_string+=f"job start number:{self.job_start_num}\tjob dealing number:{self.job_dealing_num}\tjob end number:{self.job_end_num}(S:{self.succeed_job_num}/F:{self.failed_job_num})\n"
+            out_string+=f"instance start number:{self.instance_start_num}\tinstance dealing number:{self.instance_dealing_num}\tinstance end number:{self.instance_end_num}\n"
+            out_string+=f"command start number:{self.command_start_num}\tcommand dealing number:{self.command_dealing_num}\tcommand end number:{self.command_end_num}\n\n"
+            print(out_string)
+
+    def write_current_state(self):
+        if self.file_trace!=None:
+            if self.env.now == 0:
+                self.file_trace.write("ave_cpu_allocate, ave_mem_allocate, ave_gpu_allocate, ave_gmem_allocate, idel_gpu_num, job_not_start_num, job_dealing_num\n")
+
+            idel_gpu_num=0
+            ave_cpu_allocate=0
+            ave_mem_allocate=0
+            ave_gpu_allocate=0
+            ave_gmem_allocate=0
+
+            for node_index in range(self.node_num):
+                idel_gpu_num+=self.nodes[node_index].get_idle_gpu_num()
+                [ave_cpu, ave_mem, ave_gpu, ave_gmem]=self.nodes[node_index].get_ave_allocate_resource()
+                ave_cpu_allocate+=ave_cpu
+                ave_mem_allocate += ave_mem
+                ave_gpu_allocate += ave_gpu
+                ave_gmem_allocate += ave_gmem
+            ave_cpu_allocate=ave_cpu_allocate/self.node_num
+            ave_mem_allocate=ave_mem_allocate/self.node_num
+            ave_gpu_allocate=ave_gpu_allocate/self.node_num
+            ave_gmem_allocate=ave_gmem_allocate/self.node_num
+
+            out_string=f"{ave_cpu_allocate},{ave_mem_allocate},{ave_gpu_allocate},{ave_gmem_allocate},{idel_gpu_num},{self.job_not_start_num},{self.job_dealing_num}\n "
+            self.file_trace.write(out_string)
+            self.file_trace.flush()
 
     def update_job_not_start_num(self):
         job_waiting_list=list(self.wait_schedule_queue.queue)
@@ -392,7 +459,8 @@ class WeaveMaster:
 
 
     def set_makespan(self):
-        self.makespan=self.env.now-self.start_time
+        self.makespan_sim=self.env.now-self.start_time_sim
+        self.makespan_real=time.time()-self.start_time_real
 
             
     def get_sum_info(self):
@@ -410,9 +478,8 @@ class WeaveMaster:
         temp_string+=f"ali_trace_node_info_file_name:{self.ali_trace_node_info_file_name}\n"
         temp_string+=f"analyze_file_name:{self.analyze_file_name}\n"
         temp_string+="    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    time info in following    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    \n"
-        temp_string+=f"time cost(s){time.time()-self.start_time_real_world}\n"
+        temp_string+=f"makespan real(s){self.makespan_real}, \t makespan:{self.makespan_sim}\n"
         temp_string+=f"all job num:{self.job_come_num}, \tsucceed job num:{self.succeed_job_num}, \tfailed job num:{self.failed_job_num}\n"
-        temp_string+=f"makespan:{self.makespan}\n"
         temp_string+=f"queue length{self.queue_length}\n"
         
         return temp_string+self.sum_string+"\n\n\n"
@@ -422,55 +489,66 @@ class WeaveMaster:
 
     
     
-def experiment_one_group_parameters(system, strategy, mps_flage, sync_flage, file, print_level):
+def experiment_one_group_parameters(system, strategy, file_sum, file_trace, print_level):
 
-    weave_master=WeaveMaster(system, strategy, mps_flage, sync_flage, print_level)
+    weave_master=WeaveMaster(system, strategy, file_trace, print_level)
     weave_master.run()
-    weave_master.print_job_time_info()
+    if print_level>=1:
+        weave_master.print_job_time_info()
+        print(f"The simulation end (system:{system}, strategy:{strategy}, file_sum:{file_sum != None}, file_trace:{file_trace != None}) !")
 
-    if file != None:
+    if file_sum != None:
         out_string=weave_master.get_sum_info()
-        file.write(out_string)
-        file.flush()
+        file_sum.write(out_string)
+        file_sum.flush()
 
-    print(f"The simulation end (system:{strategy}, strategy:{strategy}, mps:{mps_flage}, sync:{sync_flage}, file:{file != None}) !")
+
 
 
 
 
 if __name__=="__main__":
-    # parser = argparse.ArgumentParser(description='simulation for DL training job')
-    # parser.add_argument("--system",default="normal",type=str)
-    # parser.add_argument("--strategy", default="FIFO", type=str)
-    #
-    # parser.add_argument("--write_flage", action='store_true')
+    parser = argparse.ArgumentParser(description='simulation for DL training job')
+    parser.add_argument("--system",default="Muri",type=str)
+    parser.add_argument("--strategy", default="FIFO", type=str)
+    parser.add_argument("--print_level", default=2, type=int)
+    parser.add_argument("--write_sum", action='store_true')
+    parser.add_argument("--write_trace", action='store_true')
     # parser.add_argument("--mps_flage", action='store_true')
     # parser.add_argument("--sync_flage", action='store_true')
+    args=parser.parse_args()
 
 
     #control parameters
     version="sim_v1.0.0"
-    write_flage=True
-    system="Normal"
-    strategy="FIFO"
-    mps_flage=False
-    sync_flage=False
-    print_level=0
+
+    system=args.system
+    strategy=args.strategy
+    write_sum = True#args.write_sum
+    write_trace = True#args.write_trace
+    print_level=args.print_level
 
     parent_dir= os.path.dirname(os.path.abspath(os.curdir))
     # 格式化输出
     now_time= datetime.datetime.now()
     formatted_time = now_time.strftime('%m_%d_%H_%M_%S')
-    sum_info_file_name="SumInfo_Weave_"+version+"_"+formatted_time+".txt"
-    if write_flage:
-        file=open(parent_dir+"/output/"+sum_info_file_name,"w")
+    sim_sum_file_name="Sim_Sum-"+system+"_"+strategy+"-"+version+"_"+formatted_time+".txt"
+    sim_trace_file_name="Sim_Trace_"+system+"_"+strategy+"_"+version+"_"+formatted_time+".csv"
+    if write_sum:
+        file_sum=open(parent_dir+"/output/"+sim_sum_file_name,"w")
     else:
-        file=None
+        file_sum=None
 
-    experiment_one_group_parameters(system, strategy, mps_flage, sync_flage, file,print_level)
-    # experiment_all(file, "SRTF",formatted_time, version)
-    # experiment_all(file, "SRSF",formatted_time, version)
-    if write_flage:
-        file.close()
+    if write_trace:
+        file_trace = open(parent_dir + "/output/" + sim_trace_file_name, "w")
+    else:
+        file_trace=None
+
+    experiment_one_group_parameters(system, strategy, file_sum, file_trace, print_level)
+
+    if write_sum:
+        file_sum.close()
+    if write_trace:
+        file_trace.close()
     
     

@@ -12,11 +12,11 @@ import numpy as np
 import subprocess
 import math
 
-gpu_mem_dict={"T4":16,
-              "MISC":16,
-              "P100":16,
-              "V100":16,
-              "V100M32":32
+gpu_mem_dict={"T4":16.0,
+              "MISC":16.0,
+              "P100":16.0,
+              "V100":16.0,
+              "V100M32":32.0
               }
 
 model_to_batch_size_g={"AlexNet" : [8,16,32,64,128],
@@ -89,6 +89,7 @@ def is_port_in_use(ip, port):
 
 #生成共享内存名字
 def generate_shm_name(length=10):
+    return " "
     # 选择字母和数字
     characters = string.ascii_letters + string.digits
     # 使用secrets.choice从characters中随机选择字符，并使用join将它们组合成一个字符串

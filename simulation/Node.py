@@ -23,13 +23,13 @@ class Node:
     def set_init_resouce(self, cpu, mem, gpu_num, gmem):
         self.cpu=cpu
         self.mem=mem
-        self.gpu=np.array([100*self.overshared_factor for i in range(gpu_num)])
+        self.gpu=np.array([100.0*self.overshared_factor for i in range(gpu_num)])
         self.gmem=np.array([gmem for i in range(gpu_num)])
         self.gpu_num=gpu_num
         
         self.cpu_rest=cpu
         self.mem_rest=mem
-        self.gpu_rest=np.array([100*self.overshared_factor for i in range(gpu_num)])
+        self.gpu_rest=np.array([100.0*self.overshared_factor for i in range(gpu_num)])
         self.gmem_rest=np.array([gmem for i in range(gpu_num)])
         
     def print_node_resource(self):
@@ -114,6 +114,8 @@ class Node:
                 gpu_need = pack_resource[2]
                 gmem_need = pack_resource[3]
 
+                # assert gpu_need <= 100
+
                 if self.cpu_rest < cpu_need or self.mem_rest < mem_need:
                     return satisfy_gpu_id_list, len(satisfy_gpu_id_list)
                 cpu_rest_per = (self.cpu_rest - cpu_need) / self.cpu
@@ -141,8 +143,9 @@ class Node:
 
         if self.cpu < cpu_need or self.mem < mem_need or self.gpu_num==0:
             return 0
-        if self.gmem[0]<gmem_need :
+        if self.gmem[0]<gmem_need or self.gpu[0]<gpu_need:
             return 0
+
         satisfy_gpu_num = min(math.floor(self.cpu / cpu_need), math.floor(self.mem / mem_need), self.gpu_num)
 
         return satisfy_gpu_num
@@ -186,7 +189,7 @@ class Node:
 
 
     def end_instance(self,instance):
-        yield self.env.timeout(instance.job.duration_time)
+        yield self.env.timeout(instance.duration_time)
         if self.print_level > 5:
             print(f"node: {self.node_id} end instance:{instance.instance_name} !")
         instance.end_time = self.env.now
@@ -195,3 +198,16 @@ class Node:
             instance.job.dealing_instance_num -= 1
             instance.job.succeed_instance_num += 1
         self.master.statistic_end_instance(instance)
+
+    def get_ave_allocate_resource(self):
+        ave_cpu=(self.cpu-self.cpu_rest)/self.cpu
+        ave_mem=(self.mem-self.mem_rest)/self.mem
+        gpu_alloc=0
+        gmem_alloc=0
+        for i in range(self.gpu_num):
+            gpu_alloc += self.gpu[i]-self.gpu_rest[i]
+            gmem_alloc += self.gmem[i] - self.gmem_rest[i]
+
+        ave_gpu=gpu_alloc/self.gpu_num/(self.gpu[0]/self.overshared_factor)
+        ave_gmem=gmem_alloc/self.gpu_num/self.gmem[0]
+        return [ave_cpu, ave_mem, ave_gpu, ave_gmem]
