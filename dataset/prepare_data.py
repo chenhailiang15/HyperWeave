@@ -1,8 +1,13 @@
 import kagglehub
 import os
+import pickle
+from transformers.data.processors.squad import SquadV2Processor, squad_convert_examples_to_features
+from transformers import BertTokenizer
+
+cur_dir=os.path.dirname(os.path.abspath(__file__))
 
 def tiny_ImageNet_download():
-    cur_dir=os.path.dirname(os.path.abspath(__file__))
+    
     
     if os.path.exists(cur_dir+"/tiny-ImageNet"):
         print("ImageNet exits, return!")
@@ -21,18 +26,15 @@ def tiny_ImageNet_download():
 
 tiny_ImageNet_download()
 
-import pickle
-from transformers.data.processors.squad import SquadV2Processor, squad_convert_examples_to_features
-from transformers import BertTokenizer
-import os
+
 def squad_convert_to_fit_bert_features():
     # 初始化SQuAD Processor, 数据集, 和分词器
     processor = SquadV2Processor()
     cur_dir_path = os.path.abspath(os.curdir)
     # root_path=os.path.dirname(current_path)
     # path = os.path.join(root_path,"dataset")
-    train_examples = processor.get_train_examples(cur_dir_path)
-    tokenizer = BertTokenizer(vocab_file="./vocab.txt")
+    train_examples = processor.get_train_examples(cur_dir)
+    tokenizer = BertTokenizer(vocab_file=cur_dir+"/vocab.txt")
 
 
     # 将SQuAD 2.0示例转换为BERT输入特征
