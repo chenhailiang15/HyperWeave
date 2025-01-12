@@ -173,7 +173,7 @@ class WeaveMonitor:
             if parallel_num <= 1:
                 if init==True and gpu_need>100:
                     if self.print_level>=2:
-                        print("used gpu resource more than 100 per GPU")
+                        print("status out: used gpu resource more than 100 per GPU (in init)")
                     return False
 
                 for i in range(self.node_num):

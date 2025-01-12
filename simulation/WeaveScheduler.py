@@ -15,13 +15,18 @@ class WeaveSchedulor:
         self.strategy=master.schedule_strategy
         self.gpu_list=[i for i in range(7)]
         self.print_level=print_level
-        self.paired_instance_list=[]
-        self.paired_instance_name=[]
+        if self.strategy=="BN-SRSF":
+            self.paired_instance_list={}
+            self.paired_instance_name={}
+        else:
+            
+            self.paired_instance_list=[]
+            self.paired_instance_name=[]
         
     
     def do_schedule(self,job_list):
-        # if self.print_level>2:
-        print(f"start schedule ({self.strategy})...")
+        if self.print_level>10:
+            print(f"start schedule ({self.strategy})...")
             
         if self.master.system=="Weave":
             rest_job=self.schedule_weave(job_list)
@@ -31,38 +36,73 @@ class WeaveSchedulor:
             rest_job=self.schedule_normal(job_list)
         else:
             print(f"system name wrong! {self.master.system} (should be Weave, Muri or Normal)")
-        print(f"end schedule ({self.strategy})!!!")
+            exit(-1)
+        
+        if self.print_level>10:
+            print(f"end schedule ({self.strategy})!!!")
         return rest_job
     
     #Weave 调度主线
     def schedule_weave(self,job_list):
-        # if self.master.env.now>3038583:
-        #     a=0
+
         if self.strategy=="BN-SRSF":
-            all_bucket={}
+            
+            all_bucket_job={}
             for job in job_list:
                 bucket_id =math.floor(job.arrive_time/self.master.bucket_length)
-                if bucket_id not in all_bucket:
-                    all_bucket[bucket_id]=[job]
+                if bucket_id not in all_bucket_job:
+                    all_bucket_job[bucket_id]=[job]
                 else:
-                    all_bucket[bucket_id].append(job)
-
-
-
-
-
-            # self.schedule_weave_BN_SRSF(all_matched_instance_list, job_list)
+                    all_bucket_job[bucket_id].append(job)
+                    
+            bucket_all_matched_instance_dict={}
+            for bucket_id in all_bucket_job.keys():
+                #初始化字典
+                if bucket_id not in self.paired_instance_list:
+                    self.paired_instance_list[bucket_id]=[]
+                if bucket_id not in self.paired_instance_name:
+                    self.paired_instance_name[bucket_id]=[]
+                    
+                bucket_job_list=all_bucket_job[bucket_id]
+                instance_group=self.schedule_weave_classify_instance_based_on_gpu_num(bucket_job_list)
+                all_matched_instance_list=[]
+                
+                for parallel_num in instance_group:
+                    sub_instance_list=instance_group[parallel_num]
+                    #将已经匹配过的，进行剔除
+                    for i in range(len(sub_instance_list)-1, -1, -1):
+                        if sub_instance_list[i].instance_name in self.paired_instance_name[bucket_id]:
+                            sub_instance_list.remove(sub_instance_list[i])
+                    if self.print_level>10:
+                        print(f"start match...  -parallel:{parallel_num}  -instance num: {len(sub_instance_list)}")
+                    matched_instance_list=self.schedule_weave_match_instances(sub_instance_list)
+                    #将新匹配成功的，加入调度器记录(进行记录的需要从原始列表中删除)
+                    for i in range(len(matched_instance_list) - 1, -1, -1):
+                        [instance1, instance2, pack_resource] = matched_instance_list[i]
+                        if instance2 != None:
+                            self.paired_instance_list[bucket_id].append([instance1, instance2, pack_resource])
+                            self.paired_instance_name[bucket_id].append(instance1.instance_name)
+                            self.paired_instance_name[bucket_id].append(instance2.instance_name)
+                            matched_instance_list.remove([instance1, instance2, pack_resource])
+                    #合并得到新的list
+                    all_matched_instance_list.extend(matched_instance_list)
+                all_matched_instance_list.extend(self.paired_instance_list[bucket_id])
+                bucket_all_matched_instance_dict[bucket_id]=all_matched_instance_list
+            
+            self.schedule_weave_BN_SRSF(bucket_all_matched_instance_dict, job_list)
+            
         else:
             instance_group=self.schedule_weave_classify_instance_based_on_gpu_num(job_list)
             all_matched_instance_list=[]
-            print("divide to group")
+            
             for parallel_num in instance_group:
                 sub_instance_list=instance_group[parallel_num]
                 #将已经匹配过的，进行剔除
                 for i in range(len(sub_instance_list)-1, -1, -1):
                     if sub_instance_list[i].instance_name in self.paired_instance_name:
                         sub_instance_list.remove(sub_instance_list[i])
-                print(f"match one group parallel:{parallel_num}, list num: {len(sub_instance_list)}")
+                if self.print_level>10:
+                    print(f"start match...  -parallel:{parallel_num}  -instance num: {len(sub_instance_list)}")
                 matched_instance_list=self.schedule_weave_match_instances(sub_instance_list)
                 #将新匹配成功的，加入调度器记录(进行记录的需要从原始列表中删除)
                 for i in range(len(matched_instance_list) - 1, -1, -1):
@@ -75,7 +115,8 @@ class WeaveSchedulor:
                 #合并得到新的list
                 all_matched_instance_list.extend(matched_instance_list)
             all_matched_instance_list.extend(self.paired_instance_list)
-            print("start strategy...")
+            if self.print_level>10:
+                print("start strategy...")
             if self.strategy=="FIFO":
                 self.schedule_weave_FIFO(all_matched_instance_list, job_list)
             elif self.strategy=="SRTF":
@@ -99,7 +140,7 @@ class WeaveSchedulor:
             order_matched_jobs.append([instance1, instance2, pack_resource, arrive_time])
         #matched_jobs排序
         order_matched_jobs.sort(key=lambda x : x[3])
-        print("order over...")
+        
         self.schedule_weave_ordered_matched_job_list(order_matched_jobs, job_list)
 
     
@@ -141,22 +182,27 @@ class WeaveSchedulor:
         order_matched_jobs.sort(key=lambda x : x[3])
         self.schedule_weave_ordered_matched_job_list(order_matched_jobs, job_list)
 
-    def schedule_weave_BN_SRSF(self, matched_instances, job_list):
-        order_matched_jobs = []
-        time_now = time.time()
+    def schedule_weave_BN_SRSF(self, bucket_all_matched_instance_dict, job_list):
+        bucket_order_matched_jobs={}
+        for bucket_id in bucket_all_matched_instance_dict.keys():
+            matched_instance=bucket_all_matched_instance_dict[bucket_id]
+            order_matched_jobs = []
+            time_now = time.time()
 
-        for [instance1, instance2, pack_resource] in matched_instances:
-            if instance2 != None:
-                rest_time1 = (instance1.job.ddl_time - time_now - instance1.duration_time) * instance1.job.parallel_num
-                rest_time2 = (instance2.job.ddl_time - time_now - instance2.duration_time) * instance2.job.parallel_num
-                rest_time = min(rest_time1, rest_time2)
-            else:
-                rest_time = instance1.job.ddl_time - time_now - instance1.duration_time
-            order_matched_jobs.append([instance1, instance2, pack_resource, rest_time])
+            for [instance1, instance2, pack_resource] in matched_instance:
+                if instance2 != None:
+                    rest_time1 = (instance1.job.ddl_time - time_now - instance1.duration_time) * instance1.job.parallel_num
+                    rest_time2 = (instance2.job.ddl_time - time_now - instance2.duration_time) * instance2.job.parallel_num
+                    rest_time = min(rest_time1, rest_time2)
+                else:
+                    rest_time = instance1.job.ddl_time - time_now - instance1.duration_time
+                order_matched_jobs.append([instance1, instance2, pack_resource, rest_time])
 
-        # match_jobs排序
-        order_matched_jobs.sort(key=lambda x: x[3])
-        self.schedule_weave_ordered_matched_job_list(order_matched_jobs, job_list)
+            # match_jobs排序
+            order_matched_jobs.sort(key=lambda x: x[3])
+            bucket_order_matched_jobs[bucket_id]=order_matched_jobs
+            
+        self.schedule_weave_bucket_ordered_matched_job_list(bucket_order_matched_jobs, job_list)
 
 
     def schedule_weave_classify_instance_based_on_gpu_num(self, job_list):
@@ -224,8 +270,7 @@ class WeaveSchedulor:
                 time_factor = self.schedule_weave_cal_similarity(time11 + time22, time12 + time21)
 
                 pack_resource = [max(cpu10 + cpu20, cpu11 + cpu22, cpu12 + cpu21), max(mem10 + mem20, mem11 + mem22, mem12 + mem21), max(gpu10 + gpu20, gpu11 + gpu22, gpu12 + gpu21), max(gmem10 + gmem20, gmem11 + gmem22, gmem12 + gmem21)]
-                if instance2.job.job_idx==75:
-                    a=1
+                
                 result = self.master.monitor.judge_runable_with_resource(pack_resource, instance1.job.parallel_num, plan_flage=False, init=False)
                 if result:
                     similarity = epoch_factor + parallel_factor + cpu_factor + mem_factor + gpu_factor + gmem_factor + time_factor
@@ -277,7 +322,8 @@ class WeaveSchedulor:
 
 
     def schedule_weave_ordered_matched_job_list(self, match_instances, job_list):
-        print("start execute...")
+        if self.print_level>10:
+            print("start execute...")
         # 是否继续调度的标志，当遇到一个无法调度的任务时，停止调度等待下一轮调度，将剩余的job返回
         continue_schedule_flage = True
         # 循环调度
@@ -291,6 +337,7 @@ class WeaveSchedulor:
                 # [[node_index, score, [[gpu_id, score],...]],...]
                 adjust_pack_resource=[x/instance1.job.parallel_num for x in pack_resource]
                 satisfy_gpu_list = self.master.monitor.get_satisfy_gpu_for_sim(adjust_pack_resource)
+
                 # 对优先级进行排序
                 # satisfy_gpu_list_new = []
                 all_satisfy_gpu_num = 0
@@ -340,8 +387,8 @@ class WeaveSchedulor:
                         job_list.remove(instance2.job)
 
                     self.execute_schedule(instance2, selected_gpu_id_list, False, shm_name_dict)
-
-                    print(f"instance:{instance1.instance_name} couple with instance: {instance2.instance_name}")
+                    if self.print_level>10:
+                        print(f"instance:{instance1.instance_name} couple with instance: {instance2.instance_name}")
                     # if self.master.weave_sync_mode == False: 仿真系统难以准确建模同步不同步，以及是否启用MPS对系统的影响，因此，凡是Weave，都默认启动
                     #     shm_name_dict = {}
 
@@ -370,6 +417,101 @@ class WeaveSchedulor:
             else:
                 return
 
+    def schedule_weave_bucket_ordered_matched_job_list(self, bucket_match_instances, job_list):
+        if len(bucket_match_instances.keys())==0:
+            return
+        # 是否继续调度的标志，当遇到一个无法调度的任务时，停止调度等待下一轮调度，将剩余的job返回
+        continue_schedule_flage = True
+        # 循环调度
+        key_list=list(bucket_match_instances.keys())
+        key_list.sort()
+        print(key_list)
+        first_bucket_id=key_list[0]
+        for bucket_id in key_list:
+            match_instances=bucket_match_instances[bucket_id]
+            
+            match_order=0
+            for [instance1, instance2, pack_resource, order_value] in match_instances:
+                # if len(job1.instance_list)==0 or (job2 != None and len(job2.instance_list)==0):
+                #
+                #     continue
+                match_order+=1
+                
+                # 正常调度
+                # [[node_index, score, [[gpu_id, score],...]],...]
+                adjust_pack_resource=[x/instance1.job.parallel_num for x in pack_resource]
+                satisfy_gpu_list = self.master.monitor.get_satisfy_gpu_for_sim(adjust_pack_resource)
+
+                # 对优先级进行排序
+                # satisfy_gpu_list_new = []
+                all_satisfy_gpu_num = 0
+                for [node_index, score, temp_gpu_list] in satisfy_gpu_list:
+                    # score = score + len(temp_gpu_list) * 10 - self.master.nodes[node_index].get_over_corss_num() * 10
+                    # # 调整优先级，score原始是GPU剩余量百分比的和
+                    # satisfy_gpu_list_new.append([node_index, score, temp_gpu_list])
+                    all_satisfy_gpu_num += len(temp_gpu_list)
+                # satisfy_gpu_list_new.sort(key=lambda x: x[1], reverse=True)
+                
+                need_parallel = instance1.job.parallel_num
+                if all_satisfy_gpu_num < need_parallel:
+                    if first_bucket_id==bucket_id and match_order==1:
+                        return
+                    else:
+                        continue
+                        
+                if instance2 != None:
+                    selected_gpu_id_list, shm_name_dict = self.schedule_weave_select_gpu(need_parallel, satisfy_gpu_list)
+                    # scheduled_jobs.append([job1, job1_gpu_id_list, shm_name_dict])
+                    # scheduled_jobs.append([job2, job2_gpu_id_list, shm_name_dict])
+                    [cpu, mem, gpu, gmem] = pack_resource
+                    instance1.set_pack_resource(math.ceil(cpu), math.ceil(mem), math.ceil(gpu), math.ceil(gmem), instance2.instance_name)
+                    instance2.set_pack_resource(math.ceil(cpu), math.ceil(mem), math.ceil(gpu), math.ceil(gmem),instance1.instance_name)
+
+                    #更新持续时间
+                    self.schedule_weave_updata_duration_time(instance1, instance2)
+                    self.master.monitor.alloc_resource(instance1, instance2, selected_gpu_id_list)
+                    #将两个instance从记录中删除
+                    for i in range(len(self.paired_instance_list[bucket_id])-1,-1,-1):
+                        if self.paired_instance_list[bucket_id][i][0].instance_name == instance1.instance_name:
+                            self.paired_instance_list[bucket_id].remove(self.paired_instance_list[bucket_id][i])
+                            self.paired_instance_name[bucket_id].remove(instance1.instance_name)
+                            self.paired_instance_name[bucket_id].remove(instance2.instance_name)
+                            break
+                    
+                    if instance1 not in instance1.job.instance_list:
+                        a=1
+                    instance1.job.instance_list.remove(instance1)
+                    if len(instance1.job.instance_list) == 0:
+                        # print(f"remove:{instance1.job.job_idx}with instance2 {instance2.instance_name} ins1: {instance1.instance_name}")
+                        job_list.remove(instance1.job)
+
+                    self.execute_schedule(instance1, selected_gpu_id_list, True, shm_name_dict)
+
+                    instance2.job.instance_list.remove(instance2)
+                    if len(instance2.job.instance_list) == 0:
+                        # print(f"remove:{instance2.job.job_idx} with instance1 {instance1.instance_name} ins1: {instance2.instance_name}")
+                        job_list.remove(instance2.job)
+
+                    self.execute_schedule(instance2, selected_gpu_id_list, False, shm_name_dict)
+                    if self.print_level>10:
+                        print(f"instance:{instance1.instance_name} couple with instance: {instance2.instance_name}")
+                    # if self.master.weave_sync_mode == False: 仿真系统难以准确建模同步不同步，以及是否启用MPS对系统的影响，因此，凡是Weave，都默认启动
+                    #     shm_name_dict = {}
+
+                else:
+                    selected_gpu_id_list,_ = self.schedule_weave_select_gpu(need_parallel, satisfy_gpu_list)
+                    # scheduled_jobs.append([job1, job1_gpu_id_list, {}])
+                    [cpu, mem, gpu, gmem] = pack_resource
+                    instance1.set_pack_resource(math.ceil(cpu), math.ceil(mem), math.ceil(gpu), math.ceil(gmem))
+
+                    instance1.job.instance_list.remove(instance1)
+                    if len(instance1.job.instance_list) == 0:
+                        # print(f"remove{instance1.job.job_idx}")
+                        job_list.remove(instance1.job)
+
+                    self.master.monitor.alloc_resource(instance1, None, selected_gpu_id_list)
+                    self.execute_schedule(instance1, selected_gpu_id_list, False, {})
+
     def schedule_weave_updata_duration_time(self, instance1, instance2):
         # 初始化rest_batch_num
         one_epoch_time=max(instance1.job.time_init_iter, instance2.job.time_epoch_no_init_iter)+ \
@@ -392,9 +534,9 @@ class WeaveSchedulor:
             cur_time += (instance1.job.time_init_iter + instance1.job.time_epoch_no_init_iter) * (instance1.job.total_epochs - instance2.job.total_epochs)
             instance1.duration_time = cur_time
 
-
-        print(f"instance {instance1.instance_name}, init duration {instance1.job.duration_time}, new duration {instance1.duration_time}")
-        print(f"instance {instance2.instance_name}, init duration {instance2.job.duration_time}, new duration {instance2.duration_time}")
+        if self.print_level>10:
+            print(f"instance {instance1.instance_name}, init duration {instance1.job.duration_time}, new duration {instance1.duration_time}")
+            print(f"instance {instance2.instance_name}, init duration {instance2.job.duration_time}, new duration {instance2.duration_time}")
         return
     
     def schedule_weave_select_gpu(self, rest_gpu,  satisfy_gpu_list):

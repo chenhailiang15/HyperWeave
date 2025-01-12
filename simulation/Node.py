@@ -137,7 +137,7 @@ class Node:
                 mem_rest_per = (self.mem_rest - mem_need) / self.mem
 
                 for i in range(self.gpu_num):
-                    if self.master.system=="Weave" and len(self.dealing_instance_name) >= self.max_instance_num_for_single_gpu:
+                    if self.master.system=="Weave" and len(self.dealing_instance_name[i]) >= self.max_instance_num_for_single_gpu:
                         continue
                     
                     if self.gpu_rest[i] >= gpu_need and self.gmem_rest[i] >= gmem_need:
@@ -228,7 +228,9 @@ class Node:
         yield self.env.timeout(time_extend)
         if self.master.system=="Weave":
             while True:
+                
                 time_extend=instance.get_time_extend(self.env.now-time_extend, self.env.now)
+                
                 if time_extend==0:
                     break
                 else:
@@ -254,7 +256,7 @@ class Node:
             self.dealing_instance[gpu_index].append(instance)
             if instance.couple_instance_name!=None:
                 couple_start=False
-                for index in range(self.dealing_instance_name[gpu_index]):
+                for index in range(len(self.dealing_instance_name[gpu_index])):
                     if instance.couple_instance_name == self.dealing_instance_name[gpu_index][index][0]:
                         self.dealing_instance_name[gpu_index][index].append(instance.instance_name)
                         couple_start=True
@@ -267,8 +269,10 @@ class Node:
             time_t=self.env.now
             gpu_id=str(self.node_id)+"-"+str(gpu_index)
             cur_num=len(self.dealing_instance_name[gpu_index])   
+            if cur_num>3:
+                a=1
             for instance_t in self.dealing_instance[gpu_index]:
-                print("job add trace!")
+                
                 if instance_t.instance_idx not in instance_t.job.time_extend_list:
                     instance_t.job.time_extend_list[instance_t.instance_idx]=[[time_t, gpu_id, cur_num]]
                 else:

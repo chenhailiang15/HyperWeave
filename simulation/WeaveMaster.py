@@ -48,13 +48,14 @@ class WeaveMaster:
             self.overshared_factor = 1  # 等于1存在GPU资源不够的情况
 
         if strategy=="BN-SRSF":
-            self.bucket_length=1000000
+            self.bucket_length=10000
+        self.couple_init_iter_percent=0.2
 
         self.file_trace=file_trace
 
         self.clock_time_factor = 1
         self.job_time_factor = 1
-        self.job_ddl_factor = 1  # ddl是任务持续时间的job_ddl_factor倍
+        self.job_ddl_factor = 10  # ddl是任务持续时间的job_ddl_factor倍
         self.schedule_interval = 360
 
         self.print_level=print_level
@@ -203,7 +204,7 @@ class WeaveMaster:
                 print(f"time: {self.env.now}\tjob {job.job_idx} \tcome ( detailed info :{job.job_key_info()})")
             self.wait_schedule_queue.put(job)
             self.job_come_num += 1
-            if index>=1000-1:
+            if self.job_come_num>=2000:
                 break
 
             if index + 1 < len(self.ali_trace_pd):
@@ -233,7 +234,8 @@ class WeaveMaster:
         model_duration_time=init_time+epoch_time
 
         if model_duration_time>=duration_time:
-            print("duration time is too small...")
+            if self.print_level>=2:
+                print("job generate fail (duration time is too small)")
             return None
 
         
@@ -247,8 +249,7 @@ class WeaveMaster:
         job.set_model_info(job_name, model_name,total_epochs, batch_size)
         job.batch_num=batch_num    #设置batch numbere
         job.instance_num=1        #多个instance融合为一个
-        if job_idx==254:
-            a=1
+        
         #设置各阶段时间消耗
         job.time_init=self.analyze_loader.get_time_value(model_info,0)
         job.time_init_iter=self.analyze_loader.get_value(model_info,"stage_sample","time")
@@ -256,6 +257,7 @@ class WeaveMaster:
         job.time_forward_back=self.analyze_loader.get_time_value(model_info,2)
         job.time_commu=self.analyze_loader.get_time_value(model_info,3)
         job.time_epoch_no_init_iter=batch_num*(job.time_get_data+job.time_forward_back+job.time_commu)-job.time_get_data
+        job.init_iter_percent=job.time_init_iter/(job.time_epoch_no_init_iter+job.time_init_iter)
         # 通过batchnum 和 epoch 以及各阶段时间，计算总持续时间
         duration_time =job.time_init+total_epochs*(job.time_epoch_no_init_iter+job.time_init_iter)
 
@@ -264,7 +266,8 @@ class WeaveMaster:
 
         pack_resource=[ali_trace["plan_cpu"], ali_trace["plan_mem"], ali_trace["plan_gpu"],0]
         if self.monitor.judge_runable_with_resource(pack_resource,job.parallel_num, plan_flage=True, init=True) == False:
-            print("plan resource not runable!")
+            if self.print_level>=2:
+                print("job generate fail (plan resource not runable!)")
             return None
 
 
@@ -291,7 +294,8 @@ class WeaveMaster:
         pack_resource=[max(job.used_resource_cpu), max(job.used_resource_mem), max(job.used_resource_gpu), max(job.used_resource_gmem)]
         # 并行度为1，实际使用为188，存在问题
         if self.monitor.judge_runable_with_resource(pack_resource, job.parallel_num, plan_flage=False, init=True) == False:
-            print(f"used resource not runable!{pack_resource}")
+            if self.print_level>=2:
+                print(f"job generate fail (used resource not runable)!{pack_resource}")
             return None
         #设置job到达时间
         arrive_time = self.env.now
@@ -347,13 +351,15 @@ class WeaveMaster:
                 if instance_t.job.instance_num==len(instance_t.job.instance_list)+1:
                     self.job_start_num += 1
                     self.job_dealing_num += 1
-
+            
+            if self.print_level>=2:
+                print(f"time: {round(self.env.now, 1)} start a sub-instance:", instance_t.instance_name)
             self.nodes[instance_t.node_rank].execute_instance(instance_t)
 
     
     def statistic_end_instance(self,instance):
         if self.print_level>=2:
-            print("end a instance:", instance.instance_name)
+            print(f"time: {round(self.env.now, 1)} end a sub-instance:", instance.instance_name)
 
         with self.lock:
 
@@ -510,8 +516,8 @@ def experiment_one_group_parameters(system, strategy, file_sum, file_trace, prin
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description='simulation for DL training job')
     parser.add_argument("--system",default="Weave",type=str)
-    parser.add_argument("--strategy", default="FIFO", type=str)
-    parser.add_argument("--print_level", default=2, type=int)
+    parser.add_argument("--strategy", default="BN-SRSF", type=str)
+    parser.add_argument("--print_level", default=11, type=int)
     parser.add_argument("--write_sum", action='store_true')
     parser.add_argument("--write_trace", action='store_true')
     # parser.add_argument("--mps_flage", action='store_true')

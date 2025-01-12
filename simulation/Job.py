@@ -136,8 +136,8 @@ class Job:
             return False
         
     def get_time_extend(self, instance_idx, time_start, time_now):
-        self.time_extend_list={}   #  instance_index->[[time, gpu_id, new_number],]  
-        self.time_extend_store={}
+        # self.time_extend_list={}   #  instance_index->[[time, gpu_id, new_number],]  
+        # self.time_extend_store={}
         
         if instance_idx in self.time_extend_store and time_now in self.time_extend_store[instance_idx]:
             return self.time_extend_store[instance_idx][time_now]
@@ -150,15 +150,17 @@ class Job:
         max_parallel_start_time=time_start
         last_element=None
         
-        if len(self.time_extend_list[instance_idx])==0:
-            a=1
         
         self.time_extend_list[instance_idx].sort(key=lambda x:x[0], reverse=True)
+        init_len=len(self.time_extend_list[instance_idx])
+        
         
         for index in range(len(self.time_extend_list[instance_idx])-1,-1,-1):
             [time_t, gpu_id, cur_num]=self.time_extend_list[instance_idx][index]
-            if index == len(self.time_extend_list[instance_idx])-1:  #并行数量初始化
-                assert time_t<time_start
+            if index == init_len-1:  #并行数量初始化
+                
+                assert time_t < time_start or abs(time_t-time_start)<0.00001
+                
                 global_max_parallel=cur_num
                 global_max_parallel_gpu_id=gpu_id
                 last_element=self.time_extend_list[instance_idx][index]
@@ -169,28 +171,37 @@ class Job:
             elif cur_num>temp_dict[gpu_id]:
                 temp_dict[gpu_id]=cur_num
             
-            #更新最大值对应的GPU ID，防止后续删除错误
+            
             local_max_parallel_gpu_id, local_max_parallel=max(temp_dict.items(), key=lambda item: item[1]) 
-            if local_max_parallel==global_max_parallel and local_max_parallel_gpu_id!= global_max_parallel_gpu_id:
-                self.time_extend_list[instance_idx].remove(last_element)
-                last_element=self.time_extend_list[instance_idx][index]
+            # if local_max_parallel==global_max_parallel and local_max_parallel_gpu_id!= global_max_parallel_gpu_id:
+            #     self.time_extend_list[instance_idx].remove(last_element)
+            #     last_element=self.time_extend_list[instance_idx][index]
                 
                 
             #判断是否需要更新time_extend
             if time_t> max_parallel_start_time and local_max_parallel!=global_max_parallel:
-                time_extend+=(mps_time_extend[self.model_name][global_max_parallel]-1)*(time_t-max_parallel_start_time)
+
+                time_extend+=(mps_time_extend[self.model_name][global_max_parallel-1]-1)*(time_t-max_parallel_start_time)
                 global_max_parallel=local_max_parallel
                 max_parallel_start_time=time_t
                 
                 self.time_extend_list[instance_idx].remove(last_element)
                 last_element=self.time_extend_list[instance_idx][index]
+            #更新最大值对应的GPU ID，防止后续删除错误
             elif local_max_parallel==global_max_parallel and local_max_parallel_gpu_id != global_max_parallel_gpu_id:
                 self.time_extend_list[instance_idx].remove(last_element)
                 last_element=self.time_extend_list[instance_idx][index]
             else:
-                del self.time_extend_list[instance_idx][index]
-                
-        self.time_extend_store[instance_idx][time_now]=time_extend
+                if self.time_extend_list[instance_idx][index]!=last_element:
+                    del self.time_extend_list[instance_idx][index]
+        
+        time_extend=round(time_extend, 6)
+        if instance_idx not in self.time_extend_store:
+            self.time_extend_store[instance_idx]={}
+            self.time_extend_store[instance_idx][time_now]=time_extend
+        else:
+            self.time_extend_store[instance_idx][time_now]=time_extend
+            
         return time_extend
 
 
