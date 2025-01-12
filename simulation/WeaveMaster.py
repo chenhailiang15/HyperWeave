@@ -509,7 +509,7 @@ def experiment_one_group_parameters(system, strategy, file_sum, file_trace, prin
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description='simulation for DL training job')
-    parser.add_argument("--system",default="Muri",type=str)
+    parser.add_argument("--system",default="Weave",type=str)
     parser.add_argument("--strategy", default="FIFO", type=str)
     parser.add_argument("--print_level", default=2, type=int)
     parser.add_argument("--write_sum", action='store_true')
@@ -528,7 +528,8 @@ if __name__=="__main__":
     write_trace = True#args.write_trace
     print_level=args.print_level
 
-    parent_dir= os.path.dirname(os.path.abspath(os.curdir))
+    cur_dir=os.path.dirname(os.path.abspath(__file__))
+    parent_dir= os.path.dirname(os.path.abspath(cur_dir))
     # 格式化输出
     now_time= datetime.datetime.now()
     formatted_time = now_time.strftime('%m_%d_%H_%M_%S')

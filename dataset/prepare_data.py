@@ -28,9 +28,12 @@ tiny_ImageNet_download()
 
 
 def squad_convert_to_fit_bert_features():
+    if os.path.exists(cur_dir+"/SQuAD_train_features.pkl"):
+        print("SQuAD_train_features exits, return!")
+        return
     # 初始化SQuAD Processor, 数据集, 和分词器
     processor = SquadV2Processor()
-    cur_dir_path = os.path.abspath(os.curdir)
+    # cur_dir_path = os.path.abspath(os.curdir)
     # root_path=os.path.dirname(current_path)
     # path = os.path.join(root_path,"dataset")
     train_examples = processor.get_train_examples(cur_dir)
@@ -50,7 +53,7 @@ def squad_convert_to_fit_bert_features():
     )
 
     # 将特征保存到磁盘上
-    with open('SQuAD_train_features.pkl', 'wb') as f:
+    with open(cur_dir+'/SQuAD_train_features.pkl', 'wb') as f:
         pickle.dump(train_features, f)
 
 print("start deal squad...")

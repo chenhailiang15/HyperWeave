@@ -8,6 +8,7 @@ pip_install_data_pre()
 pip_install_requirement()
 {
     pip install -r requirement.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+    pip install torch==1.9.1+cu111 -f https://download.pytorch.org/whl/cu111/torch_stable.html -i https://pypi.tuna.tsinghua.edu.cn/simple
     pip install torch_scatter-2.0.7-cp38-cp38-linux_x86_64.whl
     pip install torch_sparse-0.6.12-cp38-cp38-linux_x86_64.whl
     echo "waiting for data init..."
@@ -17,7 +18,7 @@ pip_install_requirement()
 CONDA_BASE=$(conda info --base)
 source "$CONDA_BASE/etc/profile.d/conda.sh"
 
-my_conda_env="torch_mp2"
+my_conda_env="torch_mp"
 
 if conda env list | grep $my_conda_env; then
     echo $my_conda_env "existed!"
@@ -36,4 +37,3 @@ echo "environment and data init over!"
 
 
 
-    # pip install torch==1.9.1+cu111 -f  https://download.pytorch.org/whl/cu111/torch_stable.html -i https://pypi.tuna.tsinghua.edu.cn/simple

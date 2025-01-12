@@ -20,6 +20,14 @@ class Node:
         self.current_port=2000
         self.lock=threading.Lock()
         
+        self.dealing_instance={}
+        self.dealing_instance_name={}
+        self.max_instance_num_for_single_gpu=3   #couple 算一个
+        
+        
+        
+        
+        
     def set_init_resouce(self, cpu, mem, gpu_num, gmem):
         self.cpu=cpu
         self.mem=mem
@@ -31,6 +39,13 @@ class Node:
         self.mem_rest=mem
         self.gpu_rest=np.array([100.0*self.overshared_factor for i in range(gpu_num)])
         self.gmem_rest=np.array([gmem for i in range(gpu_num)])
+        #初始化记录信息
+        for index in range(self.gpu_num):
+            self.dealing_instance[index]=[]
+            self.dealing_instance_name[index]=[]
+        
+    
+        
         
     def print_node_resource(self):
         print(f"@@@@@@node id: {self.node_id}\tcpu-{self.cpu_rest}\tmem-{self.mem_rest}",end="\t")
@@ -122,6 +137,9 @@ class Node:
                 mem_rest_per = (self.mem_rest - mem_need) / self.mem
 
                 for i in range(self.gpu_num):
+                    if self.master.system=="Weave" and len(self.dealing_instance_name) >= self.max_instance_num_for_single_gpu:
+                        continue
+                    
                     if self.gpu_rest[i] >= gpu_need and self.gmem_rest[i] >= gmem_need:
                         gpu_rest_per = (self.gpu_rest[i] - gpu_need) / self.gpu[i]
                         gmem_rest_per = (self.gmem_rest[i] - gmem_need) / self.gmem[i]
@@ -173,32 +191,6 @@ class Node:
                 idel_gpu_num+=1
         return idel_gpu_num
 
-
-    def execute_instance(self, instance):
-        if self.print_level > 5:
-            print(f"node: {self.node_id} execute instance:{instance.instance_name} ...")
-        instance.start_time=self.env.now
-        if instance.is_main:
-            instance.job.dealing_instance_num+=1
-            if instance.job.start_time == 0:
-                instance.job.start_time=self.env.now
-
-        self.env.process(self.end_instance(instance))
-
-        return
-
-
-    def end_instance(self,instance):
-        yield self.env.timeout(instance.duration_time)
-        if self.print_level > 5:
-            print(f"node: {self.node_id} end instance:{instance.instance_name} !")
-        instance.end_time = self.env.now
-        instance.succeed_flage=True
-        if instance.is_main:
-            instance.job.dealing_instance_num -= 1
-            instance.job.succeed_instance_num += 1
-        self.master.statistic_end_instance(instance)
-
     def get_ave_allocate_resource(self):
         ave_cpu=(self.cpu-self.cpu_rest)/self.cpu
         ave_mem=(self.mem-self.mem_rest)/self.mem
@@ -211,3 +203,98 @@ class Node:
         ave_gpu=gpu_alloc/self.gpu_num/(self.gpu[0]/self.overshared_factor)
         ave_gmem=gmem_alloc/self.gpu_num/self.gmem[0]
         return [ave_cpu, ave_mem, ave_gpu, ave_gmem]
+    
+
+    def execute_instance(self, instance):
+        if self.print_level > 5:
+            print(f"node: {self.node_id} execute instance:{instance.instance_name} ...")
+        instance.start_time=self.env.now
+        if instance.is_main:
+            instance.job.dealing_instance_num+=1
+            if instance.job.start_time == 0:
+                instance.job.start_time=self.env.now
+        #处理时间增长
+        if self.master.system=="Weave":
+            self.record_start_instance_for_mps_time_extend(instance)
+            
+        self.env.process(self.end_instance(instance))
+
+        return
+
+    
+
+    def end_instance(self,instance):
+        time_extend=instance.duration_time
+        yield self.env.timeout(time_extend)
+        if self.master.system=="Weave":
+            while True:
+                time_extend=instance.get_time_extend(self.env.now-time_extend, self.env.now)
+                if time_extend==0:
+                    break
+                else:
+                    yield self.env.timeout(time_extend)
+                    
+            self.record_end_instance_for_mps_time_extend(instance)
+        
+        if self.print_level > 5:
+            print(f"node: {self.node_id} end instance:{instance.instance_name} !")
+        instance.end_time = self.env.now
+        instance.succeed_flage=True
+        if instance.is_main:
+            instance.job.dealing_instance_num -= 1
+            instance.job.succeed_instance_num += 1
+        self.master.statistic_end_instance(instance)
+        
+        
+    
+    
+    def record_start_instance_for_mps_time_extend(self, instance):
+        for gpu_index in instance.gpu_id_list[self.node_id]:
+                
+            self.dealing_instance[gpu_index].append(instance)
+            if instance.couple_instance_name!=None:
+                couple_start=False
+                for index in range(self.dealing_instance_name[gpu_index]):
+                    if instance.couple_instance_name == self.dealing_instance_name[gpu_index][index][0]:
+                        self.dealing_instance_name[gpu_index][index].append(instance.instance_name)
+                        couple_start=True
+                        break
+                if couple_start==False:
+                    self.dealing_instance_name[gpu_index].append([instance.instance_name])
+            else:
+                self.dealing_instance_name[gpu_index].append([instance.instance_name])
+            #更新当前GPU中所有任务的最大执行数量和时间 
+            time_t=self.env.now
+            gpu_id=str(self.node_id)+"-"+str(gpu_index)
+            cur_num=len(self.dealing_instance_name[gpu_index])   
+            for instance_t in self.dealing_instance[gpu_index]:
+                print("job add trace!")
+                if instance_t.instance_idx not in instance_t.job.time_extend_list:
+                    instance_t.job.time_extend_list[instance_t.instance_idx]=[[time_t, gpu_id, cur_num]]
+                else:
+                    instance_t.job.time_extend_list[instance_t.instance_idx].append([time_t, gpu_id, cur_num])
+                    
+    def record_end_instance_for_mps_time_extend(self, instance):
+        for gpu_index in instance.gpu_id_list[self.node_id]:
+            #从 dealing instance 中移除instance
+            self.dealing_instance[gpu_index].remove(instance)
+            #从dealing_instance_name 中移除 instance name
+            remove_flage=False
+            for index in range(len(self.dealing_instance_name[gpu_index])-1,-1,-1):
+                for instance_name in self.dealing_instance_name[gpu_index][index]:
+                    if instance_name==instance.instance_name:
+                        if len(self.dealing_instance_name[gpu_index][index])==1:
+                            self.dealing_instance_name[gpu_index].remove(self.dealing_instance_name[gpu_index][index])
+                        else:
+                            self.dealing_instance_name[gpu_index][index].remove(instance_name)
+                        remove_flage=True
+                        break
+                if remove_flage==True:
+                    break
+            
+            #更新当前GPU中所有任务的最大执行数量和时间 
+            time_t=self.env.now
+            gpu_id=str(self.node_id)+"-"+str(gpu_index)
+            cur_num=len(self.dealing_instance_name[gpu_index])   
+            for instance_t in self.dealing_instance[gpu_index]:
+                instance_t.job.time_extend_list[instance_t.instance_idx].append([time_t, gpu_id, cur_num])

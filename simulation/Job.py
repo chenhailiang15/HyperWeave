@@ -1,7 +1,7 @@
 import json
 import time
 import math
-
+from util import *
 
 
 
@@ -35,7 +35,8 @@ class Job:
         self.dealing_instance_num=0
         self.succeed_instance_num=0
         self.failed_instance_num=0
-
+        self.time_extend_list={}   #  instance_index->[[time, gpu_id, new_number],]  
+        self.time_extend_store={}
 
 
     def __eq__(self, other):
@@ -133,7 +134,64 @@ class Job:
             return True
         else:
             return False
+        
+    def get_time_extend(self, instance_idx, time_start, time_now):
+        self.time_extend_list={}   #  instance_index->[[time, gpu_id, new_number],]  
+        self.time_extend_store={}
+        
+        if instance_idx in self.time_extend_store and time_now in self.time_extend_store[instance_idx]:
+            return self.time_extend_store[instance_idx][time_now]
 
+        time_extend=0
+        temp_dict={}
+        
+        global_max_parallel=0
+        global_max_parallel_gpu_id=None
+        max_parallel_start_time=time_start
+        last_element=None
+        
+        if len(self.time_extend_list[instance_idx])==0:
+            a=1
+        
+        self.time_extend_list[instance_idx].sort(key=lambda x:x[0], reverse=True)
+        
+        for index in range(len(self.time_extend_list[instance_idx])-1,-1,-1):
+            [time_t, gpu_id, cur_num]=self.time_extend_list[instance_idx][index]
+            if index == len(self.time_extend_list[instance_idx])-1:  #并行数量初始化
+                assert time_t<time_start
+                global_max_parallel=cur_num
+                global_max_parallel_gpu_id=gpu_id
+                last_element=self.time_extend_list[instance_idx][index]
+                
+            #更新当前GPU最大并行    
+            if gpu_id not in  temp_dict:
+                temp_dict[gpu_id]=cur_num
+            elif cur_num>temp_dict[gpu_id]:
+                temp_dict[gpu_id]=cur_num
+            
+            #更新最大值对应的GPU ID，防止后续删除错误
+            local_max_parallel_gpu_id, local_max_parallel=max(temp_dict.items(), key=lambda item: item[1]) 
+            if local_max_parallel==global_max_parallel and local_max_parallel_gpu_id!= global_max_parallel_gpu_id:
+                self.time_extend_list[instance_idx].remove(last_element)
+                last_element=self.time_extend_list[instance_idx][index]
+                
+                
+            #判断是否需要更新time_extend
+            if time_t> max_parallel_start_time and local_max_parallel!=global_max_parallel:
+                time_extend+=(mps_time_extend[self.model_name][global_max_parallel]-1)*(time_t-max_parallel_start_time)
+                global_max_parallel=local_max_parallel
+                max_parallel_start_time=time_t
+                
+                self.time_extend_list[instance_idx].remove(last_element)
+                last_element=self.time_extend_list[instance_idx][index]
+            elif local_max_parallel==global_max_parallel and local_max_parallel_gpu_id != global_max_parallel_gpu_id:
+                self.time_extend_list[instance_idx].remove(last_element)
+                last_element=self.time_extend_list[instance_idx][index]
+            else:
+                del self.time_extend_list[instance_idx][index]
+                
+        self.time_extend_store[instance_idx][time_now]=time_extend
+        return time_extend
 
 
 class Instance:
@@ -152,6 +210,7 @@ class Instance:
         self.batch_num = 100
         self.rest_batch_num=0
         self.init_iter_num=0
+        
 
     def __eq__(self, other):
         if isinstance(other, Instance):
@@ -203,119 +262,6 @@ class Instance:
         self.prior = prior
         self.shm_name_list = shm_name_list
 
-        # nprocs_list_c = nprocs_list.__str__().replace(" ", "")
-        # gpu_id_list_c = gpu_id_list.__str__().replace(" ", "")
-        # shm_name_list_c = json.dumps(shm_name_list).replace(" ", "")
-        # shm_name_list_c = "\"" + str(shm_name_list) + "\""
-        # # print("(job) shm_name_list_c dict:", shm_name_list_c)
-        #
-        # self.command = f"python WeaveExecutor.py --MASTER_ADDR {MASTER_ADDR} --MASTER_PORT {MASTER_PORT} --net_card {net_card}  --node_rank {node_rank} \
-        #     --world_size {world_size} --nprocs_list {nprocs_list_c} --gpu_id_list {gpu_id_list_c} --model_name {self.job.model_name} --batch_size {self.batch_size} \
-        #     --batch_num {self.job.batch_num} --total_epochs {self.job.total_epochs} --worker_num {self.job.worker_num} --layer_num {self.job.layer_num} --layer_feature {self.job.layer_feature} \
-        #     --squad_data_size {self.job.squad_data_size} --shm_name_list {shm_name_list_c} --job_idx {self.job_idx} --idx_on_gpu {self.idx_on_gou} --system {self.system} \
-        #     --max_sync_num {self.max_sync_num}"
-        # if prior:
-        #     self.command = self.command + " --prior"
-
-    def to_string(self):
-        json_dict = {}
-
-        json_dict["job_idx"] = self.job_idx
-        json_dict["idx_on_gou"] = self.idx_on_gou
-        json_dict["system"] = self.system
-
-        json_dict["job_name"] = self.job_name
-        json_dict["model_name"] = self.model_name
-        json_dict["total_epochs"] = self.total_epochs
-        json_dict["batch_size"] = self.batch_size
-        json_dict["batch_num"] = self.batch_num
-        json_dict["worker_num"] = self.worker_num
-        json_dict["layer_num"] = self.layer_num
-        json_dict["layer_feature"] = self.layer_feature
-        json_dict["squad_data_size"] = self.squad_data_size
-
-        json_dict["MASTER_ADDR"] = self.MASTER_ADDR
-        json_dict["MASTER_PORT"] = self.MASTER_PORT
-        json_dict["net_card"] = self.net_card
-        json_dict["node_rank"] = self.node_rank
-        json_dict["world_size"] = self.world_size
-        json_dict["nprocs_list"] = self.nprocs_list
-        json_dict["gpu_id_list"] = self.gpu_id_list
-        json_dict["prior"] = self.prior
-        json_dict["shm_name_list"] = self.shm_name_list
-        json_dict["command"] = self.command
-
-        json_dict["plan_cpu"] = self.plan_cpu
-        json_dict["plan_mem"] = self.plan_mem
-        json_dict["plan_gpu"] = self.plan_gpu
-        json_dict["parallel_num"] = self.parallel_num
-
-        json_dict["pack_cpu"] = self.pack_cpu
-        json_dict["pack_mem"] = self.pack_mem
-        json_dict["pack_gpu"] = self.pack_gpu
-        json_dict["pack_gmem"] = self.pack_gmem
-        json_dict["couple_job_name"] = self.couple_job_name
-
-        json_dict["is_main"] = self.is_main
-        # json_dict["gpu_list"]=self.gpu_list
-
-        json_dict["arrive_time"] = self.arrive_time
-        json_dict["start_time"] = self.start_time
-        json_dict["end_time"] = self.end_time
-        json_dict["ddl_time"] = self.ddl_time
-        json_dict["duration_time"] = self.duration_time
-        json_dict["succeed_flage"] = self.succeed_flage
-
-        return json.dumps(json_dict)
-
-    def load_string(self, json_string):
-        json_dict = json.loads(json_string)
-
-        self.job_idx = json_dict["job_idx"]
-        self.idx_on_gou = json_dict["idx_on_gou"]
-        self.system = json_dict["system"]
-
-        self.job_name = json_dict["job_name"]
-        self.model_name = json_dict["model_name"]
-        self.total_epochs = json_dict["total_epochs"]
-        self.batch_size = json_dict["batch_size"]
-        self.batch_num = json_dict["batch_num"]
-        self.worker_num = json_dict["worker_num"]
-        self.layer_num = json_dict["layer_num"]
-        self.layer_feature = json_dict["layer_feature"]
-        self.squad_data_size = json_dict["squad_data_size"]
-
-        self.MASTER_ADDR = json_dict["MASTER_ADDR"]
-        self.MASTER_PORT = json_dict["MASTER_PORT"]
-        self.net_card = json_dict["net_card"]
-        self.node_rank = json_dict["node_rank"]
-        self.world_size = json_dict["world_size"]
-        self.nprocs_list = json_dict["nprocs_list"]
-        self.gpu_id_list = json_dict["gpu_id_list"]
-        self.prior = json_dict["prior"]
-        self.shm_name_list = json_dict["shm_name_list"]  # 由于是字典，这里需要调整key的类型。从string转换为 int （暂时不影响，暂不修改）
-        self.command = json_dict["command"]
-
-        self.plan_cpu = json_dict["plan_cpu"]
-        self.plan_mem = json_dict["plan_mem"]
-        self.plan_gpu = json_dict["plan_gpu"]
-        self.parallel_num = json_dict["parallel_num"]
-
-        self.pack_cpu = json_dict["pack_cpu"]
-        self.pack_mem = json_dict["pack_mem"]
-        self.pack_gpu = json_dict["pack_gpu"]
-        self.pack_gmem = json_dict["pack_gmem"]
-        self.couple_job_name = json_dict["couple_job_name"]
-
-        self.is_main = json_dict["is_main"]
-        # self.gpu_list=json_dict["gpu_list"]
-
-        self.arrive_time = json_dict["arrive_time"]
-        self.start_time = json_dict["start_time"]
-        self.end_time = json_dict["end_time"]
-        self.ddl_time = json_dict["ddl_time"]
-        self.duration_time = json_dict["duration_time"]
-        self.succeed_flage = json_dict["succeed_flage"]
 
     def job_key_info(self):
         return f"jn:{self.job_name}-mn:{self.model_name}-tep:{self.total_epochs}-bts:{self.batch_size}-gpu:{self.plan_gpu}"
@@ -347,3 +293,7 @@ class Instance:
             return True
         else:
             return False
+        
+        
+    def get_time_extend(self, time_start, time_now):
+        return self.job.get_time_extend(self.instance_idx, time_start, time_now)

@@ -12,6 +12,16 @@ import numpy as np
 import subprocess
 import math
 
+mps_time_extend={"AlexNet":[1,1.5,1.8],
+                 "ResNet18":[1,1.5,1.8],
+                 "ResNet50":[1,1.5,1.8],
+                 "MobileNetv2":[1,1.5,1.8],
+                 "VGG16":[1,1.5,1.8],
+                 "Bert":[1,1.2,1.3],
+                 "Transformer":[1,1.4,1.9],
+                 "GCN":[1,1.1,1.2],
+                 "GraphSage":[1,1.11,1.22]}
+
 gpu_mem_dict={"T4":16.0,
               "MISC":16.0,
               "P100":16.0,
@@ -112,13 +122,15 @@ def parse_list_arg(list_arg):
 #获取数据集文件夹路径
 def get_dataset_dir():
     # 获取当前文件所在目录的上级目录
-    parent_dir  = os.path.dirname(os.path.abspath(os.curdir))
+    cur_dir=os.path.dirname(os.path.abspath(__file__))
+    parent_dir  = os.path.dirname(os.path.abspath(cur_dir))
     dataset_dir = parent_dir + '/dataset/'
     return dataset_dir
 
 #获取输出文件夹路径
 def get_output_dir():
-    parent_dir  = os.path.dirname(os.path.abspath(os.curdir))
+    cur_dir=os.path.dirname(os.path.abspath(__file__))
+    parent_dir  = os.path.dirname(os.path.abspath(cur_dir))
     out_dir     = parent_dir + "/output/"
     return out_dir
 
