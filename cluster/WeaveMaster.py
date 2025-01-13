@@ -24,30 +24,41 @@ from WeaveMonitor import WeaveMonitor
 
 class WeaveMaster:
     
-    def __init__(self,stragey, print_level=0):
+    def __init__(self,args, file_trace,  print_level=0):
         
         
         ##################################################《--设置区域--》开始####################################################
-        self.master_is_2080=True
-        self.single_node_mode=True
+        self.args=args
+        self.system=args.system           #"Muri" or "Normal"
+        self.schedule_strategy=args.strategy   # "FIFO", "SRTF"，"SRSF", "BNPF"   Bucket-based Non-blocking SRSF
+        self.node_kind=args.node_kind
         
-        self.system="Normal"  #"Muri" or "Normal"
-        self.schedule_strategy=stragey # "FIFO", "SRTF"，"SRSF", "BNPF"   Bucket-based non-blocking parallel first
-
-        
-        self.weave_sync_mode=True
+        self.weave_sync_mode=(self.sync_flage=="True")
         #需要最好手动确认
-        self.MPS_mode=False 
+        self.MPS_mode=(self.mps_flage=="True")
+        self.single_node_mode=True    #实验中固定为True
         
-        self.overshared_factor=1   #等于1存在GPU资源不够的情况
-             
+        if self.system=="Weave":
+            self.overshared_factor=2   
+        else:
+            self.overshared_factor=1       #等于1存在GPU资源不够的情况
+            
+        if self.schedule_strategy=="BN-SRSF":
+            self.bucket_length=100000
+        self.couple_init_iter_percent=0.2
+            
+        self.file_trace=file_trace
+        
         self.password=" "      #"sim2024"for sim812 " "for jf
         
         self.print_level=print_level
+        
         self.clock_time_factor=10000
         self.job_time_factor=1
-        self.job_ddl_factor=1             #ddl是任务持续时间的job_ddl_factor倍
+        self.job_ddl_factor=10             #ddl是任务持续时间的job_ddl_factor倍
         
+            
+            
         self.schedule_interval=10
         
         
@@ -60,17 +71,21 @@ class WeaveMaster:
         self.max_gpu_cross=1       #最大跨GPU任务数量（单node）
         
         
-        self.single_job_max_plan_cpu=5*100
-        self.single_job_max_plan_mem=10*1024
-        self.single_job_max_plan_gpu=4*100
+        # self.single_job_max_plan_cpu=5*100
+        # self.single_job_max_plan_mem=10*1024
+        # self.single_job_max_plan_gpu=4*100
         
-        self.ali_trace_file_name="ali_trace_job_info.csv"
+        self.ali_trace_job_info_file_name="ali_trace_job_info.csv"
         self.analyze_file_name="Analyzer-NVIDIA_GeForce_RTX_2080-tim_12_19_16_38_14.csv"
         self.model_time_file_name="Muri_Analyzer-NVIDIA_GeForce_RTX_2080_Ti-tim_12_26_15_24_41.csv"
-        self.model_info_file_name="Full_model_info_12_27_21_27_41.txt"
+        if self.args.model_kind=="all_model":
+            self.model_info_file_name="Full_model_info_12_27_21_27_41.txt"
+        elif self.args.model_kind=="cv_model":
+            self.model_info_file_name="CV_model_info_01_13_09_26_50.txt"
+        else:
+            print("model_kind wrong!")
+            exit(-1)
         ##################################################《--设置区域--》结束####################################################
-        
-
         
         self.queue_length=[]
         self.block_index=[]   #
@@ -98,22 +113,20 @@ class WeaveMaster:
         self.job_wait_time_list=[]
         self.job_complete_time_list=[]
         #################################
-        self.init_node()
         self.init_MPS()
-        # exit(8)
-        if self.print_level>0:
-            print("master load ali trace...")
-        self.load_ali_trace(self.ali_trace_file_name)
         
         if self.print_level>0:
-            print("master init analyze loader...")
+            print("load node info...")
+        self.init_node()
+        
+        if self.print_level>0:
+            print("load job info...")
+        self.load_ali_trace(self.ali_trace_job_info_file_name)
+        
+        if self.print_level>0:
+            print("init analyze loader...")
         self.analyze_loader=AnalyzeDataLoader(self.analyze_file_name, print_level)
-        if self.system=="Muri":
-            self.analyze_time_loader=AnalyzeTimeLoader(self.model_time_file_name, print_level)
-        # self.analyze_2080ti_loader=AnalyzeDataLoader("Analyzer-NVIDIA_GeForce_RTX_2080_Ti.csv",print_level)
-        
-        self.init_model_info()
-        
+        self.analyze_loader.load_time_csv(self.model_time_file_name)
         
         #资源监视器
         if self.print_level>0:
@@ -128,11 +141,13 @@ class WeaveMaster:
         #通讯器，初始化和启动监听。
         if self.print_level>0:
             print("master init communicator...")
+            
         if not self.single_node_mode:
             self.communicator=CommunicateServer(print_level=self.print_level)
             self.communicator.start_connect()
             self.communicator.start_listening(self.message_receive)
-
+        self.init_model_info()
+        
     #初始化node信息
     def init_node(self):
         
@@ -435,27 +450,30 @@ def Record_resource( gpu_id, out_dir, out_file_name,event):
     record.run()
     
     
-def experiment_all(file, strategy,formatted_time, version):
+def experiment_one_group_parameters(args, file_sum, file_trace, version, print_level):
     
-    parent_dir  = os.path.dirname(os.path.abspath(os.curdir))
-    resource_file_name="Resource_record_"+version+"_"+strategy+"_"+formatted_time+".csv"
+    cur_dir=os.path.dirname(os.path.abspath(__file__))
+    parent_dir  = os.path.dirname(os.path.abspath(cur_dir))
+    resource_file_name="Cluster_resource_record_"+args.system+"_"+args.strategy+"-"+version+"_"+formatted_time+".csv"
     event=threading.Event()
     subTread_record=threading.Thread(target=Record_resource,args=(-1, parent_dir+"/output/",resource_file_name,event))
     subTread_record.start()
         
-    print_level=10
-    weave_master=WeaveMaster(strategy, print_level)
+    weave_master=WeaveMaster(args, file_trace, print_level)
     weave_master.job_come()
     weave_master.wait()
-    weave_master.print_job_time_info()
     weave_master.close()
-    out_string=weave_master.get_sum_info()
-    file.write(out_string)
-    file.flush()
     
     event.set()
     subTread_record.join()
-    print(f"The process end (by master) with {strategy}!")
+    if print_level>=1:
+        weave_master.print_job_time_info()
+        print(f"The cluster end (system:{args.system}, strategy:{args.strategy}, file_sum:{file_sum != None}, file_trace:{file_trace != None}) !")
+    
+    if file_sum != None:
+        out_string=weave_master.get_sum_info()
+        file_sum.write(out_string)
+        file_sum.flush()
 
 
 
@@ -477,16 +495,40 @@ if __name__=="__main__":
     
     args=parser.parse_args()
     
+    #判断所给值是否符合要求
+    if (args.sync_flage !="True" and  args.sync_flage !="False") or (args.mps_flage !="True" and  args.mps_flage !="False"):
+        print("sync_flage or mps_flage value wrong!")
+        exit(-1)
+        
     version="v2.0.0"
-    parent_dir  = os.path.dirname(os.path.abspath(os.curdir))
+    system=args.system
+    strategy=args.strategy
+    write_sum = (args.write_sum)
+    write_trace = args.write_trace
+    print_level=args.print_level
+
+    cur_dir=os.path.dirname(os.path.abspath(__file__))
+    parent_dir= os.path.dirname(os.path.abspath(cur_dir))
     # 格式化输出
-    now_time    = datetime.datetime.now()
+    now_time= datetime.datetime.now()
     formatted_time = now_time.strftime('%m_%d_%H_%M_%S')
-    sum_info_file_name="SumInfo_Weave_"+version+"_"+formatted_time+".txt"
-    file=open(parent_dir+"/output/"+sum_info_file_name,"w")
-    experiment_all(file, "FIFO",formatted_time, version)
-    experiment_all(file, "SRTF",formatted_time, version)
-    experiment_all(file, "SRSF",formatted_time, version)
-    file.close()
+    sim_sum_file_name="Cluster_sum-"+system+"_"+strategy+"-"+version+"_"+formatted_time+".txt"
+    sim_trace_file_name="Cluster_statistic_trace_"+system+"_"+strategy+"_"+version+"_"+formatted_time+".csv"
+    if write_sum:
+        file_sum=open(parent_dir+"/output/"+sim_sum_file_name,"w")
+    else:
+        file_sum=None
+
+    if write_trace:
+        file_trace = open(parent_dir + "/output/" + sim_trace_file_name, "w")
+    else:
+        file_trace=None
+
+    experiment_one_group_parameters(args, file_sum, file_trace, version, print_level)
+
+    if write_sum:
+        file_sum.close()
+    if write_trace:
+        file_trace.close()
     
     

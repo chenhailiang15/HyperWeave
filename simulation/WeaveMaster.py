@@ -42,7 +42,7 @@ class WeaveMaster:
         if self.system=="Weave":
             self.weave_sync_mode=True
             self.MPS_mode=True              #需要最好手动确认
-            self.overshared_factor=1
+            self.overshared_factor=2
         else:
             self.weave_sync_mode = False
             self.MPS_mode = False  # 需要最好手动确认
@@ -54,10 +54,10 @@ class WeaveMaster:
 
         self.file_trace=file_trace
 
-        self.clock_time_factor = 1
+        
         self.job_time_factor = 1
         self.job_ddl_factor = 10  # ddl是任务持续时间的job_ddl_factor倍
-        self.schedule_interval = 360
+        
 
         self.print_level=print_level
 
@@ -68,9 +68,15 @@ class WeaveMaster:
         self.max_gpu_cross=1       #最大跨GPU任务数量（单node）
         self.ali_trace_node_info_file_name="sim_ali_trace_machine_info.csv"
         if self.args.validation=="True":
+            #用于验证系统准确性
             self.ali_trace_job_info_file_name="ali_trace_job_info.csv"
+            self.schedule_interval = 10
+            self.clock_time_factor = 10000
         elif self.args.validation=="False":
+            #纯仿真
             self.ali_trace_job_info_file_name="sim_ali_trace_job_info.csv"
+            self.schedule_interval = 360
+            self.clock_time_factor = 1
         else:
             print("validation is wrong!")
             exit(-1)
