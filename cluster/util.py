@@ -12,6 +12,8 @@ import numpy as np
 import subprocess
 import time
 import threading
+import math
+
 
 
 model_to_batch_size_g={"AlexNet" : [8,16,32,64,128],
