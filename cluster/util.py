@@ -26,7 +26,7 @@ model_to_batch_size_g={"AlexNet" : [8,16,32,64,128],
                          }
 
 model_list_g=["AlexNet", "ResNet18", "ResNet50", "MobileNetv2", "VGG16", "Bert", "Transformer", "GCN", "GraphSage" ]
-
+cv_model_list_g=["AlexNet", "ResNet18", "ResNet50", "MobileNetv2", "VGG16" ]
 
 
 def set_GPU_exclude(password):
@@ -242,6 +242,7 @@ class args_weave:
         #同步参数
         self.max_sync_num=0
         self.shm_name_list={}
+        self.shm_name_for_analyze=""
         
         #其他参数
         self.MASTER_ADDR="localhost"

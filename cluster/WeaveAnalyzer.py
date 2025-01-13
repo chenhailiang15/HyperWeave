@@ -66,7 +66,7 @@ def single_training(local_rank,args):
     
 def Record_resource(args, gpu_id, out_dir, out_file_name,event,queue):
     record=Record(gpu_id=gpu_id,net_card="", sample_interval=args.sample_interval,out_dir=out_dir, out_file_name=out_file_name,event=event,print_flage=args.print_flage)
-    record.run_analyze(queue,args.shm_name)
+    record.run_analyze(queue,args.shm_name_for_analyze)
 
 
 
@@ -102,10 +102,10 @@ def analyze_tasks(args,dataset_dir,queue,sync=None):
                     file_writer.write(out_line+"\n")
                     file_writer.flush()
                 # print(f"time:{sync.get_value(0)},{sync.get_value(1)},{sync.get_value(2)},{sync.get_value(3)}")
-                sync.set_value(0,0)
-                sync.set_value(1,0)
-                sync.set_value(2,0)
-                sync.set_value(3,0)
+                    sync.set_value(0,0)
+                    sync.set_value(1,0)
+                    sync.set_value(2,0)
+                    sync.set_value(3,0)
                 
                 # try:
 
@@ -117,14 +117,16 @@ def analyze_tasks(args,dataset_dir,queue,sync=None):
     return
 
 
-def offline_analyze(system):
+def offline_analyze():
 
     args=args_weave()
-    args.system=system
+    args.system="Muri"
     args.mode="analyze"
     args.net_card="eno1"
+    args.gpu_id_list=[[3,5,6,7]]   #选择其中指定GPU进行实验
     shm_name=generate_shm_name()
-    args.shm_name_list={0:{0:shm_name}}
+    args.shm_name_for_analyze=shm_name
+    args.shm_name_list={0:{args.gpu_id_list[0][0]:shm_name}} #传递一个共享内存名字，以local rank=0 进行记录
     my_queue=queue.Queue()
     # args.set_queue(my_queue)
     dataset_dir=get_dataset_dir()
@@ -237,7 +239,7 @@ class AnalyzeTimeLoader:
     
 if __name__=="__main__":
     
-    offline_analyze("Muri")
+    offline_analyze()
     # analyze_data=AnalyzeDataLoader("Analyzer-NVIDIA_GeForce_RTX_2080.csv")
     
     

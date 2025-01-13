@@ -104,15 +104,17 @@ class model_framework:
                 self.sync_er.set_value(1,False)
         
         if self.system == "Muri":
+            if self.mode == "analyze" and self.local_rank==0:
+                stage0_end_time=time.time()
+                self.sync_er.set_value(0, stage0_end_time-stage0_start_time)
+            
             #************************
             self.model.prepare_sub()
             #************************
             if self.mode == "train":
                 # print(f"job {self.job_idx} end stage 0...")
                 self.sync_er.muri_sync_end(self.idx_on_gpu, 0)
-            elif self.mode == "analyze" and self.local_rank==0:
-                stage0_end_time=time.time()
-                self.sync_er.set_value(0, stage0_end_time-stage0_start_time)
+            
                 
                 
             

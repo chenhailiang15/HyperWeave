@@ -37,7 +37,7 @@ class Job:
         self.failed_instance_num=0
         self.time_extend_list={}   #  instance_index->[[time, gpu_id, new_number],]  
         self.time_extend_store={}
-
+        self.init_iter_percent=0
 
     def __eq__(self, other):
         if isinstance(other, Job):

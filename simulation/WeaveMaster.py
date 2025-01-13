@@ -31,14 +31,15 @@ random.seed(3)
 #################################################
 class WeaveMaster:
     
-    def __init__(self,system, strategy, file_trace, print_level=0):
+    def __init__(self,args, file_trace, print_level=0):
         
         
         ##################################################《--设置区域--》开始####################################################
-
-        self.system=system           #"Muri" or "Normal"
-        self.schedule_strategy=strategy   # "FIFO", "SRTF"，"SRSF", "BNPF"   Bucket-based Non-blocking SRSF
-        if system=="Weave":
+        self.args=args
+        self.system=args.system           #"Muri" or "Normal"
+        self.schedule_strategy=args.strategy   # "FIFO", "SRTF"，"SRSF", "BNPF"   Bucket-based Non-blocking SRSF
+        self.node_kind=args.node_kind
+        if self.system=="Weave":
             self.weave_sync_mode=True
             self.MPS_mode=True              #需要最好手动确认
             self.overshared_factor=1
@@ -47,8 +48,8 @@ class WeaveMaster:
             self.MPS_mode = False  # 需要最好手动确认
             self.overshared_factor = 1  # 等于1存在GPU资源不够的情况
 
-        if strategy=="BN-SRSF":
-            self.bucket_length=10000
+        if self.schedule_strategy=="BN-SRSF":
+            self.bucket_length=100000
         self.couple_init_iter_percent=0.2
 
         self.file_trace=file_trace
@@ -65,12 +66,23 @@ class WeaveMaster:
 
         self.max_cross=1           #最大跨node任务数量
         self.max_gpu_cross=1       #最大跨GPU任务数量（单node）
-
         self.ali_trace_node_info_file_name="sim_ali_trace_machine_info.csv"
-        self.ali_trace_job_info_file_name="sim_ali_trace_job_info.csv"
-        self.analyze_file_name="Analyzer-NVIDIA_GeForce_RTX_2080-tim_12_19_16_38_14.csv"
-        self.model_time_file_name="Muri_Analyzer-NVIDIA_GeForce_RTX_2080_Ti-tim_12_26_15_24_41.csv"
-        self.model_info_file_name="Full_model_info_12_27_21_27_41.txt"
+        if self.args.validation=="True":
+            self.ali_trace_job_info_file_name="ali_trace_job_info.csv"
+        elif self.args.validation=="False":
+            self.ali_trace_job_info_file_name="sim_ali_trace_job_info.csv"
+        else:
+            print("validation is wrong!")
+            exit(-1)
+        
+        
+        if self.args.model_kind=="all_model":
+            self.model_info_file_name="Full_model_info_12_27_21_27_41.txt"
+        elif self.args.model_kind=="cv_model":
+            self.model_info_file_name="CV_model_info_01_13_09_26_50.txt"
+        else:
+            print("model_kind wrong!")
+            exit(-1)
         ##################################################《--设置区域--》结束####################################################
         
 
@@ -136,37 +148,55 @@ class WeaveMaster:
 
     #初始化node信息
     def init_node(self, file_name):
+        self.analyze_file_name="Analyzer-NVIDIA_GeForce_RTX_2080-tim_12_19_16_38_14.csv"
+        self.model_time_file_name="Muri_Analyzer-NVIDIA_GeForce_RTX_2080_Ti-tim_12_26_15_24_41.csv"
         self.nodes=[]
-        node_info_pd = self.load_csv(file_name,header=0)
-
-
-        node_idx_order=0
-        for index in range(len(node_info_pd)):
-            name=node_info_pd.loc[index, "machine"]
-            cpu_cap= node_info_pd.loc[index, "cap_cpu"]*100.0
-            mem_cap=node_info_pd.loc[index, "cap_mem"]*1024.0
-            gpu_cap=node_info_pd.loc[index, "cap_gpu"]
-            if gpu_cap==0:
-                continue
-            gmem_cap=gpu_mem_dict[node_info_pd.loc[index, "gpu_type"]]*1024.0
-            node=Node(self, self.env,name,node_idx_order, self.overshared_factor, self.print_level)
-            node.set_init_resouce(cpu_cap, mem_cap, gpu_cap, gmem_cap)
-            self.nodes.append(node)
-            node_idx_order += 1
-
-
-            if node_idx_order>=100:
-                break
-
-        self.node_num = node_idx_order
+        if self.node_kind=="cluster":
+            node_info_pd = self.load_csv(file_name,header=0)
+            node_idx_order=0
+            for index in range(len(node_info_pd)):
+                name=node_info_pd.loc[index, "machine"]
+                cpu_cap= node_info_pd.loc[index, "cap_cpu"]*100.0
+                mem_cap=node_info_pd.loc[index, "cap_mem"]*1024.0
+                gpu_cap=node_info_pd.loc[index, "cap_gpu"]
+                if gpu_cap==0:
+                    continue
+                gmem_cap=gpu_mem_dict[node_info_pd.loc[index, "gpu_type"]]*1024.0
+                node=Node(self, self.env,name,node_idx_order, self.overshared_factor, self.print_level)
+                node.set_init_resouce(cpu_cap, mem_cap, gpu_cap, gmem_cap)
+                self.nodes.append(node)
+                node_idx_order += 1
+                if node_idx_order>=args.node_num:
+                    break
+            self.node_num = node_idx_order
+            
+        elif self.node_kind=="4*3090":
+            node_3090=Node(self,self.env, "3090node", 0, self.overshared_factor, self.print_level)
+            node_3090.set_init_resouce(96*100, 250*1024, 4, 20*1024*args.gpu_mem_percent)
+            self.nodes.append(node_3090)
+            self.node_num =1
+            
+        elif self.node_kind=="3*2080ti":
+            node_2080ti=Node(self, self.env, "2080tinode",0, self.overshared_factor, self.print_level)
+            node_2080ti.set_init_resouce(48*100,120*1024, 3, 11*1024*args.gpu_mem_percent)
+            self.nodes.append(node_2080ti)
+            self.node_num=1
+            
+        elif self.node_kind=="4*2080":
+            node_2080=Node(self, self.env, "2080node", 0, self.overshared_factor, self.print_level)
+            node_2080.set_init_resouce(48*100, 60*1024, 4, 8*1024*args.gpu_mem_percent)
+            self.nodes.append(node_2080)
+            self.node_num=1
+            
+        else:
+            print("node kind parameter wrong!")
+            exit(-1)
             
     def init_model_info(self):
         file=open(get_dataset_dir()+"exp_data/"+self.model_info_file_name,"r")
         for line in file.readlines():
             self.model_info_list.append(line[0:-1])
             self.model_info_list_max+=1
-        
-        
         
         
     def load_ali_trace(self,file_name):
@@ -495,13 +525,13 @@ class WeaveMaster:
 
     
     
-def experiment_one_group_parameters(system, strategy, file_sum, file_trace, print_level):
+def experiment_one_group_parameters(args, file_sum, file_trace, print_level):
 
-    weave_master=WeaveMaster(system, strategy, file_trace, print_level)
+    weave_master=WeaveMaster(args, file_trace, print_level)
     weave_master.run()
     if print_level>=1:
         weave_master.print_job_time_info()
-        print(f"The simulation end (system:{system}, strategy:{strategy}, file_sum:{file_sum != None}, file_trace:{file_trace != None}) !")
+        print(f"The simulation end (system:{args.system}, strategy:{args.strategy}, file_sum:{file_sum != None}, file_trace:{file_trace != None}) !")
 
     if file_sum != None:
         out_string=weave_master.get_sum_info()
@@ -518,6 +548,13 @@ if __name__=="__main__":
     parser.add_argument("--system",default="Weave",type=str)
     parser.add_argument("--strategy", default="BN-SRSF", type=str)
     parser.add_argument("--print_level", default=11, type=int)
+    parser.add_argument("--node_kind", default="cluster", type=str, help="cluster, 4*3090, 3*2080ti, 4*2080")
+    parser.add_argument("--model_kind", default="all_model", type=str, help="cv_model, all_model")
+    parser.add_argument("--gpu_mem_percent", default=0.8, type=float, help="because of GPU fragement")
+    parser.add_argument("--node_num", default=100, type=int, help="only for node kind is cluster")
+    parser.add_argument("--job_num", default=1000, type=int)
+    parser.add_argument("--validation", default="True", type=str)
+    
     parser.add_argument("--write_sum", action='store_true')
     parser.add_argument("--write_trace", action='store_true')
     # parser.add_argument("--mps_flage", action='store_true')
@@ -551,7 +588,7 @@ if __name__=="__main__":
     else:
         file_trace=None
 
-    experiment_one_group_parameters(system, strategy, file_sum, file_trace, print_level)
+    experiment_one_group_parameters(args, file_sum, file_trace, print_level)
 
     if write_sum:
         file_sum.close()

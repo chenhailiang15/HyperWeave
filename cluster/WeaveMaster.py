@@ -31,13 +31,13 @@ class WeaveMaster:
         self.master_is_2080=True
         self.single_node_mode=True
         
-        self.system="Muri"  #"Muri" or "Normal"
+        self.system="Normal"  #"Muri" or "Normal"
         self.schedule_strategy=stragey # "FIFO", "SRTF"，"SRSF", "BNPF"   Bucket-based non-blocking parallel first
 
         
         self.weave_sync_mode=True
         #需要最好手动确认
-        self.MPS_mode=True 
+        self.MPS_mode=False 
         
         self.overshared_factor=1   #等于1存在GPU资源不够的情况
              
@@ -461,6 +461,22 @@ def experiment_all(file, strategy,formatted_time, version):
 
 
 if __name__=="__main__":
+    parser = argparse.ArgumentParser(description='Prototype platform for DL training job')
+    parser.add_argument("--system",default="Weave",type=str)
+    parser.add_argument("--strategy", default="FIFO", type=str)
+    parser.add_argument("--mps_flage", default="True", type=str)
+    parser.add_argument("--sync_flage", default="True", type=str)
+    parser.add_argument("--node_kind", default="cluster", type=str, help="4*3090, 3*2080ti, 4*2080")
+    parser.add_argument("--model_kind", default="all_model", type=str, help="cv_model, all_model")
+    parser.add_argument("--gpu_mem_percent", default=0.8, type=float, help="because of GPU fragement")
+    parser.add_argument("--job_num", default=1000, type=int)
+    
+    parser.add_argument("--print_level", default=11, type=int)
+    parser.add_argument("--write_sum", action='store_true')
+    parser.add_argument("--write_trace", action='store_true')
+    
+    args=parser.parse_args()
+    
     version="v2.0.0"
     parent_dir  = os.path.dirname(os.path.abspath(os.curdir))
     # 格式化输出
