@@ -32,8 +32,7 @@ def run_model(model_name,para_num):
         sub_thread=threading.Thread(target=run_command,args=(command, model_name))
         sub_thread.start()
         thread_hand.append(sub_thread)
-          
-    
+
     for thread_t in thread_hand:
         thread_t.join()
     
@@ -44,7 +43,7 @@ def run_model(model_name,para_num):
 def generate_command(model_name, index):
     nprocs_list="[1,0]"
 
-    gpu_id_list="[[1],[]]"
+    gpu_id_list="[[6],[]]"
     net_card="eno1"
 
     total_epochs=2
@@ -59,17 +58,16 @@ def generate_command(model_name, index):
         layer_feature=100        #100 for GCN (default:10)
     else:
         layer_num=10       
-        layer_feature=10       
+        layer_feature=10 
+              
     global port_id
     port_id+=1
     while is_port_in_use("localhost",port_id):
         port_id+=1
     
     
-    if ddp_flag==1 or ( ddp_flag==0 and index==0) :
+    if ddp_flag==1 :
         command_head="python WeaveExecutor.py "
-    elif ddp_flag==-1 or (ddp_flag==0 and index!=0) :
-        command_head="python WeaveExecutor_no_ddp.py "
     else:
         print("wrong")
         exit(-1)
@@ -163,8 +161,8 @@ password="sim2024"
 now_time    = datetime.datetime.now()
 formatted_time = now_time.strftime('%m_%d_%H_%M_%S')
 out_file_name="Exp_pre_MPS_"+str(with_mps)+"_"+formatted_time+".txt"
-max_parallel_num=3
-model_list=["AlexNet","ResNet18", "ResNet50", "MobileNetv2", "VGG16",  "Transformer", "GCN"]#"ResNet50", "MobileNetv2", "VGG16",  "Transformer", "GCN" 
+max_parallel_num=10
+model_list=["AlexNet", "Transformer", "GCN", "Bert", "GraphSage", "ResNet18", "ResNet50", "MobileNetv2", "VGG16", ]#"ResNet50", "MobileNetv2", "VGG16",  "Transformer", "GCN" 
 file_writer=open(get_output_dir()+out_file_name,"w")
 
 end_time_list=[]

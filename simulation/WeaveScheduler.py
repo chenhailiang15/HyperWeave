@@ -13,7 +13,7 @@ class WeaveSchedulor:
         
         self.master=master
         self.strategy=master.schedule_strategy
-        self.gpu_list=[i for i in range(7)]
+        # self.gpu_list=[i for i in range(7)]
         self.print_level=print_level
         if self.strategy=="BN-SRSF":
             self.paired_instance_list={}
@@ -41,7 +41,7 @@ class WeaveSchedulor:
         if self.print_level>10:
             print(f"end schedule ({self.strategy})!!!")
         return rest_job
-    
+    #********************************************************************************Weave***********************************************************************************************
     #Weave 调度主线
     def schedule_weave(self,job_list):
 
@@ -131,23 +131,23 @@ class WeaveSchedulor:
         return job_list
     
     def schedule_weave_FIFO(self, matched_instances, job_list):
-        order_matched_jobs=[]
+        order_matched_instances=[]
         for [instance1,instance2,pack_resource] in matched_instances:
             if instance2 != None:
                 arrive_time=min(instance1.job.arrive_time, instance2.job.arrive_time)
             else:
                 arrive_time=instance1.job.arrive_time
-            order_matched_jobs.append([instance1, instance2, pack_resource, arrive_time])
+            order_matched_instances.append([instance1, instance2, pack_resource, arrive_time])
         #matched_jobs排序
-        order_matched_jobs.sort(key=lambda x : x[3])
+        order_matched_instances.sort(key=lambda x : x[3])
         
-        self.schedule_weave_ordered_matched_job_list(order_matched_jobs, job_list)
+        self.schedule_weave_ordered_matched_job_list(order_matched_instances, job_list)
 
     
     
     
     def schedule_weave_SRTF(self, matched_instances, job_list):
-        order_matched_jobs=[]
+        order_matched_instances=[]
         time_now=time.time()
 
         for [instance1,instance2,pack_resource] in matched_instances:
@@ -157,16 +157,16 @@ class WeaveSchedulor:
                 rest_time=min(rest_time1, rest_time2)
             else:
                 rest_time=instance1.job.ddl_time-time_now-instance1.duration_time
-            order_matched_jobs.append([instance1, instance2, pack_resource, rest_time])
+            order_matched_instances.append([instance1, instance2, pack_resource, rest_time])
         
         #match_jobs排序
-        order_matched_jobs.sort(key=lambda x : x[3])
-        self.schedule_weave_ordered_matched_job_list(order_matched_jobs, job_list)
+        order_matched_instances.sort(key=lambda x : x[3])
+        self.schedule_weave_ordered_matched_job_list(order_matched_instances, job_list)
 
         
         
     def schedule_weave_SRSF(self, matched_instances, job_list):
-        order_matched_jobs=[]
+        order_matched_instances=[]
         time_now=time.time()
 
         for [instance1,instance2,pack_resource] in matched_instances:
@@ -176,14 +176,14 @@ class WeaveSchedulor:
                 rest_time=min(rest_time1, rest_time2)
             else:
                 rest_time=instance1.job.ddl_time-time_now-instance1.duration_time
-            order_matched_jobs.append([instance1, instance2, pack_resource, rest_time])
+            order_matched_instances.append([instance1, instance2, pack_resource, rest_time])
         
         #match_jobs排序
-        order_matched_jobs.sort(key=lambda x : x[3])
-        self.schedule_weave_ordered_matched_job_list(order_matched_jobs, job_list)
+        order_matched_instances.sort(key=lambda x : x[3])
+        self.schedule_weave_ordered_matched_job_list(order_matched_instances, job_list)
 
     def schedule_weave_BN_SRSF(self, bucket_all_matched_instance_dict, job_list):
-        bucket_order_matched_jobs={}
+        bucket_order_matched_instances={}
         for bucket_id in bucket_all_matched_instance_dict.keys():
             matched_instance=bucket_all_matched_instance_dict[bucket_id]
             order_matched_jobs = []
@@ -200,9 +200,9 @@ class WeaveSchedulor:
 
             # match_jobs排序
             order_matched_jobs.sort(key=lambda x: x[3])
-            bucket_order_matched_jobs[bucket_id]=order_matched_jobs
+            bucket_order_matched_instances[bucket_id]=order_matched_jobs
             
-        self.schedule_weave_bucket_ordered_matched_job_list(bucket_order_matched_jobs, job_list)
+        self.schedule_weave_bucket_ordered_matched_job_list(bucket_order_matched_instances, job_list)
 
 
     def schedule_weave_classify_instance_based_on_gpu_num(self, job_list):
@@ -577,7 +577,7 @@ class WeaveSchedulor:
             if rest_gpu == 0 :
                 break
         return selected_gpu_id_list, shm_name_dict
-    
+    #********************************************************************************Muri***********************************************************************************************
     #muri 调度主线
     def schedule_muri(self,job_list):
         print("start schedule_muri... ")
@@ -737,10 +737,6 @@ class WeaveSchedulor:
         #matched_jobs排序
         order_matched_instances.sort(key=lambda x : x[0])
         self.schedule_muri_ordered_matched_job_list(order_matched_instances, job_list)
-
-
-
-
 
     def schedule_muri_ordered_matched_job_list(self, match_instances, job_list):
         #是否继续调度的标志，当遇到一个无法调度的任务时，停止调度等待下一轮调度，将剩余的job返回
@@ -913,37 +909,6 @@ class WeaveSchedulor:
 
 
 
-            
-    def execute_schedule(self, instance, select_gpu_list, prior, shm_name_dict):
-        world_size=0
-        nprocs_list=[0]*self.master.node_num
-        gpu_id_list=[ [] for i in range(self.master.node_num)]  #需要有顺序
-
-        min_node_index=float("inf")    #选取最小的node index作为
-        for [node_index, gpu_list] in select_gpu_list:
-            
-            world_size+=len(gpu_list)
-            nprocs_list[node_index]=len(gpu_list)
-            gpu_id_list[node_index]=gpu_list
-            if len(gpu_list)>0:
-                min_node_index=node_index if node_index<min_node_index else min_node_index
-            
-        main_ip=self.master.nodes[min_node_index].ip
-        main_temp_port=self.master.nodes[min_node_index].get_idle_port()
-
-        for [node_index, gpu_list] in select_gpu_list:
-            if len(gpu_list)==0:    #如果对应GPU list没有被选择，则不用将Job发送到Node，不然，会导致任务重复
-                continue
-            instance_t=copy.deepcopy(instance)
-            instance_t.job=instance.job
-            if node_index == min_node_index:
-                instance_t.set_is_main(True)
-            else:
-                instance_t.set_is_main(False)
-        #
-            net_card=self.master.nodes[node_index].net_card
-            instance_t.set_execute_info(main_ip, main_temp_port, net_card, node_index, world_size ,nprocs_list, gpu_id_list, prior=prior, shm_name_list=shm_name_dict)
-            self.master.send_instance_to_execution(instance_t)
     
     
     
@@ -1028,6 +993,39 @@ class WeaveSchedulor:
             assert len(rest_job)<= len(job_list)
         return rest_job
 
+    
+            
+    def execute_schedule(self, instance, select_gpu_list, prior, shm_name_dict):
+        world_size=0
+        nprocs_list=[0]*self.master.node_num
+        gpu_id_list=[ [] for i in range(self.master.node_num)]  #需要有顺序
+
+        min_node_index=float("inf")    #选取最小的node index作为
+        for [node_index, gpu_list] in select_gpu_list:
+            
+            world_size+=len(gpu_list)
+            nprocs_list[node_index]=len(gpu_list)
+            gpu_id_list[node_index]=gpu_list
+            if len(gpu_list)>0:
+                min_node_index=node_index if node_index<min_node_index else min_node_index
+            
+        main_ip=self.master.nodes[min_node_index].ip
+        main_temp_port=self.master.nodes[min_node_index].get_idle_port()
+
+        for [node_index, gpu_list] in select_gpu_list:
+            if len(gpu_list)==0:    #如果对应GPU list没有被选择，则不用将Job发送到Node，不然，会导致任务重复
+                continue
+            instance_t=copy.deepcopy(instance)
+            instance_t.job=instance.job
+            if node_index == min_node_index:
+                instance_t.set_is_main(True)
+            else:
+                instance_t.set_is_main(False)
+        #
+            net_card=self.master.nodes[node_index].net_card
+            instance_t.set_execute_info(main_ip, main_temp_port, net_card, node_index, world_size ,nprocs_list, gpu_id_list, prior=prior, shm_name_list=shm_name_dict)
+            self.master.send_instance_to_execution(instance_t)
+            
     # def place_jobs_to_nodes(self, job_list, mode="plan") :
     #
     #
