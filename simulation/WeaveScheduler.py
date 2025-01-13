@@ -232,21 +232,25 @@ class WeaveSchedulor:
     def schedule_weave_match_instances(self, instances_list):
         complete_match_list = []
         out_matched_instances_list = []
-        if len(instances_list) == 0:
-            return out_matched_instances_list
-        if len(instances_list) == 1:
-            instance1 = instances_list[0]
-            pack_resource = [max(instance1.job.used_resource_cpu), max(instance1.job.used_resource_mem), max(instance1.job.used_resource_gpu), max(instance1.job.used_resource_gmem)]
-            out_matched_instances_list.append([instance1, None, pack_resource])
-            return out_matched_instances_list
         
         #剔除不需要进行匹配的instance
+        # not_matched_instance_name = set()
         for i in range(len(instances_list)-1, -1, -1):
             instance= instances_list[i]
             if instance.job.init_iter_percent < self.master.couple_init_iter_percent:
                 pack_resource = [max(instance.job.used_resource_cpu), max(instance.job.used_resource_mem), max(instance.job.used_resource_gpu), max(instance.job.used_resource_gmem)]
                 out_matched_instances_list.append([instance, None, pack_resource])
                 instances_list.remove(instance)
+               
+        if len(instances_list) == 0:
+            return out_matched_instances_list
+        
+        if len(instances_list) == 1:
+            instance1 = instances_list[0]
+            pack_resource = [max(instance1.job.used_resource_cpu), max(instance1.job.used_resource_mem), max(instance1.job.used_resource_gpu), max(instance1.job.used_resource_gmem)]
+            out_matched_instances_list.append([instance1, None, pack_resource])
+            return out_matched_instances_list
+                
                 
         # 计算两两的匹配值
         for i_index in range(len(instances_list)):
@@ -314,6 +318,8 @@ class WeaveSchedulor:
 
         # 判断输出是否包含所有jobs
         if len(matched_instance_name) != len(instances_list):
+            if single_instance == None:
+                a=1
             if single_instance.instance_name not in matched_instance_name:
                 out_matched_instances_list.append([single_instance, None, single_instance_pack_resource])
             else:

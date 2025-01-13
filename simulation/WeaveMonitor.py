@@ -66,7 +66,7 @@ class WeaveMonitor:
     def takeback_resource(self,instance, plan=False):
         with self.lock:
             if instance.is_main == False:
-                    return False
+                return False
             couple_job_gpu_id_list=self.occupy_resource_gpu_id_list[instance.instance_name]
             if plan == True:
                 #plan resource

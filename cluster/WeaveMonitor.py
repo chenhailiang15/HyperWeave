@@ -20,45 +20,87 @@ class WeaveMonitor:
 
         
         
-    def alloc_resource(self, job1, job2, couple_job_gpu_id_list, plan=False):
+    def alloc_resource(self, instance1, instance2, couple_instance_gpu_id_list, plan=False):
         with self.lock:
-            self.occupy_resource_gpu_id_list[job1.job_name]=couple_job_gpu_id_list
+            self.occupy_resource_gpu_id_list[instance1.instance_name]=couple_instance_gpu_id_list
             if plan==True:
+                assert instance2 == None
+
                 #plan resource
-                for [node_index, gpu_id_list] in couple_job_gpu_id_list:
-                    self.nodes[node_index].alloc_resource(job1.plan_cpu, job1.plan_mem, job1.plan_gpu, 0, gpu_id_list)
+                if instance1.job.plan_gpu<=100:
+                    for [node_index, gpu_id_list] in couple_instance_gpu_id_list:
+                        self.nodes[node_index].alloc_resource(instance1.job.plan_cpu, instance1.job.plan_mem, instance1.job.plan_gpu, 0, gpu_id_list)
+                else:
+                    if instance1.job.plan_gpu%100 ==0 : #判断有没有GPU碎片的分配
+                        fragement=False
+                    else:
+                        fragement=True
+
+
+                    max_iter=len(couple_instance_gpu_id_list)
+                    curr_iter_num=0
+                    for [node_index, gpu_id_list] in couple_instance_gpu_id_list:
+                        curr_iter_num += 1
+                        factor=instance1.job.plan_gpu/100
+                        if fragement == True and curr_iter_num==max_iter:
+                            frage_part=(instance1.job.plan_gpu%100)/instance1.job.plan_gpu
+                            if len(gpu_id_list)==0:
+                                print("gpu_id_list len = 0")
+                            self.nodes[node_index].alloc_resource(instance1.job.plan_cpu*frage_part, instance1.job.plan_mem*frage_part, instance1.job.plan_gpu*frage_part, 0, [gpu_id_list[0]])
+                            self.nodes[node_index].alloc_resource(instance1.job.plan_cpu/factor, instance1.job.plan_mem/factor, 100, 0, gpu_id_list[1:])
+                            fragement=False
+                        else:
+                            self.nodes[node_index].alloc_resource(instance1.job.plan_cpu/factor, instance1.job.plan_mem/factor, 100, 0, gpu_id_list)
+
                 return
             else:
-                #pack resource
-                if job2 !=None:
-                    self.occupy_resource_gpu_id_list[job2.job_name]=couple_job_gpu_id_list
-                
-                for [node_index, gpu_id_list] in couple_job_gpu_id_list:
-                    self.nodes[node_index].alloc_resource(job1.pack_cpu, job1.pack_mem, job1.pack_gpu, job1.pack_gmem, gpu_id_list)
+                #used resource
+                if instance2 !=None:
+                    self.occupy_resource_gpu_id_list[instance2.instance_name]=couple_instance_gpu_id_list
+
+                for [node_index, gpu_id_list] in couple_instance_gpu_id_list:
+                    self.nodes[node_index].alloc_resource(instance1.pack_cpu/instance1.job.parallel_num, instance1.pack_mem/instance1.job.parallel_num, instance1.pack_gpu/instance1.job.parallel_num, instance1.pack_gmem/instance1.job.parallel_num, gpu_id_list)
         
                 
-    def takeback_resource(self,job, plan=False):
+    def takeback_resource(self,instance, plan=False):
         with self.lock:
-            if job.is_main == False:
-                    return False
-                
+            if instance.is_main == False:
+                return False
+            couple_job_gpu_id_list=self.occupy_resource_gpu_id_list[instance.instance_name]
             if plan == True:
                 #plan resource
-                for [node_index , gpu_id_list_t]in self.occupy_resource_gpu_id_list[job.job_name]:
-                    self.nodes[node_index].takeback_resource(job.plan_cpu, job.plan_mem, job.plan_gpu, 0, gpu_id_list_t)
-            else:
-                # pack resource
-                if job.couple_job_name == None:
-                    for [node_index , gpu_id_list_t]in self.occupy_resource_gpu_id_list[job.job_name]:
-                        self.nodes[node_index].takeback_resource(job.pack_cpu, job.pack_mem, job.pack_gpu, job.pack_gmem, gpu_id_list_t)
-                    # del self.occupy_resource_gpu_id_list[job.job_name]
-                    return
-                if job.couple_job_name in self.end_job_name:
-                    for [node_index , gpu_id_list_t]in self.occupy_resource_gpu_id_list[job.job_name]:
-                        self.nodes[node_index].takeback_resource(job.pack_cpu, job.pack_mem, job.pack_gpu, job.pack_gmem, gpu_id_list_t)
-                    return
+                if instance.job.plan_gpu<=100:
+                    for [node_index, gpu_id_list] in couple_job_gpu_id_list:
+                        self.nodes[node_index].takeback_resource(instance.job.plan_cpu, instance.job.plan_mem, instance.job.plan_gpu, 0, gpu_id_list)
                 else:
-                    self.end_job_name.add(job.job_name)
+                    if instance.job.plan_gpu%100 ==0 : #判断有没有GPU碎片的分配
+                        fragement=False
+                    else:
+                        fragement=True
+
+                    max_iter=len(couple_job_gpu_id_list)
+                    curr_iter_num=0
+                    factor=instance.job.plan_gpu/100
+                    for [node_index, gpu_id_list] in couple_job_gpu_id_list:
+                        curr_iter_num += 1
+                        if fragement == True and curr_iter_num==max_iter:
+                            frage_part=(instance.job.plan_gpu%100)/instance.job.plan_gpu
+                            self.nodes[node_index].takeback_resource(instance.job.plan_cpu*frage_part, instance.job.plan_mem*frage_part, instance.job.plan_gpu*frage_part, 0, [gpu_id_list[0]])
+                            self.nodes[node_index].takeback_resource(instance.job.plan_cpu/factor, instance.job.plan_mem/factor, 100, 0, gpu_id_list[1:])
+                            fragement=False
+                        else:
+                            self.nodes[node_index].takeback_resource(instance.job.plan_cpu/factor, instance.job.plan_mem/factor, 100, 0, gpu_id_list)
+
+
+            else:
+
+                # used resource
+                if instance.couple_instance_name != None and instance.couple_instance_name not in self.end_job_name:
+                    self.end_job_name.add(instance.instance_name)
+                else:   #没有耦合实例, huozhe ，则直接回收
+                    for [node_index , gpu_id_list_t]in self.occupy_resource_gpu_id_list[instance.instance_name]:
+                        self.nodes[node_index].takeback_resource(instance.pack_cpu/instance.job.parallel_num, instance.pack_mem/instance.job.parallel_num, instance.pack_gpu/instance.job.parallel_num, instance.pack_gmem/instance.job.parallel_num, gpu_id_list_t)
+                    # del self.occupy_resource_gpu_id_list[job.job_name]
         
         
     def get_satisfy_gpu(self,pack_resource=None):
@@ -80,11 +122,11 @@ class WeaveMonitor:
         self.max_mem=0
         self.max_gpu=0
         self.max_gmem=0
-        for i in range(self.node_num):
-            self.max_cpu=self.nodes[i].cpu if self.nodes[i].cpu>self.max_cpu else self.max_cpu
-            self.max_mem=self.nodes[i].mem if self.nodes[i].mem>self.max_mem else self.max_mem
-            self.max_gpu=self.nodes[i].gpu[0] if self.nodes[i].gpu[0]>self.max_gpu else self.max_gpu
-            self.max_gmem=self.nodes[i].gmem[0] if self.nodes[i].gmem[0]>self.max_gmem else self.max_gmem
+        # for i in range(self.node_num):
+        #     self.max_cpu=self.nodes[i].cpu if self.nodes[i].cpu>self.max_cpu else self.max_cpu
+        #     self.max_mem=self.nodes[i].mem if self.nodes[i].mem>self.max_mem else self.max_mem
+        #     self.max_gpu=self.nodes[i].gpu[0] if self.nodes[i].gpu[0]>self.max_gpu else self.max_gpu
+        #     self.max_gmem=self.nodes[i].gmem[0] if self.nodes[i].gmem[0]>self.max_gmem else self.max_gmem
             
     def get_max_resource(self):
         return [self.max_cpu, self.max_mem, self.max_gpu, self.max_gmem]
@@ -95,6 +137,52 @@ class WeaveMonitor:
             idel_gpu_num+=node.get_idle_gpu_num()
         return idel_gpu_num
     
+    def judge_runable_with_resource(self,resource, parallel_num, plan_flage=True, init=False):
+        cpu_need=resource[0]
+        mem_need=resource[1]
+        gpu_need=resource[2]
+        gmem_need=resource[3]
+
+        if plan_flage:
+            if parallel_num <= 1:
+                for i in range(self.node_num):
+                    satisfy_gpu_num = self.nodes[i].get_satisfy_gpu_num_by_cap(resource)
+                    if satisfy_gpu_num>0:
+                        return True
+            else:
+                factor=gpu_need/100
+                pack_resource = [cpu_need/factor, mem_need/factor, 100, gmem_need/factor]
+
+                for i in range(self.node_num):
+                    satisfy_gpu_num = self.nodes[i].get_satisfy_gpu_num_by_cap(pack_resource)
+                    parallel_num-=satisfy_gpu_num
+                    if parallel_num<=0:
+                        return True
+        else:  #实际使用资源量
+
+            if parallel_num <= 1:
+                if init==True and gpu_need>100:
+                    if self.print_level>=2:
+                        print("status out: used gpu resource more than 100 per GPU (in init)")
+                    return False
+
+                for i in range(self.node_num):
+                    satisfy_gpu_num = self.nodes[i].get_satisfy_gpu_num_by_cap(resource)
+                    if satisfy_gpu_num > 0:
+                        return True
+            else:
+                pack_resource = [cpu_need / parallel_num, mem_need / parallel_num, gpu_need/parallel_num, gmem_need / parallel_num]
+                if init==True and gpu_need/parallel_num>100:
+                    if self.print_level>=2:
+                        print("used gpu resource more than 100 per GPU")
+                    return False
+                for i in range(self.node_num):
+                    satisfy_gpu_num = self.nodes[i].get_satisfy_gpu_num_by_cap(pack_resource)
+                    parallel_num -= satisfy_gpu_num
+                    if parallel_num <= 0:
+                        return True
+
+        return False
     # def __get_satisfy_gpu_node(self,node_kind, pack_resource):
     #     cpu_need=pack_resource[0]
     #     mem_need=pack_resource[1]

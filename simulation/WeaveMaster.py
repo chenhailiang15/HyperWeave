@@ -559,7 +559,7 @@ if __name__=="__main__":
     parser.add_argument("--gpu_mem_percent", default=0.8, type=float, help="because of GPU fragement")
     parser.add_argument("--node_num", default=100, type=int, help="only for node kind is cluster")
     parser.add_argument("--job_num", default=1000, type=int)
-    parser.add_argument("--validation", default="True", type=str)
+    parser.add_argument("--validation", default="False", type=str)
     
     parser.add_argument("--write_sum", action='store_true')
     parser.add_argument("--write_trace", action='store_true')
