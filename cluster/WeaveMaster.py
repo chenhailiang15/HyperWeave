@@ -138,11 +138,10 @@ class WeaveMaster:
             print("master init scheduler...")
         self.scheduler=WeaveSchedulor(self, print_level=self.print_level)
         
-        #通讯器，初始化和启动监听。
-        if self.print_level>0:
-            print("master init communicator...")
-            
         if not self.single_node_mode:
+            #通讯器，初始化和启动监听。
+            if self.print_level>0:
+                print("master init communicator...")
             self.communicator=CommunicateServer(print_level=self.print_level)
             self.communicator.start_connect()
             self.communicator.start_listening(self.message_receive)
@@ -150,24 +149,29 @@ class WeaveMaster:
         
     #初始化node信息
     def init_node(self):
+        self.nodes=[]
+        if self.node_kind=="4*3090":
+            node_3090=Node(self, 0, "3090node", "10.26.0.4", "eno1", self.overshared_factor, self.print_level)
+            node_3090.set_init_resouce(96*100, 250*1024, 4, 20*1024*args.gpu_mem_percent)
+            self.nodes.append(node_3090)
+            self.node_num =1
         
-        node_2080=Node(node_id="node_2080", ip="10.26.128.115", net_card="eno2", overshared_factor=self.overshared_factor, max_cross_gpu_job_num=self.max_gpu_cross, print_level=self.print_level)
-        node_2080.set_init_resouce(48*100, 60*1024, 4, 6*1024)
-        node_2080ti=Node(node_id="node_2080ti", ip="10.26.128.51", net_card="eno1", overshared_factor=self.overshared_factor, max_cross_gpu_job_num=self.max_gpu_cross, print_level=self.print_level)
-        node_2080ti.set_init_resouce(48*100,120*1024, 3, 10*1024)
-        
-        if self.single_node_mode:
+        elif self.node_kind=="3*2080ti":
+            node_2080ti=Node(self, 0, "2080tinode", "10.26.128.51", "eno1", self.overshared_factor, self.print_level)
+            node_2080ti.set_init_resouce(48*100,120*1024, 3, 11*1024*args.gpu_mem_percent)
+            self.nodes.append(node_2080ti)
             self.node_num=1
-            if self.master_is_2080:
-                self.nodes=[node_2080]
-            else:
-                self.nodes=[node_2080ti]
+            
+        elif self.node_kind=="4*2080":
+            node_2080=Node(self, 0, "2080node", "10.26.128.115", "eno2", self.overshared_factor, self.print_level)
+            node_2080.set_init_resouce(48*100, 60*1024, 4, 8*1024*args.gpu_mem_percent)
+            self.nodes.append(node_2080)
+            self.node_num=1
+            
         else:
-            self.node_num=2
-            if self.master_is_2080:
-                self.nodes=[node_2080, node_2080ti]
-            else:
-                self.nodes=[node_2080ti, node_2080]
+            print("node kind parameter wrong!")
+            exit(-1)
+
             
             
     #初始化MPS
@@ -199,9 +203,6 @@ class WeaveMaster:
             self.model_info_list.append(line[0:-1])
             self.model_info_list_max+=1
         
-        
-        
-        
     def load_ali_trace(self,file_name):
         ali_trace_pd=self.load_csv(file_name,header=0)
         min_start_time=ali_trace_pd["start_time_j"].min()
@@ -213,6 +214,31 @@ class WeaveMaster:
         data_pd=pd.read_csv(dataset_dir+"exp_data"+"/"+file_name,header=header)
         return data_pd
 
+    #job到来的函数，持续运行，直到读取的文件中的job结束
+    def job_come(self):
+        self.start_time=time.time()
+        
+        self.wait_schedule_queue=queue.Queue()
+        self.job_come_flage=True
+        sub_thread_schedule=threading.Thread(target=self.schedule_subthreading,args=())
+        sub_thread_schedule.start()
+        
+        for index in range(len(self.ali_trace_pd)):
+            job=self.generate_job(self.ali_trace_pd.iloc[index,:], self.job_come_num)
+            if job ==None: #由于数据原因，可能无法生成Job，因此跳过
+                continue
+            if self.print_level>=2:
+                print(f"job ${job.job_idx}$ come ( detailed info :{job.job_key_info()})")
+            self.wait_schedule_queue.put(job)
+            self.job_come_num+=1
+            if index+1<len(self.ali_trace_pd):
+                time.sleep(self.ali_trace_pd.loc[index+1,"start_time"]-self.ali_trace_pd.loc[index,"start_time"])
+ 
+        self.job_come_flage=False
+        sub_thread_schedule.join()
+
+        return
+    
     def generate_job(self, ali_trace,job_idx):
         
         if ali_trace["cpu_usage"]==0 or ali_trace["avg_mem"]==0:
@@ -278,30 +304,6 @@ class WeaveMaster:
                 self.wait_schedule_queue.put(job)
                 
             
-    #job到来的函数，持续运行，直到读取的文件中的job结束
-    def job_come(self):
-        self.start_time=time.time()
-        
-        self.wait_schedule_queue=queue.Queue()
-        self.job_come_flage=True
-        sub_thread_schedule=threading.Thread(target=self.schedule_subthreading,args=())
-        sub_thread_schedule.start()
-        
-        for index in range(len(self.ali_trace_pd)):
-            job=self.generate_job(self.ali_trace_pd.iloc[index,:], self.job_come_num)
-            if job ==None: #由于数据原因，可能无法生成Job，因此跳过
-                continue
-            if self.print_level>=2:
-                print(f"job ${job.job_idx}$ come ( detailed info :{job.job_key_info()})")
-            self.wait_schedule_queue.put(job)
-            self.job_come_num+=1
-            if index+1<len(self.ali_trace_pd):
-                time.sleep(self.ali_trace_pd.loc[index+1,"start_time"]-self.ali_trace_pd.loc[index,"start_time"])
- 
-        self.job_come_flage=False
-        sub_thread_schedule.join()
-
-        return
     
     
     def send_job_to_execution(self, job_f):
@@ -484,7 +486,7 @@ if __name__=="__main__":
     parser.add_argument("--strategy", default="FIFO", type=str)
     parser.add_argument("--mps_flage", default="True", type=str)
     parser.add_argument("--sync_flage", default="True", type=str)
-    parser.add_argument("--node_kind", default="cluster", type=str, help="4*3090, 3*2080ti, 4*2080")
+    parser.add_argument("--node_kind", default="4*2080", type=str, help="4*3090, 3*2080ti, 4*2080")
     parser.add_argument("--model_kind", default="all_model", type=str, help="cv_model, all_model")
     parser.add_argument("--gpu_mem_percent", default=0.8, type=float, help="because of GPU fragement")
     parser.add_argument("--job_num", default=1000, type=int)

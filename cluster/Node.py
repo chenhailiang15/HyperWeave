@@ -5,10 +5,12 @@ import threading
 
 
 class Node:
-    def __init__(self, node_id, ip, net_card, overshared_factor, max_cross_gpu_job_num, print_level):
+    def __init__(self, master, node_id, node_name, ip, net_card, overshared_factor, print_level):
+        self.master=master
         self.node_id=node_id
+        self.node_name=node_name
         self.overshared_factor=overshared_factor
-        self.max_cross_gpu_job_num=max_cross_gpu_job_num
+        
         self.print_level=print_level
         self.cross_gpu_job_num=0
         self.current_port=2000
@@ -91,12 +93,12 @@ class Node:
             return satisfy_gpu_id_list, satisfy_score
     
     
-    def get_over_corss_num(self):
-        with self.lock:
-            if self.cross_gpu_job_num<self.max_cross_gpu_job_num:
-                return 0
-            else:
-                return self.cross_gpu_job_num-self.max_cross_gpu_job_num+1
+    # def get_over_corss_num(self):
+    #     with self.lock:
+    #         if self.cross_gpu_job_num<self.max_cross_gpu_job_num:
+    #             return 0
+    #         else:
+    #             return self.cross_gpu_job_num-self.max_cross_gpu_job_num+1
         
     def get_idle_port(self):
         with self.lock:
