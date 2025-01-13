@@ -9,7 +9,7 @@ import pandas as pd
 import random
 import math
 import queue
-from Job import Job 
+from Job import Job, Instance 
 from Node import Node
 import subprocess
 from Recorder import Record
@@ -112,6 +112,7 @@ class WeaveMaster:
         
         self.job_wait_time_list=[]
         self.job_complete_time_list=[]
+        self.wait_schedule_queue=queue.Queue()
         #################################
         self.init_MPS()
         
@@ -218,8 +219,6 @@ class WeaveMaster:
     #job到来的函数，持续运行，直到读取的文件中的job结束
     def job_come(self):
         self.start_time=time.time()
-        
-        self.wait_schedule_queue=queue.Queue()
         self.job_come_flage=True
         sub_thread_schedule=threading.Thread(target=self.schedule_subthreading,args=())
         sub_thread_schedule.start()
@@ -244,47 +243,105 @@ class WeaveMaster:
         
         if ali_trace["cpu_usage"]==0 or ali_trace["avg_mem"]==0:
             return None
-        job_name=ali_trace["job_name"]
-        while True:
-            model_name=self.model_info_list[self.model_info_list_index%self.model_info_list_max].split("-")[0]
-            batch_size=int(self.model_info_list[self.model_info_list_index%self.model_info_list_max].split("-")[1])
-            self.model_info_list_index+=1
-            
-            plan_gpu=ali_trace["plan_gpu"] if ali_trace["plan_gpu"]<=self.single_job_max_plan_gpu else self.single_job_max_plan_gpu
-            
-            
-            parrallel_num=math.ceil(min(plan_gpu, 400)/100)
-            model_info=model_name+"-"+str(batch_size)+"-"+str(parrallel_num)
-            duration_time=ali_trace["duration_s"]/self.job_time_factor
-            init_time=self.analyze_loader.get_value(model_info,"stage_init","time")
-            epoch_time=self.analyze_loader.get_value(model_info,"stage_sample","time")+self.analyze_loader.get_value(model_info,"stage_train","time")
-            model_duration_time=init_time+epoch_time
-            
-            if model_duration_time<duration_time:
-                break
+        model_name=self.model_info_list[self.model_info_list_index%self.model_info_list_max].split("-")[0]
+        batch_size=int(self.model_info_list[self.model_info_list_index%self.model_info_list_max].split("-")[1])
+        self.model_info_list_index+=1
+
+        plan_gpu=ali_trace["plan_gpu"]
+
+        parrallel_num=math.ceil(min(plan_gpu, 400)/100)
+        model_info=model_name+"-"+str(batch_size)+"-"+str(parrallel_num)
+        duration_time=ali_trace["duration_s"]/self.job_time_factor
+        init_time=self.analyze_loader.get_value(model_info,"stage_init","time")
+        epoch_time=self.analyze_loader.get_value(model_info,"stage_sample","time")+self.analyze_loader.get_value(model_info,"stage_train","time")
+        model_duration_time=init_time+epoch_time
+
+        if model_duration_time>=duration_time:
+            if self.print_level>=2:
+                print("job generate fail (duration time is too small)")
+            return None
+
         
         
         total_epochs=math.ceil((ali_trace["duration_s"]/self.job_time_factor-init_time)/epoch_time)
-        
-        
-        plan_cpu=min(ali_trace["plan_cpu"]/ali_trace["cpu_usage"]*self.analyze_loader.get_value(model_info,"stage_sample","cpu"), self.single_job_max_plan_cpu)
-        plan_mem=min(ali_trace["plan_mem"]/ali_trace["avg_mem"]*self.analyze_loader.get_value(model_info,"stage_sample","mem"),self.single_job_max_plan_mem)
-        
-        arrive_time=time.time()
-        
-        ddl_time=arrive_time+duration_time*self.job_ddl_factor
-        
-        job=Job(job_idx,self.system)
+        each_batch_time=self.analyze_loader.get_time_value(model_info, 1)+self.analyze_loader.get_time_value(model_info, 2)+self.analyze_loader.get_time_value(model_info, 3)
+        batch_num=math.ceil(self.analyze_loader.get_value(model_info,"stage_train","time")/each_batch_time)
+
+        job = Job(job_idx, self.system)
+        job_name = ali_trace["job_name"]
+        job.set_model_info(job_name, model_name,total_epochs, batch_size)
         if model_name == "GCN":
             job.set_model_info(job_name, model_name,total_epochs, batch_size, layer_num=100, layer_feature=100)
         else:
             job.set_model_info(job_name, model_name,total_epochs, batch_size)
+            
+        job.batch_num=batch_num    #设置batch numbere
+        job.instance_num=1        #多个instance融合为一个
         
-        job.set_plan_resource(plan_cpu, plan_mem, plan_gpu)
+        #设置各阶段时间消耗
+        job.time_init=self.analyze_loader.get_time_value(model_info,0)
+        job.time_init_iter=self.analyze_loader.get_value(model_info,"stage_sample","time")
+        job.time_get_data=self.analyze_loader.get_time_value(model_info,1)
+        job.time_forward_back=self.analyze_loader.get_time_value(model_info,2)
+        job.time_commu=self.analyze_loader.get_time_value(model_info,3)
+        job.time_epoch_no_init_iter=batch_num*(job.time_get_data+job.time_forward_back+job.time_commu)-job.time_get_data
+        job.init_iter_percent=job.time_init_iter/(job.time_epoch_no_init_iter+job.time_init_iter)
+        # 通过batchnum 和 epoch 以及各阶段时间，计算总持续时间
+        duration_time =job.time_init+total_epochs*(job.time_epoch_no_init_iter+job.time_init_iter)
+
+        #设置计划资源使用量
+        job.set_plan_resource(ali_trace["plan_cpu"], ali_trace["plan_mem"], ali_trace["plan_gpu"])
+
+        pack_resource=[ali_trace["plan_cpu"], ali_trace["plan_mem"], ali_trace["plan_gpu"],0]
+        if self.monitor.judge_runable_with_resource(pack_resource,job.parallel_num, plan_flage=True, init=True) == False:
+            if self.print_level>=2:
+                print("job generate fail (plan resource not runable!)")
+            return None
+
+
+        #设置各阶段实际资源使用量[init stage, pre-iteration stage, iteration stage]
+        max_cpu_usage=max(self.analyze_loader.get_value(model_info,"stage_init", "cpu"), self.analyze_loader.get_value(model_info,"stage_sample", "cpu"), self.analyze_loader.get_value(model_info,"stage_train", "cpu"))
+        job.used_resource_cpu = [ali_trace["cpu_usage"]*self.analyze_loader.get_value(model_info,"stage_init", "cpu")/max_cpu_usage,\
+                                 ali_trace["cpu_usage"]*self.analyze_loader.get_value(model_info,"stage_sample", "cpu")/max_cpu_usage,\
+                                 ali_trace["cpu_usage"]*self.analyze_loader.get_value(model_info,"stage_train", "cpu")/max_cpu_usage]
+
+        max_mem_usage=max(self.analyze_loader.get_value(model_info,"stage_init", "mem"), self.analyze_loader.get_value(model_info,"stage_sample", "mem"), self.analyze_loader.get_value(model_info,"stage_train", "mem"))
+        job.used_resource_mem = [1024*ali_trace["avg_mem"]*self.analyze_loader.get_value(model_info,"stage_init", "mem")/max_mem_usage,\
+                                 1024*ali_trace["avg_mem"]*self.analyze_loader.get_value(model_info,"stage_sample", "mem")/max_mem_usage,\
+                                 1024*ali_trace["avg_mem"]*self.analyze_loader.get_value(model_info,"stage_train", "mem")/max_mem_usage]
+
+        max_gpu_usage = max(self.analyze_loader.get_value(model_info, "stage_init", "gpu"), self.analyze_loader.get_value(model_info, "stage_sample", "gpu"), self.analyze_loader.get_value(model_info, "stage_train", "gpu"))
+        job.used_resource_gpu = [ali_trace["gpu_wrk_util"]*self.analyze_loader.get_value(model_info,"stage_init", "gpu")/max_gpu_usage,\
+                                 ali_trace["gpu_wrk_util"]*self.analyze_loader.get_value(model_info,"stage_sample", "gpu")/max_gpu_usage,\
+                                 ali_trace["gpu_wrk_util"]*self.analyze_loader.get_value(model_info,"stage_train", "gpu")/max_gpu_usage]
+
+        max_gmem_usage = max(self.analyze_loader.get_value(model_info, "stage_init", "gmem"), self.analyze_loader.get_value(model_info, "stage_sample", "gmem"), self.analyze_loader.get_value(model_info, "stage_train", "gmem"))
+        job.used_resource_gmem = [1024*ali_trace["avg_gpu_wrk_mem"]*self.analyze_loader.get_value(model_info,"stage_init", "gmem")/max_gmem_usage,\
+                                 1024*ali_trace["avg_gpu_wrk_mem"]*self.analyze_loader.get_value(model_info,"stage_sample", "gmem")/max_gmem_usage,\
+                                 1024*ali_trace["avg_gpu_wrk_mem"]*self.analyze_loader.get_value(model_info,"stage_train", "gmem")/max_gmem_usage]
+        pack_resource=[max(job.used_resource_cpu), max(job.used_resource_mem), max(job.used_resource_gpu), max(job.used_resource_gmem)]
+        # 并行度为1，实际使用为188，存在问题
+        if self.monitor.judge_runable_with_resource(pack_resource, job.parallel_num, plan_flage=False, init=True) == False:
+            if self.print_level>=2:
+                print(f"job generate fail (used resource not runable)!{pack_resource}")
+            return None
+        #设置job到达时间
+        arrive_time = self.env.now
+        ddl_time = arrive_time + duration_time * self.job_ddl_factor
         job.set_arrive_time(arrive_time)
         job.set_ddl_time(ddl_time)
         job.set_duration_time(duration_time)
+
+        instance=Instance(job, 0, self.system)
+        instance.instance_global_idx=self.instance_global_idx
+        self.instance_global_idx+=1
+        instance.set_duration_time(duration_time)
+        job.instance_list.append(instance)
+        if system=="Muri":
+            job.set_time_for_muri()
+        
         return job
+        
         
     #调度子线程，间隔schedule_interval（秒）后，执行一次调度。未调度成功的job需要返回，重新放入队列
     #调度停止的条件是job不再到来（self.job_come_flage=False），并且队列为空(qsize==0)

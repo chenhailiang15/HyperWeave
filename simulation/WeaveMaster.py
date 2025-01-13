@@ -228,7 +228,7 @@ class WeaveMaster:
 
     # job到来的函数，持续运行，直到读取的文件中的job结束
     def job_come(self):
-
+        
         self.job_come_flage = True
 
         for index in range(len(self.ali_trace_pd)):
@@ -255,7 +255,7 @@ class WeaveMaster:
         if ali_trace["cpu_usage"]==0 or ali_trace["avg_mem"]==0:
             return None
 
-        # while True: #从自己生成的模型信息中获取一个，满足持续时间要求
+        
         model_name=self.model_info_list[self.model_info_list_index%self.model_info_list_max].split("-")[0]
         batch_size=int(self.model_info_list[self.model_info_list_index%self.model_info_list_max].split("-")[1])
         self.model_info_list_index+=1
