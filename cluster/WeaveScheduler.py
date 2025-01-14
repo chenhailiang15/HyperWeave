@@ -434,7 +434,7 @@ class WeaveSchedulor:
                 # 正常调度
                 # [[node_index, score, [[gpu_id, score],...]],...]
                 adjust_pack_resource=[x/instance1.job.parallel_num for x in pack_resource]
-                satisfy_gpu_list = self.master.monitor.get_satisfy_gpu_for_sim(adjust_pack_resource)
+                satisfy_gpu_list = self.master.monitor.get_satisfy_gpu(adjust_pack_resource)
 
                 # 对优先级进行排序
                 # satisfy_gpu_list_new = []
@@ -714,7 +714,7 @@ class WeaveSchedulor:
 
                 pack_resource = [all_need_cpu/need_gpu_num, all_need_mem/need_gpu_num, 100, 0]
                 #[[node_index, score, [[gpu_id, score],...]],...]
-                satisfy_gpu_list=self.master.monitor.get_satisfy_gpu_for_sim(pack_resource)
+                satisfy_gpu_list=self.master.monitor.get_satisfy_gpu(pack_resource)
                 #对优先级进行排序
                 
                 all_satisfy_gpu_num=0
@@ -839,7 +839,7 @@ class WeaveSchedulor:
                         factor=job.plan_gpu / 100
                         plan_resource = [job.plan_cpu / factor, job.plan_mem / factor, 100, 0]
 
-                    satisfy_gpu_list=self.master.monitor.get_satisfy_gpu_for_sim(plan_resource)
+                    satisfy_gpu_list=self.master.monitor.get_satisfy_gpu(plan_resource)
                     all_satisfy_gpu_num=0
 
                     for [node_index, score, temp_gpu_list] in satisfy_gpu_list:

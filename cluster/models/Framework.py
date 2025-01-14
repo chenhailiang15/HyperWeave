@@ -74,8 +74,7 @@ class model_framework:
                 self.sync_er=Synchronizer(shm_name, shm_size=12, max_sync_num=self.args.max_sync_num,enable_flage=enable_flage)
             elif self.args.mode == "analyze" and self.local_rank==0:
                 self.sync_er=Synchronizer(shm_name, shm_size=16)  #用来将测试出来的耗时传递出去
-        else:
-            print(f"system name wrong! {self.system}")    
+            
         return  
 
     
@@ -159,8 +158,8 @@ class model_framework:
                     print("model mode wrong!")
                     exit(-1)
                 
-                gc.collect()
-                torch.cuda.empty_cache()
+                # gc.collect()
+                # torch.cuda.empty_cache()
                 
         elif self.system == "Muri":
             if self.mode=="analyze" and self.local_rank==0:
@@ -173,8 +172,8 @@ class model_framework:
                 
             while not self.model.is_end():
                 if self.model.batch_idx==0 or self.model.batch_idx==self.model.total_batch_num:
-                    gc.collect()
-                    torch.cuda.empty_cache()
+                    # gc.collect()
+                    # torch.cuda.empty_cache()
                     print(f"job_idx: {self.job_idx} idx on gpu: {self.device} epoch: {self.model.cur_epoch+1}/{self.args.total_epochs}...")
                 if self.model.batch_idx%500 == 1:
                     print(f"job_idx: {self.args.job_idx} batch_idx: {self.model.batch_idx}/{self.model.total_batch_num}...")
@@ -233,14 +232,17 @@ class model_framework:
                 self.sync_er.set_value(2, stage2_time_all/record_num)
                 self.sync_er.set_value(3, stage3_time_all/record_num)
                         
-                        
+        elif self.system=="Normal":
+            for epoch in range(self.args.total_epochs):
+                print(f"job_idx: {self.job_idx} idx on gpu: {self.idx_on_gpu} epoch: {epoch+1}/{self.args.total_epochs}...")
+                self.model.sample()
+                self.model.train()
+            
+        else:
+            print(f"system wrong! {self.system}")
             
             
-            
-            
-            
-            
-            return #等待完善
+        return #等待完善
                     # self.model.prepare_sub()
                     # while not self.model.is_epoch_end():
                     #     if self.model.batch_idx%500 == 0:

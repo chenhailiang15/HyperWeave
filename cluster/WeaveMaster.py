@@ -478,7 +478,7 @@ class WeaveMaster:
             #job不再到来，并且到来的job数量等于结束的job数量。此时仿真结束
             if self.job_come_flage==False and self.job_come_num == self.job_end_num:
                 self.end_event.set()    #停止out info
-                self.set_makespan()     #统计系统运行时间
+                # self.set_makespan()     #统计系统运行时间
             
     def print_and_store_current_state(self):
         self.print_current_state()
@@ -621,14 +621,14 @@ def experiment_one_group_parameters(args, file_sum, file_trace, version, print_l
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description='Prototype platform for DL training job')
-    parser.add_argument("--system",default="Weave",type=str)
+    parser.add_argument("--system",default="Normal",type=str)
     parser.add_argument("--strategy", default="FIFO", type=str)
     parser.add_argument("--mps_flage", default="True", type=str)
     parser.add_argument("--sync_flage", default="True", type=str)
     parser.add_argument("--node_kind", default="4*3090", type=str, help="4*3090, 3*2080ti, 4*2080")
     parser.add_argument("--model_kind", default="cv_model", type=str, help="cv_model, all_model")
     parser.add_argument("--gpu_mem_percent", default=0.8, type=float, help="because of GPU fragement")
-    parser.add_argument("--job_num", default=10, type=int)
+    parser.add_argument("--job_num", default=4, type=int)
     
     parser.add_argument("--print_level", default=11, type=int)
     parser.add_argument("--write_sum", action='store_true')

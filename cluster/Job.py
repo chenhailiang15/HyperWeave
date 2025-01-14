@@ -75,7 +75,9 @@ class Job:
     
     # def set_gpu_list(self, gpu_list):
     #     self.gpu_list=gpu_list
-
+    
+    def set_time_for_muri(self):
+        self.four_times=self.get_four_stage_time()
     
     #时间信息
     def set_arrive_time(self, arrive_time):
