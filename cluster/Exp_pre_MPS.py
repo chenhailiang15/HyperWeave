@@ -3,16 +3,16 @@ from util import *
 from models.Framework import *
 
 def do_experiment(mps_state):
-    if mps_state ==True:
-        if not start_MPS(password):
-            print("MPS open wrong")
-            exit(-1)
-    else:
-        if not stop_MPS(password):
-            print("MPS close wrong")
-            exit(-1)
+    # if mps_state ==True:
+    #     if not start_MPS(password):
+    #         print("MPS open wrong")
+    #         exit(-1)
+    # else:
+    #     if not stop_MPS(password):
+    #         print("MPS close wrong")
+    #         exit(-1)
     
-    for _ in range(1):
+    for _ in range(2):
         for model_name in model_list:
             for para_num in range(1, max_parallel_num+1):
                 
@@ -43,7 +43,7 @@ def run_model(model_name,para_num):
 def generate_command(model_name, index):
     nprocs_list="[1,0]"
 
-    gpu_id_list="[[6],[]]"
+    gpu_id_list="[[7],[]]"
     net_card="eno1"
 
     total_epochs=2
@@ -153,7 +153,7 @@ def run_command( command, model_name):
 
 
 
-with_mps=False
+with_mps=True
 ddp_flag=1       #1全是ddp    0混合   -1  全非ddp
 
 

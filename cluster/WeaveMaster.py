@@ -150,7 +150,7 @@ class WeaveMaster:
     def init_node(self):
         self.nodes=[]
         if self.node_kind=="4*3090":
-            self.spec_gpu_id=[1,2,3,5]
+            self.spec_gpu_id=[3,5,6,7]
             node_3090=Node(self, 0, "3090node", "10.26.0.4", "eno1", self.overshared_factor, self.print_level)
             node_3090.set_init_resouce(96*100, 250*1024, 4, 20*1024*args.gpu_mem_percent, self.spec_gpu_id)
             self.nodes.append(node_3090)
@@ -311,24 +311,41 @@ class WeaveMaster:
 
         #设置各阶段实际资源使用量[init stage, pre-iteration stage, iteration stage]
         max_cpu_usage=max(self.analyze_loader.get_value(model_info,"stage_init", "cpu"), self.analyze_loader.get_value(model_info,"stage_sample", "cpu"), self.analyze_loader.get_value(model_info,"stage_train", "cpu"))
-        job.used_resource_cpu = [ali_trace["cpu_usage"]*self.analyze_loader.get_value(model_info,"stage_init", "cpu")/max_cpu_usage,\
-                                 ali_trace["cpu_usage"]*self.analyze_loader.get_value(model_info,"stage_sample", "cpu")/max_cpu_usage,\
-                                 ali_trace["cpu_usage"]*self.analyze_loader.get_value(model_info,"stage_train", "cpu")/max_cpu_usage]
+        if max_cpu_usage>ali_trace["plan_cpu"]:
+            if self.print_level>=2:
+                print("job generate fail (plan resource less than used (cpu)!)")
+            return None
+        job.used_resource_cpu = [self.analyze_loader.get_value(model_info,"stage_init", "cpu"),\
+                                 self.analyze_loader.get_value(model_info,"stage_sample", "cpu"),\
+                                 self.analyze_loader.get_value(model_info,"stage_train", "cpu")]
 
         max_mem_usage=max(self.analyze_loader.get_value(model_info,"stage_init", "mem"), self.analyze_loader.get_value(model_info,"stage_sample", "mem"), self.analyze_loader.get_value(model_info,"stage_train", "mem"))
-        job.used_resource_mem = [1024*ali_trace["avg_mem"]*self.analyze_loader.get_value(model_info,"stage_init", "mem")/max_mem_usage,\
-                                 1024*ali_trace["avg_mem"]*self.analyze_loader.get_value(model_info,"stage_sample", "mem")/max_mem_usage,\
-                                 1024*ali_trace["avg_mem"]*self.analyze_loader.get_value(model_info,"stage_train", "mem")/max_mem_usage]
+        if max_mem_usage>ali_trace["plan_mem"]:
+            if self.print_level>=2:
+                print("job generate fail (plan resource less than used (mem)!)")
+            return None
+        job.used_resource_mem = [self.analyze_loader.get_value(model_info,"stage_init", "mem"),\
+                                 self.analyze_loader.get_value(model_info,"stage_sample", "mem"),\
+                                 self.analyze_loader.get_value(model_info,"stage_train", "mem")]
 
         max_gpu_usage = max(self.analyze_loader.get_value(model_info, "stage_init", "gpu"), self.analyze_loader.get_value(model_info, "stage_sample", "gpu"), self.analyze_loader.get_value(model_info, "stage_train", "gpu"))
-        job.used_resource_gpu = [ali_trace["gpu_wrk_util"]*self.analyze_loader.get_value(model_info,"stage_init", "gpu")/max_gpu_usage,\
-                                 ali_trace["gpu_wrk_util"]*self.analyze_loader.get_value(model_info,"stage_sample", "gpu")/max_gpu_usage,\
-                                 ali_trace["gpu_wrk_util"]*self.analyze_loader.get_value(model_info,"stage_train", "gpu")/max_gpu_usage]
+        if max_gpu_usage>ali_trace["plan_gpu"]:
+            if self.print_level>=2:
+                print("job generate fail (plan resource less than used (gpu)!)")
+            return None
+        job.used_resource_gpu = [self.analyze_loader.get_value(model_info,"stage_init", "gpu"),\
+                                 self.analyze_loader.get_value(model_info,"stage_sample", "gpu"),\
+                                 self.analyze_loader.get_value(model_info,"stage_train", "gpu")]
 
-        max_gmem_usage = max(self.analyze_loader.get_value(model_info, "stage_init", "gmem"), self.analyze_loader.get_value(model_info, "stage_sample", "gmem"), self.analyze_loader.get_value(model_info, "stage_train", "gmem"))
-        job.used_resource_gmem = [1024*ali_trace["avg_gpu_wrk_mem"]*self.analyze_loader.get_value(model_info,"stage_init", "gmem")/max_gmem_usage,\
-                                 1024*ali_trace["avg_gpu_wrk_mem"]*self.analyze_loader.get_value(model_info,"stage_sample", "gmem")/max_gmem_usage,\
-                                 1024*ali_trace["avg_gpu_wrk_mem"]*self.analyze_loader.get_value(model_info,"stage_train", "gmem")/max_gmem_usage]
+        # max_gmem_usage = max(self.analyze_loader.get_value(model_info, "stage_init", "gmem"), self.analyze_loader.get_value(model_info, "stage_sample", "gmem"), self.analyze_loader.get_value(model_info, "stage_train", "gmem"))
+        if model_name=="Bert":
+            factor=2
+        else:
+            factor=1
+            
+        job.used_resource_gmem = [self.analyze_loader.get_value(model_info,"stage_init", "gmem"),\
+                                  self.analyze_loader.get_value(model_info,"stage_sample", "gmem"),\
+                                  self.analyze_loader.get_value(model_info,"stage_train", "gmem")]*factor
         pack_resource=[max(job.used_resource_cpu), max(job.used_resource_mem), max(job.used_resource_gpu), max(job.used_resource_gmem)]
         # 并行度为1，实际使用为188，存在问题
         if self.monitor.judge_runable_with_resource(pack_resource, job.parallel_num, plan_flage=False, init=True) == False:
