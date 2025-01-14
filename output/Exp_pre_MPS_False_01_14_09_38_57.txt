@@ -1,0 +1,7 @@
+AlexNet,mps=False,ddp=1,para_num=1,time_list=[140.65964603424072]
+AlexNet,mps=False,ddp=1,para_num=2,time_list=[176.61476922035217, 176.65461659431458]
+AlexNet,mps=False,ddp=1,para_num=3,time_list=[229.1958041191101, 243.36041855812073, 244.2562186717987]
+AlexNet,mps=False,ddp=1,para_num=4,time_list=[-1, -1, -1, -1]
+AlexNet,mps=False,ddp=1,para_num=5,time_list=[-1, -1, -1, -1, -1]
+AlexNet,mps=False,ddp=1,para_num=6,time_list=[-1, -1, -1, -1, -1, -1]
+AlexNet,mps=False,ddp=1,para_num=7,time_list=[-1, -1, -1, -1, -1, -1, -1]

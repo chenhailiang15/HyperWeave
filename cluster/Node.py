@@ -28,20 +28,18 @@ class Node:
         self.cpu_rest=cpu
         self.mem_rest=mem
         if len(spec_gpu_id)==0:
+            self.gpu_num=gpu_num
             self.gpu=np.array([100*self.overshared_factor for i in range(gpu_num)])
             self.gmem=np.array([gmem for i in range(gpu_num)])
-            self.gpu_num=gpu_num
-
             self.gpu_rest=np.array([100*self.overshared_factor for i in range(gpu_num)])
             self.gmem_rest=np.array([gmem for i in range(gpu_num)])
         else:
-            self.gpu_num=max(spec_gpu_id)=1
-            self.gpu=np.array([0 for i in range(gpu_num)])
-            self.gmem=np.array([0 for i in range(gpu_num)])
-            self.gpu_rest=np.array([0 for i in range(gpu_num)])
-            self.gmem_rest=np.array([0 for i in range(gpu_num)])
+            self.gpu_num= max(spec_gpu_id)+1
+            self.gpu=np.array([0 for i in range(self.gpu_num)])
+            self.gmem=np.array([0 for i in range(self.gpu_num)])
+            self.gpu_rest=np.array([0 for i in range(self.gpu_num)])
+            self.gmem_rest=np.array([0 for i in range(self.gpu_num)])
             for gpu_id in spec_gpu_id:
-                
                 self.gpu[gpu_id]=100*self.overshared_factor
                 self.gmem[gpu_id]=gmem
                 self.gpu_rest[gpu_id]=100*self.overshared_factor

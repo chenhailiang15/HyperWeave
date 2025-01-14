@@ -14,7 +14,7 @@ from Node import Node
 import subprocess
 from Recorder import Record
 from NodeCommunicate import CommunicateServer
-from WeaveAnalyzer import AnalyzeDataLoader, AnalyzeTimeLoader
+from WeaveAnalyzer import AnalyzeDataLoader
 from WeaveScheduler import WeaveSchedulor
 from WeaveMonitor import WeaveMonitor
 
@@ -33,9 +33,9 @@ class WeaveMaster:
         self.schedule_strategy=args.strategy   # "FIFO", "SRTF"，"SRSF", "BNPF"   Bucket-based Non-blocking SRSF
         self.node_kind=args.node_kind
         
-        self.weave_sync_mode=(self.sync_flage=="True")
+        self.weave_sync_mode=(self.args.sync_flage=="True")
         #需要最好手动确认
-        self.MPS_mode=(self.mps_flage=="True")
+        self.MPS_mode=(self.args.mps_flage=="True")
         self.single_node_mode=True    #实验中固定为True
         
         if self.system=="Weave":
@@ -114,7 +114,7 @@ class WeaveMaster:
         self.job_complete_time_list=[]
         self.wait_schedule_queue=queue.Queue()
         #################################
-        self.init_MPS()
+        # self.init_MPS()
         
         if self.print_level>0:
             print("load node info...")
@@ -152,7 +152,7 @@ class WeaveMaster:
     def init_node(self):
         self.nodes=[]
         if self.node_kind=="4*3090":
-            self.spec_gpu_id=[2,3,5,6]
+            self.spec_gpu_id=[1,2,3,5]
             node_3090=Node(self, 0, "3090node", "10.26.0.4", "eno1", self.overshared_factor, self.print_level)
             node_3090.set_init_resouce(96*100, 250*1024, 4, 20*1024*args.gpu_mem_percent, self.spec_gpu_id)
             self.nodes.append(node_3090)
@@ -536,7 +536,7 @@ def experiment_one_group_parameters(args, file_sum, file_trace, version, print_l
         file_sum.flush()
 
 
-
+print("test...")
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description='Prototype platform for DL training job')

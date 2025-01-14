@@ -12,7 +12,7 @@ def do_experiment(mps_state):
             print("MPS close wrong")
             exit(-1)
     
-    for _ in range(10):
+    for _ in range(1):
         for model_name in model_list:
             for para_num in range(1, max_parallel_num+1):
                 
