@@ -240,7 +240,7 @@ class WeaveMaster:
                 print(f"time: {self.env.now}\tjob {job.job_idx} \tcome ( detailed info :{job.job_key_info()})")
             self.wait_schedule_queue.put(job)
             self.job_come_num += 1
-            if self.job_come_num>=2000:
+            if self.job_come_num>=self.args.job_num:
                 break
 
             if index + 1 < len(self.ali_trace_pd):
@@ -552,14 +552,14 @@ def experiment_one_group_parameters(args, file_sum, file_trace, print_level):
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description='simulation for DL training job')
     parser.add_argument("--system",default="Weave",type=str)
-    parser.add_argument("--strategy", default="BN-SRSF", type=str)
+    parser.add_argument("--strategy", default="FIFO", type=str)
     parser.add_argument("--print_level", default=11, type=int)
-    parser.add_argument("--node_kind", default="cluster", type=str, help="cluster, 4*3090, 3*2080ti, 4*2080")
-    parser.add_argument("--model_kind", default="all_model", type=str, help="cv_model, all_model")
+    parser.add_argument("--node_kind", default="4*3090", type=str, help="cluster, 4*3090, 3*2080ti, 4*2080")
+    parser.add_argument("--model_kind", default="cv_model", type=str, help="cv_model, all_model")
     parser.add_argument("--gpu_mem_percent", default=0.8, type=float, help="because of GPU fragement")
     parser.add_argument("--node_num", default=100, type=int, help="only for node kind is cluster")
-    parser.add_argument("--job_num", default=1000, type=int)
-    parser.add_argument("--validation", default="False", type=str)
+    parser.add_argument("--job_num", default=10, type=int)
+    parser.add_argument("--validation", default="True", type=str)
     
     parser.add_argument("--write_sum", action='store_true')
     parser.add_argument("--write_trace", action='store_true')
@@ -569,7 +569,7 @@ if __name__=="__main__":
 
 
     #control parameters
-    version="sim_v1.0.0"
+    version="sim_v2.0.0"
 
     system=args.system
     strategy=args.strategy

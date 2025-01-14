@@ -112,6 +112,7 @@ class WeaveMaster:
         
         self.job_wait_time_list=[]
         self.job_complete_time_list=[]
+        self.instance_global_idx = 0
         self.wait_schedule_queue=queue.Queue()
         #################################
         # self.init_MPS()
@@ -231,6 +232,9 @@ class WeaveMaster:
                 print(f"job ${job.job_idx}$ come ( detailed info :{job.job_key_info()})")
             self.wait_schedule_queue.put(job)
             self.job_come_num+=1
+            if self.job_come_num>=self.args.job_num:
+                break
+            
             if index+1<len(self.ali_trace_pd):
                 time.sleep(self.ali_trace_pd.loc[index+1,"start_time"]-self.ali_trace_pd.loc[index,"start_time"])
  
@@ -326,7 +330,7 @@ class WeaveMaster:
                 print(f"job generate fail (used resource not runable)!{pack_resource}")
             return None
         #设置job到达时间
-        arrive_time = self.env.now
+        arrive_time = time.time()
         ddl_time = arrive_time + duration_time * self.job_ddl_factor
         job.set_arrive_time(arrive_time)
         job.set_ddl_time(ddl_time)
@@ -536,7 +540,7 @@ def experiment_one_group_parameters(args, file_sum, file_trace, version, print_l
         file_sum.flush()
 
 
-print("test...")
+
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description='Prototype platform for DL training job')
@@ -544,10 +548,10 @@ if __name__=="__main__":
     parser.add_argument("--strategy", default="FIFO", type=str)
     parser.add_argument("--mps_flage", default="True", type=str)
     parser.add_argument("--sync_flage", default="True", type=str)
-    parser.add_argument("--node_kind", default="4*2080", type=str, help="4*3090, 3*2080ti, 4*2080")
-    parser.add_argument("--model_kind", default="all_model", type=str, help="cv_model, all_model")
+    parser.add_argument("--node_kind", default="4*3090", type=str, help="4*3090, 3*2080ti, 4*2080")
+    parser.add_argument("--model_kind", default="cv_model", type=str, help="cv_model, all_model")
     parser.add_argument("--gpu_mem_percent", default=0.8, type=float, help="because of GPU fragement")
-    parser.add_argument("--job_num", default=1000, type=int)
+    parser.add_argument("--job_num", default=10, type=int)
     
     parser.add_argument("--print_level", default=11, type=int)
     parser.add_argument("--write_sum", action='store_true')

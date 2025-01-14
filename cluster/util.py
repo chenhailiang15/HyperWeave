@@ -123,14 +123,16 @@ def parse_list_arg(list_arg):
 
 #获取数据集文件夹路径
 def get_dataset_dir():
+    cur_dir=os.path.dirname(os.path.abspath(__file__))
     # 获取当前文件所在目录的上级目录
-    parent_dir  = os.path.dirname(os.path.abspath(os.curdir))
+    parent_dir  = os.path.dirname(os.path.abspath(cur_dir))
     dataset_dir = parent_dir + '/dataset/'
     return dataset_dir
 
 #获取输出文件夹路径
 def get_output_dir():
-    parent_dir  = os.path.dirname(os.path.abspath(os.curdir))
+    cur_dir=os.path.dirname(os.path.abspath(__file__))
+    parent_dir  = os.path.dirname(os.path.abspath(cur_dir))
     out_dir     = parent_dir + "/output/"
     return out_dir
 

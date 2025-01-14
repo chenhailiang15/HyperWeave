@@ -5,9 +5,9 @@ strategy="FIFO"
 mps_flage="False"
 sync_flage="True"
 node_kind="4*3090"                           #"4*3090, 3*2080ti, 4*2080"
-model_kind="all_model"                       #"cv_model, all_model"
+model_kind="cv_model"                       #"cv_model, all_model"
 gpu_mem_percent=0.8
-job_num=1000
+job_num=10
 print_level=11
 
 

@@ -44,7 +44,11 @@ class Node:
                 self.gmem[gpu_id]=gmem
                 self.gpu_rest[gpu_id]=100*self.overshared_factor
                 self.gmem_rest[gpu_id]=gmem
-        
+        #初始化记录信息
+        for index in range(self.gpu_num):
+            self.dealing_instance[index]=[]
+            self.dealing_instance_name[index]=[]
+            
     def print_node_resource(self):
         print(f"@@@@@@node id: {self.node_id}\tcpu-{self.cpu_rest}\tmem-{self.mem_rest}",end="\t")
         for i in range(self.gpu_rest.shape[0]):
