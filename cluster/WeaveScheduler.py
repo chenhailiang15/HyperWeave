@@ -890,7 +890,7 @@ class WeaveSchedulor:
 
             net_card=self.master.nodes[node_index].net_card
             instance_t.set_execute_info(main_ip, main_temp_port, net_card, node_index, world_size ,nprocs_list, gpu_id_list, prior=prior, shm_name_list=shm_name_dict)
-            self.master.send_job_to_execution(instance_t)
+            self.master.send_instance_to_execution(instance_t)
             
             
             

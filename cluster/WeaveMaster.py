@@ -56,24 +56,15 @@ class WeaveMaster:
         self.clock_time_factor=10000
         self.job_time_factor=1
         self.job_ddl_factor=10             #ddl是任务持续时间的job_ddl_factor倍
-        
-            
-            
+
         self.schedule_interval=10
         
         
         self.model_name_list=model_list_g    #
         self.batch_size_dict=model_to_batch_size_g
-
         
-
         self.max_cross=1           #最大跨node任务数量
         self.max_gpu_cross=1       #最大跨GPU任务数量（单node）
-        
-        
-        # self.single_job_max_plan_cpu=5*100
-        # self.single_job_max_plan_mem=10*1024
-        # self.single_job_max_plan_gpu=4*100
         
         self.ali_trace_job_info_file_name="ali_trace_job_info.csv"
         self.analyze_file_name="Analyzer-NVIDIA_GeForce_RTX_2080-tim_12_19_16_38_14.csv"
@@ -99,13 +90,18 @@ class WeaveMaster:
         ############统计信息##############
         
         self.job_come_num=0
+        self.job_not_start_num=0
+        self.job_start_num = 0
         self.job_end_num=0   #记录main job
-        
-        #正在处理的job数量用于控制程序结束
-        self.job_dealing_num=0
-        
+        self.job_dealing_num = 0  # 正在处理的job数量用于控制程序结束
+
+        self.instance_start_num=0
+        self.instance_end_num=0
+        self.instance_dealing_num=0
+
         self.command_start_num=0
         self.command_end_num=0
+        self.command_dealing_num=0
         
         self.succeed_job_num=0
         self.failed_job_num=0
@@ -114,6 +110,7 @@ class WeaveMaster:
         self.job_complete_time_list=[]
         self.instance_global_idx = 0
         self.wait_schedule_queue=queue.Queue()
+        self.write_head=True
         #################################
         # self.init_MPS()
         
@@ -217,13 +214,24 @@ class WeaveMaster:
         data_pd=pd.read_csv(dataset_dir+"exp_data"+"/"+file_name,header=header)
         return data_pd
 
+    def run(self):
+        self.start_time=time.time()
+        thread_job_come=threading.Thread(target=self.job_come,args=())
+        thread_job_come.start()
+        thread_schedule=threading.Thread(target=self.schedule_subthreading,args=())
+        thread_schedule.start()
+        thread_state=threading.Thread(target=self.print_and_store_current_state,args=())
+        thread_state.start()
+        
+        
+        thread_job_come.join()
+        thread_schedule.join()
+        thread_state.join()
+        
+    
     #job到来的函数，持续运行，直到读取的文件中的job结束
     def job_come(self):
-        self.start_time=time.time()
         self.job_come_flage=True
-        sub_thread_schedule=threading.Thread(target=self.schedule_subthreading,args=())
-        sub_thread_schedule.start()
-        
         for index in range(len(self.ali_trace_pd)):
             job=self.generate_job(self.ali_trace_pd.iloc[index,:], self.job_come_num)
             if job ==None: #由于数据原因，可能无法生成Job，因此跳过
@@ -239,8 +247,6 @@ class WeaveMaster:
                 time.sleep(self.ali_trace_pd.loc[index+1,"start_time"]-self.ali_trace_pd.loc[index,"start_time"])
  
         self.job_come_flage=False
-        sub_thread_schedule.join()
-
         return
     
     def generate_job(self, ali_trace,job_idx):
@@ -368,25 +374,59 @@ class WeaveMaster:
             
     
     
-    def send_job_to_execution(self, job_f):
+    def send_instance_to_execution(self, instance_t):
         with self.lock:
             #记录统计数据
             self.command_start_num+=1
-            if job_f.is_main:
-                self.job_dealing_num+=1
-                
-            if job_f.node_rank==0:
+            self.command_dealing_num += 1
+            #判断当前instance是不是job 的第一个instance
+            if instance_t.is_main:
+                self.instance_start_num += 1
+                self.instance_dealing_num+=1
+
+                if instance_t.job.instance_num==len(instance_t.job.instance_list)+1:
+                    self.job_start_num += 1
+                    self.job_dealing_num += 1
+                    
+            if instance_t.node_rank==0:
                 if self.print_level>5:
-                    print(f"master execute job:{job_f.job_name} ...")
-                self.execute_job_in_master(job_f)
+                    print(f"master execute job:{instance_t.instance_name} ...")
+                self.execute_instance_in_master(instance_t)
             else:
                 if self.print_level>5:
-                    print(f"send job to worker:{job_f.job_name} ...")
-                self.send_job_to_worker(job_f)
-                
+                    print(f"send job to worker:{instance_t.instance_name} ...")
+                self.send_instance_to_worker(instance_t)
+    
+    #任务本地执行
+    def execute_instance_in_master(self, instance_t):
+        sub_thread=threading.Thread(target=self.run_command,args=(instance_t,instance_t.command,))
+        sub_thread.start()
+
+    #任务具体运行
+    def run_command(self,instance_t, command):
+        if self.print_level>5:
+            print(f"******master start job ${instance_t.instance_name}$ with command:\t {command}")
+        if instance_t.job.start_time==0:
+            instance_t.job.start_time=time.time()
+        if instance_t.is_main:
+            instance_t.job.dealing_instance_num+=1
+        back=os.system(command)
+        instance_t.job.dealing_instance_num-=1
+        if back==0:
+            instance_t.job.succeed_instance_num+=1
+            instance_t.succeed()
+        else:
+            instance_t.job.failed_instance_num+=1
+            instance_t.failed()
+            
+        instance_t.job.set_end_time(time.time())
+        #这里很重要，对于资源的回收，结果的统计，都在这里进行
+        self.statistic_end_instance(instance_t)
+        print(f"******master end instance ${instance_t.instance_name}$ with back code: {back}")
+        
     #将任务发送给worker执行
-    def send_job_to_worker(self,job_f):
-        self.communicator.send(job_f.to_string()+"--end")
+    def send_instance_to_worker(self,instance_t):
+        self.communicator.send(instance_t.to_string()+"--end")
         
     def message_receive(self,message):
         
@@ -405,63 +445,100 @@ class WeaveMaster:
                 
             self.buffer=buffer_list[len(buffer_list)-1]
             
-    #任务本地执行
-    def execute_job_in_master(self, job_f):
-        sub_thread=threading.Thread(target=self.run_command,args=(job_f,job_f.command,))
-        sub_thread.start()
-
-    #任务具体运行
-    def run_command(self,job, command):
-        if self.print_level>5:
-            print(f"******master start job ${job.job_name}$ with command:\t {command}")
-        job.set_start_time(time.time())
-        back=os.system(command)
-        if back==0:
-            job.succeed()
-        else:
-            job.failed()
-            
-        job.set_end_time(time.time())
-        #这里很重要，对于资源的回收，结果的统计，都在这里进行
-        self.statistic_end_job(job)
-        print(f"******master end job ${job.job_name}$ with back code: {back}")
     
-    def statistic_end_job(self,job):
-        
-        if self.print_level>3:
-            print("end a job:", job.job_idx)
-        
-        #回收资源(需要修改，有配对的，在两个都结束后，再释放资源)
-        if self.system=="Weave":
-            self.monitor.takeback_resource(job)
-        else:
-            self.monitor.takeback_resource(job,plan=True)
-            
-        with self.lock:    
+    
+    def statistic_end_instance(self,instance):
+        if self.print_level>=2:
+            print(f"time: {round(time.time(), 1)} end a sub-instance:", instance.instance_name)
+
+        with self.lock:
+
             #统计信息
-            self.command_end_num+=1
-            
-            if job.is_main:
-                
-                self.job_end_num+=1
-                self.job_dealing_num-=1
-                if job.succeed_flage:
-                    self.succeed_job_num+=1
-                    self.job_wait_time_list.append(job.start_time-job.arrive_time)
-                    self.job_complete_time_list.append(job.end_time-job.arrive_time)
+            self.command_end_num += 1
+            self.command_dealing_num -= 1
+            if instance.is_main:
+                self.instance_end_num+=1
+                self.instance_dealing_num-=1
+                # 回收资源
+                if self.system == "Weave":
+                    self.monitor.takeback_resource(instance)
                 else:
-                    self.failed_job_num+=1
-                    
-            if self.job_come_flage==False and self.job_come_num == self.job_end_num and self.command_start_num == self.command_end_num:
-                print("event set")
-                self.end_event.set()
-                
-        print("********************************** current status **********************************")
-        print(f"job come number:{self.job_come_num}\tjob end number:{self.job_end_num}\tjob dealing number:{self.job_dealing_num}")
-        print(f"job succeed number:{self.succeed_job_num}\tjob failed number:{self.failed_job_num}")
-        print(f"command start number:{self.command_start_num}\t command end number:{self.command_end_num}")
-        print("************************************************************************************")
+                    self.monitor.takeback_resource(instance, plan=True)
+
+                if instance.job.succeed_instance_num+instance.job.failed_instance_num == instance.job.instance_num:
+                    self.job_end_num+=1
+                    self.job_dealing_num-=1
+                    if instance.job.succeed_instance_num == instance.job.instance_num:
+                        self.succeed_job_num+=1
+                        self.job_wait_time_list.append(instance.job.start_time-instance.job.arrive_time)
+                        self.job_complete_time_list.append(time.time()-instance.job.arrive_time)
+                    else:
+                        self.failed_job_num+=1
+
+            #job不再到来，并且到来的job数量等于结束的job数量。此时仿真结束
+            if self.job_come_flage==False and self.job_come_num == self.job_end_num:
+                self.end_event.set()    #停止out info
+                self.set_makespan()     #统计系统运行时间
             
+    def print_and_store_current_state(self):
+        self.print_current_state()
+        self.write_current_state()
+
+        time.sleep(100)
+        if not self.end_event.is_set():
+            self.print_and_store_current_state()
+        else:
+            self.print_current_state()
+            self.write_current_state()
+            
+    def print_current_state(self):
+        # self.update_job_not_start_num()
+        self.job_not_start_num=self.wait_schedule_queue.qsize()
+        # assert self.job_come_num==self.job_not_start_num+self.job_start_num
+        if self.print_level>=1:
+            out_string=f"************************current status (now:{time.time()-self.start_time}) *******************************\n"
+            out_string+=f"job come number:{self.job_come_num}\tjob not start number (in queue):{self.job_not_start_num}\n"
+            out_string+=f"job start number:{self.job_start_num}\tjob dealing number:{self.job_dealing_num}\tjob end number:{self.job_end_num}(S:{self.succeed_job_num}/F:{self.failed_job_num})\n"
+            out_string+=f"instance start number:{self.instance_start_num}\tinstance dealing number:{self.instance_dealing_num}\tinstance end number:{self.instance_end_num}\n"
+            out_string+=f"command start number:{self.command_start_num}\tcommand dealing number:{self.command_dealing_num}\tcommand end number:{self.command_end_num}\n\n"
+            print(out_string)
+            
+    def write_current_state(self):
+        if self.file_trace!=None:
+            if self.write_head == True:
+                self.file_trace.write("ave_cpu_allocate, ave_mem_allocate, ave_gpu_allocate, ave_gmem_allocate, idel_gpu_num, job_not_start_num, job_dealing_num\n")
+                self.write_head=False
+                
+            idel_gpu_num=0
+            ave_cpu_allocate=0
+            ave_mem_allocate=0
+            ave_gpu_allocate=0
+            ave_gmem_allocate=0
+
+            for node_index in range(self.node_num):
+                idel_gpu_num+=self.nodes[node_index].get_idle_gpu_num()
+                [ave_cpu, ave_mem, ave_gpu, ave_gmem]=self.nodes[node_index].get_ave_allocate_resource()
+                ave_cpu_allocate+=ave_cpu
+                ave_mem_allocate += ave_mem
+                ave_gpu_allocate += ave_gpu
+                ave_gmem_allocate += ave_gmem
+            ave_cpu_allocate=ave_cpu_allocate/self.node_num
+            ave_mem_allocate=ave_mem_allocate/self.node_num
+            ave_gpu_allocate=ave_gpu_allocate/self.node_num
+            ave_gmem_allocate=ave_gmem_allocate/self.node_num
+
+            out_string=f"{ave_cpu_allocate},{ave_mem_allocate},{ave_gpu_allocate},{ave_gmem_allocate},{idel_gpu_num},{self.job_not_start_num},{self.job_dealing_num}\n "
+            self.file_trace.write(out_string)
+            self.file_trace.flush()
+            
+    def update_job_not_start_num(self):
+        job_waiting_list=list(self.wait_schedule_queue.queue)
+        self.job_not_start_num=0
+        for job in job_waiting_list:
+            if job.instance_num==len(job.instance_list):
+                self.job_not_start_num+=1
+        return
+                            
     def print_job_time_info(self):
         size, _mean, _min, _max, per_50, per_90, per_95=analyze_datas(self.job_wait_time_list)
         out_string1=f"job wait time: size-{size}, \tmean-{_mean}, \tmin-{_min}, \tmax-{_max}, \tpercentile50-{per_50}, \tpercentile90-{per_90}, \tpercentile95-{per_95}"
@@ -471,8 +548,8 @@ class WeaveMaster:
         print(out_string2)
         
         self.sum_string=out_string1+"\n"+out_string2
+    
     def wait(self):
-        
         self.end_event.wait()
         
 
@@ -524,7 +601,7 @@ def experiment_one_group_parameters(args, file_sum, file_trace, version, print_l
     subTread_record.start()
         
     weave_master=WeaveMaster(args, file_trace, print_level)
-    weave_master.job_come()
+    weave_master.run()
     weave_master.wait()
     weave_master.close()
     

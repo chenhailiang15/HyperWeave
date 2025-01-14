@@ -12,7 +12,7 @@ class Job:
         self.end_time=0
         self.succeed_flage=None
         self.job_idx=job_idx
-        self.idx_on_gou=0
+        self.idx_on_gpu=0
         self.system=system
         self.max_sync_num=0
 
@@ -214,7 +214,7 @@ class Instance:
         self.succeed_flage = None
         self.instance_idx = instance_idx
         self.instance_global_idx=0
-        self.idx_on_gou = 0
+        self.idx_on_gpu = 0
         self.system = system
         self.max_sync_num = 0
 

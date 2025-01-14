@@ -129,10 +129,13 @@ class Node:
 
         if self.cpu < cpu_need or self.mem < mem_need or self.gpu_num==0:
             return 0
-        if self.gmem[0]<gmem_need or self.gpu[0]<gpu_need:
-            return 0
+        
+        satisfy_num=0
+        for i in range(self.gpu_num):
+            if self.gmem[i]>=gmem_need and self.gpu[i]>=gpu_need:
+                satisfy_num+=1
 
-        satisfy_gpu_num = min(math.floor(self.cpu / cpu_need), math.floor(self.mem / mem_need), self.gpu_num)
+        satisfy_gpu_num = min(math.floor(self.cpu / cpu_need), math.floor(self.mem / mem_need), satisfy_num)
 
         return satisfy_gpu_num
 
