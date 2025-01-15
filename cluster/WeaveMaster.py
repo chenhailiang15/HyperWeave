@@ -588,21 +588,23 @@ class WeaveMaster:
             
     def get_sum_info(self):
         
-        
-        temp_string=f"****************************************************{self.schedule_strategy}***********************************************************\n"
-        temp_string+="    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    parameters in experiment    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    \n"
-        temp_string+=f"system name:{self.system}, \tMPS:{self.MPS_mode}, \tSync:{self.weave_sync_mode}\n"
-        temp_string+=f"overshared_factor:{self.overshared_factor}\n"
-        temp_string+=f"clock_time_factor:{self.clock_time_factor}, \tjob_time_factor:{self.job_time_factor}, \tjob_ddl_factor:{self.job_ddl_factor}\n"
-        temp_string+=f"model_name_list:{self.model_name_list}\n"
-        temp_string+=f"batch_size_dict:{self.batch_size_dict}\n"
+        temp_string=f"system:{self.system}\nschedule_strategy:{self.schedule_strategy}\n"
+        temp_string+=f"node_kind:{self.node_kind}\n"
+        temp_string+=f"model_kind:{self.args.model_kind}\n"
+        temp_string+=f"MPS:{self.MPS_mode}\nSync:{self.weave_sync_mode}\n"
+        temp_string+=f"overshared_factor:{self.overshared_factor}\ngpu_mem_percent:{self.args.gpu_mem_percent}\n"
+        temp_string+=f"clock_time_factor:{self.clock_time_factor}\njob_time_factor:{self.job_time_factor}\njob_ddl_factor:{self.job_ddl_factor}\n"
+        temp_string+=f"job_num:{self.args.job_num}\n"
         temp_string+=f"schedule_interval:{self.schedule_interval}\n"
+        temp_string+=f"makespan_real:{self.makespan}\n"
+        temp_string+=f"job_come_num:{self.job_come_num}\nsucceed_job_num:{self.succeed_job_num}\nfailed_job_num:{self.failed_job_num}\n"
+        temp_string+=f"queue:{self.queue_length}\n"
+        temp_string+=f"job_wait_time_list:{self.job_wait_time_list}\n"
+        temp_string+=f"job_complete_time_list:{self.job_complete_time_list}\n"
         temp_string+=f"ali_trace_job_info_file_name:{self.ali_trace_job_info_file_name}\n"
+        temp_string+=f"model_info_file_name:{self.model_info_file_name}\n"
         temp_string+=f"analyze_file_name:{self.analyze_file_name}\n"
-        temp_string+="    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    time info in following    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    \n"
-        temp_string+=f"makespan real(s){self.makespan}\n"
-        temp_string+=f"all job num:{self.job_come_num}, \tsucceed job num:{self.succeed_job_num}, \tfailed job num:{self.failed_job_num}\n"
-        temp_string+=f"queue length{self.queue_length}\n"
+        temp_string+=f"model_time_file_name:{self.model_time_file_name}\n"
         
         return temp_string+self.sum_string+"\n\n\n"
         
@@ -652,7 +654,7 @@ if __name__=="__main__":
     parser.add_argument("--node_kind", default="4*2080", type=str, help="4*3090, 3*2080ti, 4*2080")
     parser.add_argument("--model_kind", default="all_model", type=str, help="cv_model, all_model")
     parser.add_argument("--gpu_mem_percent", default=0.9, type=float, help="because of GPU fragement")
-    parser.add_argument("--job_num", default=4, type=int)
+    parser.add_argument("--job_num", default=0, type=int)
     parser.add_argument("--gpu_id_list", default=[1,2,3,4], type=parse_list_arg)
     
     parser.add_argument("--print_level", default=11, type=int)
