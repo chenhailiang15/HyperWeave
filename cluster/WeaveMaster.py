@@ -58,6 +58,7 @@ class WeaveMaster:
         self.job_ddl_factor=10             #ddl是任务持续时间的job_ddl_factor倍
 
         self.schedule_interval=10
+        self.status_out_interval=10
         
         
         self.model_name_list=model_list_g    #
@@ -66,7 +67,7 @@ class WeaveMaster:
         self.max_cross=1           #最大跨node任务数量
         self.max_gpu_cross=1       #最大跨GPU任务数量（单node）
         
-        self.ali_trace_job_info_file_name="ali_trace_job_info.csv"
+        self.ali_trace_job_info_file_name="ali_trace_job_info_long.csv"
         self.analyze_file_name="Analyzer-NVIDIA_GeForce_RTX_2080-tim_12_19_16_38_14.csv"
         self.model_time_file_name="Muri_Analyzer-NVIDIA_GeForce_RTX_2080_Ti-tim_12_26_15_24_41.csv"
         if self.args.model_kind=="all_model":
@@ -150,7 +151,7 @@ class WeaveMaster:
     def init_node(self):
         self.nodes=[]
         if self.node_kind=="4*3090":
-            self.spec_gpu_id=[3,5,6,7]
+            self.spec_gpu_id=[3,6]
             node_3090=Node(self, 0, "3090node", "10.26.0.4", "eno1", self.overshared_factor, self.print_level)
             node_3090.set_init_resouce(96*100, 250*1024, 4, 20*1024*args.gpu_mem_percent, self.spec_gpu_id)
             self.nodes.append(node_3090)
@@ -216,6 +217,7 @@ class WeaveMaster:
 
     def run(self):
         self.start_time=time.time()
+        self.job_come_flage=True
         thread_job_come=threading.Thread(target=self.job_come,args=())
         thread_job_come.start()
         thread_schedule=threading.Thread(target=self.schedule_subthreading,args=())
@@ -231,8 +233,11 @@ class WeaveMaster:
     
     #job到来的函数，持续运行，直到读取的文件中的job结束
     def job_come(self):
-        self.job_come_flage=True
+        
         for index in range(len(self.ali_trace_pd)):
+            if self.args.job_num==0:
+                self.end_event.set()
+                break
             job=self.generate_job(self.ali_trace_pd.iloc[index,:], self.job_come_num)
             if job ==None: #由于数据原因，可能无法生成Job，因此跳过
                 continue
@@ -300,9 +305,9 @@ class WeaveMaster:
         duration_time =job.time_init+total_epochs*(job.time_epoch_no_init_iter+job.time_init_iter)
 
         #设置计划资源使用量
-        job.set_plan_resource(ali_trace["plan_cpu"], ali_trace["plan_mem"], ali_trace["plan_gpu"])
+        job.set_plan_resource(ali_trace["plan_cpu"], ali_trace["plan_mem"]*1024, ali_trace["plan_gpu"])
 
-        pack_resource=[ali_trace["plan_cpu"], ali_trace["plan_mem"], ali_trace["plan_gpu"],0]
+        pack_resource=[ali_trace["plan_cpu"], ali_trace["plan_mem"]*1024, ali_trace["plan_gpu"],0]
         if self.monitor.judge_runable_with_resource(pack_resource,job.parallel_num, plan_flage=True, init=True) == False:
             if self.print_level>=2:
                 print("job generate fail (plan resource not runable!)")
@@ -320,7 +325,7 @@ class WeaveMaster:
                                  self.analyze_loader.get_value(model_info,"stage_train", "cpu")]
 
         max_mem_usage=max(self.analyze_loader.get_value(model_info,"stage_init", "mem"), self.analyze_loader.get_value(model_info,"stage_sample", "mem"), self.analyze_loader.get_value(model_info,"stage_train", "mem"))
-        if max_mem_usage>ali_trace["plan_mem"]:
+        if max_mem_usage>ali_trace["plan_mem"]*1024:
             if self.print_level>=2:
                 print("job generate fail (plan resource less than used (mem)!)")
             return None
@@ -501,7 +506,7 @@ class WeaveMaster:
         self.print_current_state()
         self.write_current_state()
 
-        time.sleep(100)
+        time.sleep(self.status_out_interval)
         if not self.end_event.is_set():
             self.print_and_store_current_state()
         else:
@@ -581,20 +586,17 @@ class WeaveMaster:
         
         temp_string=f"****************************************************{self.schedule_strategy}***********************************************************\n"
         temp_string+="    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    parameters in experiment    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    \n"
-        temp_string+=f"master_is_2080:{self.master_is_2080}, single_node_mode:{self.single_node_mode}\n"
         temp_string+=f"system name:{self.system}, \tMPS:{self.MPS_mode}, \tSync:{self.weave_sync_mode}\n"
-        temp_string+=f"overshared_factor:{self.overshared_factor}, \tmax_cross:{self.max_cross}, \tmax_gpu_cross:{self.max_gpu_cross}\n"
-        temp_string+=f"single_job_max_plan_cpu:{self.single_job_max_plan_cpu}, \tsingle_job_max_plan_mem:{self.single_job_max_plan_mem}, \tsingle_job_max_plan_gpu:{self.single_job_max_plan_gpu}\n"
+        temp_string+=f"overshared_factor:{self.overshared_factor}\n"
         temp_string+=f"clock_time_factor:{self.clock_time_factor}, \tjob_time_factor:{self.job_time_factor}, \tjob_ddl_factor:{self.job_ddl_factor}\n"
         temp_string+=f"model_name_list:{self.model_name_list}\n"
         temp_string+=f"batch_size_dict:{self.batch_size_dict}\n"
         temp_string+=f"schedule_interval:{self.schedule_interval}\n"
-        temp_string+=f"ali_trace_file_name:{self.ali_trace_file_name}\n"
+        temp_string+=f"ali_trace_job_info_file_name:{self.ali_trace_job_info_file_name}\n"
         temp_string+=f"analyze_file_name:{self.analyze_file_name}\n"
         temp_string+="    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    time info in following    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    \n"
-        
+        temp_string+=f"makespan real(s){self.makespan}\n"
         temp_string+=f"all job num:{self.job_come_num}, \tsucceed job num:{self.succeed_job_num}, \tfailed job num:{self.failed_job_num}\n"
-        temp_string+=f"makespan:{self.makespan}\n"
         temp_string+=f"queue length{self.queue_length}\n"
         
         return temp_string+self.sum_string+"\n\n\n"
@@ -638,13 +640,13 @@ def experiment_one_group_parameters(args, file_sum, file_trace, version, print_l
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description='Prototype platform for DL training job')
-    parser.add_argument("--system",default="Normal",type=str)
+    parser.add_argument("--system",default="Muri",type=str)
     parser.add_argument("--strategy", default="FIFO", type=str)
     parser.add_argument("--mps_flage", default="True", type=str)
     parser.add_argument("--sync_flage", default="True", type=str)
     parser.add_argument("--node_kind", default="4*3090", type=str, help="4*3090, 3*2080ti, 4*2080")
-    parser.add_argument("--model_kind", default="cv_model", type=str, help="cv_model, all_model")
-    parser.add_argument("--gpu_mem_percent", default=0.8, type=float, help="because of GPU fragement")
+    parser.add_argument("--model_kind", default="all_model", type=str, help="cv_model, all_model")
+    parser.add_argument("--gpu_mem_percent", default=0.9, type=float, help="because of GPU fragement")
     parser.add_argument("--job_num", default=4, type=int)
     
     parser.add_argument("--print_level", default=11, type=int)

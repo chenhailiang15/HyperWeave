@@ -166,11 +166,12 @@ class Node:
         gpu_alloc=0
         gmem_alloc=0
         for i in range(self.gpu_num):
-            gpu_alloc += self.gpu[i]-self.gpu_rest[i]
-            gmem_alloc += self.gmem[i] - self.gmem_rest[i]
+            if self.gpu[i] != 0:
+                gpu_alloc += self.gpu[i]-self.gpu_rest[i]
+                gmem_alloc += self.gmem[i] - self.gmem_rest[i]
 
-        ave_gpu=gpu_alloc/self.gpu_num/(self.gpu[0]/self.overshared_factor)
-        ave_gmem=gmem_alloc/self.gpu_num/self.gmem[0]
+        ave_gpu=gpu_alloc/self.gpu_num/(max(self.gpu)/self.overshared_factor)
+        ave_gmem=gmem_alloc/self.gpu_num/max(self.gmem)
         return [ave_cpu, ave_mem, ave_gpu, ave_gmem]
     
     

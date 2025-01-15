@@ -232,6 +232,9 @@ class WeaveMaster:
         self.job_come_flage = True
 
         for index in range(len(self.ali_trace_pd)):
+            if self.args.job_num==0:
+                self.end_event.set()
+                break
             job = self.generate_job(self.ali_trace_pd.iloc[index, :], self.job_come_num)
             if job == None:  # 由于数据原因，可能无法生成Job，因此跳过
                 continue
@@ -298,9 +301,9 @@ class WeaveMaster:
         duration_time =job.time_init+total_epochs*(job.time_epoch_no_init_iter+job.time_init_iter)
 
         #设置计划资源使用量
-        job.set_plan_resource(ali_trace["plan_cpu"], ali_trace["plan_mem"], ali_trace["plan_gpu"])
+        job.set_plan_resource(ali_trace["plan_cpu"], ali_trace["plan_mem"]*1024, ali_trace["plan_gpu"])
 
-        pack_resource=[ali_trace["plan_cpu"], ali_trace["plan_mem"], ali_trace["plan_gpu"],0]
+        pack_resource=[ali_trace["plan_cpu"], ali_trace["plan_mem"]*1024, ali_trace["plan_gpu"],0]
         if self.monitor.judge_runable_with_resource(pack_resource,job.parallel_num, plan_flage=True, init=True) == False:
             if self.print_level>=2:
                 print("job generate fail (plan resource not runable!)")

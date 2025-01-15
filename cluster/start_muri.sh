@@ -24,11 +24,11 @@ MASTER_PORT2="12347"
 MASTER_PORT3="12348"
 
 model_name0="AlexNet"
-model_name1="GCN"
+model_name1="ResNet18"
 world_size=1
 nprocs_list=[1,0]
 
-gpu_id_list="[[0],[]]"
+gpu_id_list="[[6],[]]"
 
 
 total_epochs=2
@@ -60,12 +60,12 @@ python WeaveExecutor.py --MASTER_ADDR ${MASTER_ADDR} --MASTER_PORT ${MASTER_PORT
 --world_size ${world_size} --nprocs_list ${nprocs_list} --gpu_id_list ${gpu_id_list} --layer_num ${layer_num} --layer_feature ${layer_feature} \
 --batch_size ${batch_size} --total_epochs ${total_epochs} --worker_num ${worker_num} --squad_data_size ${squad_data_size} \
 --sample_interval ${sample_interval} --max_sync_num=${max_sync_num} --idx_on_gpu ${idx_on_gpu0} --job_idx ${job_idx0} --system ${system} 
-#--shm_name_list=${shm_name_list} \
-# & python WeaveExecutor.py --MASTER_ADDR ${MASTER_ADDR} --MASTER_PORT ${MASTER_PORT1} --net_card ${net_card}  --model_name ${model_name1} --node_rank ${node_rank} \
-# --world_size ${world_size} --nprocs_list ${nprocs_list} --gpu_id_list ${gpu_id_list} --layer_num ${layer_num} --layer_feature ${layer_feature} \
-# --batch_size ${batch_size} --total_epochs ${total_epochs1} --worker_num ${worker_num} --squad_data_size ${squad_data_size} \
-# --sample_interval ${sample_interval} --max_sync_num=${max_sync_num} --shm_name_list=${shm_name_list} \
-# --idx_on_gpu ${idx_on_gpu1} --job_idx ${job_idx1} --system ${system}
+--shm_name_list=${shm_name_list} \
+& python WeaveExecutor.py --MASTER_ADDR ${MASTER_ADDR} --MASTER_PORT ${MASTER_PORT1} --net_card ${net_card}  --model_name ${model_name1} --node_rank ${node_rank} \
+--world_size ${world_size} --nprocs_list ${nprocs_list} --gpu_id_list ${gpu_id_list} --layer_num ${layer_num} --layer_feature ${layer_feature} \
+--batch_size ${batch_size} --total_epochs ${total_epochs1} --worker_num ${worker_num} --squad_data_size ${squad_data_size} \
+--sample_interval ${sample_interval} --max_sync_num=${max_sync_num} --shm_name_list=${shm_name_list} \
+--idx_on_gpu ${idx_on_gpu1} --job_idx ${job_idx1} --system ${system}
 # & python WeaveExecutor.py --MASTER_ADDR ${MASTER_ADDR} --MASTER_PORT ${MASTER_PORT2} --net_card ${net_card}  --model_name ${model_name} --node_rank ${node_rank} \
 # --world_size ${world_size} --nprocs_list ${nprocs_list} --gpu_id_list ${gpu_id_list} --layer_num ${layer_num} --layer_feature ${layer_feature} \
 # --batch_size ${batch_size} --total_epochs ${total_epochs} --worker_num ${worker_num} --squad_data_size ${squad_data_size} \

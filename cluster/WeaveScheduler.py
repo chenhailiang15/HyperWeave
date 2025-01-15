@@ -35,7 +35,9 @@ class WeaveSchedulor:
             rest_job=self.schedule_normal(job_list)
         else:
             print(f"system name wrong! {self.master.system} (should be Weave, Muri or Normal)")
-            
+        
+        if self.print_level>10:
+            print(f"end schedule ({self.strategy})...")
         return rest_job
     
     #Weave 调度主线
@@ -565,14 +567,14 @@ class WeaveSchedulor:
             for _pack in packings[gpu_num]:    #obj _pack : _Packing  这里面每个循环是一个匹配
                 matched_instance=[]
                 matched_flage=True
-                # print(f"one pack:\t", end="")
+                print(f"one pack:\t", end="")
                 for instance_mini_t in _pack.best_permutation: #这里总共是一个匹配
-                    # print(job_t.job_idx,end="\t")
+                    print(instance_mini_t.job_idx,end="\t")
                     matched_instance.append(self.global_idx_to_instance[instance_mini_t.job_idx])
                     #如果有一个已经属于被匹配了的，本次匹配失败，后续单独处理
                     if instance_mini_t.job_idx in succeed_matched_instance_idx:
                         matched_flage=False
-                # print("")
+                print("")
             
             
                 #处理一个匹配
@@ -599,6 +601,14 @@ class WeaveSchedulor:
                 else:
                     for instance in matched_instance:
                         faile_matched_instance_idx.add(instance.instance_global_idx)
+        
+        #匹配机制缺陷导致没有匹配
+        for gpu_num in instance_group:
+            for instance_mini_t in instance_group[gpu_num]:
+                if instance_mini_t['job_idx'] not in succeed_matched_instance_idx and instance_mini_t['job_idx'] not in faile_matched_instance_idx:
+                    all_matched_instance_list.append([self.global_idx_to_instance[instance_mini_t['job_idx']]])
+                    match_instance_num+=1
+
         print("end match... ")
         #将失败的单独调度
         for instance_global_idx in faile_matched_instance_idx:
@@ -610,13 +620,7 @@ class WeaveSchedulor:
         # 这里是个判断，判断上述匹配是否已经完成所有匹配
         assert match_instance_num == need_match_instance_num
         all_matched_instance_list.extend(self.paired_instance_list)
-        # try:
-        #     assert match_instance_num == len(job_list)
-        # except:
-        #     for job in job_list:
-        #         if job.job_idx not in faile_matched_job_idx and job.job_idx not in succeed_matched_job_idx:
-        #             print(f"******************fix blossom with add job:{job.job_idx}")
-        #             all_matched_job_list.append([job])
+        
         print("start strategy... ")
         if self.strategy=="FIFO":
             self.schedule_muri_FIFO(all_matched_instance_list, job_list)
@@ -745,7 +749,7 @@ class WeaveSchedulor:
                         instance_gpu_id_list.append([node_index, instance_temp_gpu_id_list])
                         shm_name_dict[node_index]=shm_name_dict_temp
                 
-                idx_on_gou=0
+                
                 
                 if len(instance_list)==1:
                     shm_name_dict={}
@@ -759,11 +763,11 @@ class WeaveSchedulor:
                             for instance in instance_list:
                                 self.paired_instance_name.remove(instance.instance_name)
                             break
-
+                idx_on_gpu=0
                 for instance in instance_list:
-                    instance.idx_on_gou=idx_on_gou
+                    instance.idx_on_gpu=idx_on_gpu
                     instance.max_sync_num=len(instance_list)
-                    idx_on_gou+=1
+                    idx_on_gpu+=1
                     print(f"start do instance:{instance.instance_name}")
 
 

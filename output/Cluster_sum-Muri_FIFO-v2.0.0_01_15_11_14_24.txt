@@ -1,0 +1,18 @@
+****************************************************FIFO***********************************************************
+    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    parameters in experiment    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    
+system name:Muri, 	MPS:False, 	Sync:True
+overshared_factor:1
+clock_time_factor:10000, 	job_time_factor:1, 	job_ddl_factor:10
+model_name_list:['AlexNet', 'ResNet18', 'ResNet50', 'MobileNetv2', 'VGG16', 'Bert', 'Transformer', 'GCN', 'GraphSage']
+batch_size_dict:{'AlexNet': [8, 16, 32, 64, 128], 'ResNet18': [8, 16, 32, 64, 128], 'ResNet50': [8, 16, 32, 64, 128], 'MobileNetv2': [8, 16, 32, 64, 128], 'VGG16': [8, 16, 32, 64, 128], 'Bert': [8, 16], 'Transformer': [8, 16, 32, 64], 'GCN': [8, 16, 32, 64, 128], 'GraphSage': [8, 16, 32, 64, 128]}
+schedule_interval:10
+ali_trace_job_info_file_name:ali_trace_job_info_long.csv
+analyze_file_name:Analyzer-NVIDIA_GeForce_RTX_2080-tim_12_19_16_38_14.csv
+    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    time info in following    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    
+makespan real(s)570.5022747516632
+all job num:4, 	succeed job num:4, 	failed job num:0
+queue length[4, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+job wait time: size-4, 	mean-47.54, 	min-9.99, 	max-160.14, 	percentile50-10.02, 	percentile90-115.1, 	percentile95-137.62
+job complete time(JCT): size-4, 	mean-335.2, 	min-158.63, 	max-568.2, 	percentile50-306.99, 	percentile90-494.31, 	percentile95-531.25
+
+
