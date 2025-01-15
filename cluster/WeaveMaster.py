@@ -112,6 +112,7 @@ class WeaveMaster:
         self.instance_global_idx = 0
         self.wait_schedule_queue=queue.Queue()
         self.write_head=True
+        self.spec_gpu_id=args.gpu_id_list
         #################################
         # self.init_MPS()
         
@@ -151,7 +152,6 @@ class WeaveMaster:
     def init_node(self):
         self.nodes=[]
         if self.node_kind=="4*3090":
-            self.spec_gpu_id=[3,6]
             node_3090=Node(self, 0, "3090node", "10.26.0.4", "eno1", self.overshared_factor, self.print_level)
             node_3090.set_init_resouce(96*100, 250*1024, 4, 20*1024*args.gpu_mem_percent, self.spec_gpu_id)
             self.nodes.append(node_3090)
@@ -159,13 +159,13 @@ class WeaveMaster:
         
         elif self.node_kind=="3*2080ti":
             node_2080ti=Node(self, 0, "2080tinode", "10.26.128.51", "eno1", self.overshared_factor, self.print_level)
-            node_2080ti.set_init_resouce(48*100,120*1024, 3, 11*1024*args.gpu_mem_percent)
+            node_2080ti.set_init_resouce(48*100,120*1024, 3, 11*1024*args.gpu_mem_percent, self.spec_gpu_id)
             self.nodes.append(node_2080ti)
             self.node_num=1
             
         elif self.node_kind=="4*2080":
             node_2080=Node(self, 0, "2080node", "10.26.128.115", "eno2", self.overshared_factor, self.print_level)
-            node_2080.set_init_resouce(48*100, 60*1024, 4, 8*1024*args.gpu_mem_percent)
+            node_2080.set_init_resouce(48*100, 60*1024, 4, 8*1024*args.gpu_mem_percent, self.spec_gpu_id)
             self.nodes.append(node_2080)
             self.node_num=1
             
@@ -605,8 +605,8 @@ import random
 
 random.seed(3)
 
-def Record_resource( gpu_id, out_dir, out_file_name,event):
-    record=Record(gpu_id=gpu_id,net_card="", sample_interval=0.1,out_dir=out_dir, out_file_name=out_file_name,event=event,print_flage=False)
+def Record_resource( gpu_id_list, out_dir, out_file_name,event):
+    record=Record(gpu_id_list, sample_interval=0.1,out_dir=out_dir, out_file_name=out_file_name,event=event,print_flage=False)
     record.run()
     
     
@@ -616,7 +616,7 @@ def experiment_one_group_parameters(args, file_sum, file_trace, version, print_l
     parent_dir  = os.path.dirname(os.path.abspath(cur_dir))
     resource_file_name="Cluster_resource_record_"+args.system+"_"+args.strategy+"-"+version+"_"+formatted_time+".csv"
     event=threading.Event()
-    subTread_record=threading.Thread(target=Record_resource,args=(-1, parent_dir+"/output/",resource_file_name,event))
+    subTread_record=threading.Thread(target=Record_resource,args=(args.gpu_id_list, parent_dir+"/output/",resource_file_name,event))
     subTread_record.start()
         
     weave_master=WeaveMaster(args, file_trace, print_level)
@@ -648,6 +648,7 @@ if __name__=="__main__":
     parser.add_argument("--model_kind", default="all_model", type=str, help="cv_model, all_model")
     parser.add_argument("--gpu_mem_percent", default=0.9, type=float, help="because of GPU fragement")
     parser.add_argument("--job_num", default=4, type=int)
+    parser.add_argument("--gpu_id_list", default=[3,6], type=parse_list_arg)
     
     parser.add_argument("--print_level", default=11, type=int)
     parser.add_argument("--write_sum", action='store_true')

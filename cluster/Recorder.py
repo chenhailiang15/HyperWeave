@@ -17,9 +17,9 @@ netOut='0.00'
 
 class Record:
 
-    def __init__(self,gpu_id,net_card,sample_interval,out_dir,out_file_name,event,print_flage=False):
+    def __init__(self, gpu_id_list, sample_interval,out_dir,out_file_name, event, net_card="eno1", net_flage=False,print_flage=False):
         print("start a record object...")
-        self.gpu_id=gpu_id
+        self.gpu_id_list=gpu_id_list
         self.net_card=net_card
         self.sample_interval=sample_interval
         self.out_dir=out_dir
@@ -28,40 +28,57 @@ class Record:
         self.pynvml=pynvml.nvmlInit()
         self.print_flage=print_flage
         self.unit="M"
+        self.net_flage=net_flage
         
 
     #正常运行，记录CPU，GPU，跨机器IO等
     def run(self):
         global netIn, netOut
         
-        subTread_record=threading.Thread(target=self.get_netIO,args=(self.net_card, self.sample_interval*10, self.unit, self.event))
-        subTread_record.start()
-
         file=open(self.out_dir+"/"+self.out_file_name,"w")
+        #写文件head，便于后期识别
+        file.write("cpu_util,mem_util")
+        if self.net_flage==True:
+            subTread_record=threading.Thread(target=self.get_netIO,args=(self.net_card, self.sample_interval*10, self.unit, self.event))
+            subTread_record.start()
+            file.write(",network_in,network_out")
+        
+        if len(self.gpu_id_list)==0:
+            record_gpu_num=torch.cuda.device_count()
+        else:
+            record_gpu_num=len(self.gpu_id_list)
+        for index in range(record_gpu_num):
+            file.write(f",gpu_util{index},gmem_util{index}")
+        file.write("\n")
+        
         start_time=time.time()
         while not self.event.is_set():
             cpu_util=self.get_cpu_util()
             mem_util=self.get_mem_util()
             file.write(cpu_util.__str__()+","+mem_util.__str__())
-            file.write(","+netIn+","+netOut)
+            if self.net_flage==True:
+                file.write(","+netIn+","+netOut)
             if self.print_flage:
                 print("cpu:"+cpu_util.__str__()+"\tmem:"+mem_util.__str__(), end="")
                 print("\tnetIn:"+netIn.__str__()+"\tnetOut:"+netOut.__str__(), end="")
                 
-            if self.gpu_id==-1:
+            if len(self.gpu_id_list)==0:
+                
                 for i in range(torch.cuda.device_count()):
                     gpu_util=self.get_gpu_util_1(i)
                     gpu_mem_util=self.get_gpu_mem_util(i)
                     file.write(","+gpu_util.__str__()+","+gpu_mem_util.__str__())
                     if self.print_flage:
                         print("\tgpu:"+i.__str__(),"-",gpu_util,"\tgmem:"+i.__str__(),"-",gpu_mem_util,end="")
-            
             else:
-                gpu_util=self.get_gpu_util_1(self.gpu_id)
-                gpu_mem_util=self.get_gpu_mem_util(self.gpu_id)
-                file.write(","+gpu_util.__str__()+","+gpu_mem_util.__str__())
-                if self.print_flage:
-                    print("\tgpu:"+i.__str__(),"-",gpu_util,"\tgmem:"+i.__str__(),"-",gpu_mem_util,end="")
+                for i in self.gpu_id_list:
+                    gpu_util=self.get_gpu_util_1(i)
+                    gpu_mem_util=self.get_gpu_mem_util(i)
+                    file.write(","+gpu_util.__str__()+","+gpu_mem_util.__str__())
+                    if self.print_flage:
+                        print("\tgpu:"+i.__str__(),"-",gpu_util,"\tgmem:"+i.__str__(),"-",gpu_mem_util,end="")
+            
+            
             if self.print_flage:
                 print()
             file.write("\n")
