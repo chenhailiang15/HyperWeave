@@ -308,6 +308,11 @@ class WeaveMaster:
         job.set_plan_resource(ali_trace["plan_cpu"], ali_trace["plan_mem"]*1024, ali_trace["plan_gpu"])
 
         pack_resource=[ali_trace["plan_cpu"], ali_trace["plan_mem"]*1024, ali_trace["plan_gpu"],0]
+        
+        if self.node_kind=="4*2080" and ali_trace["plan_mem"]>10:
+            print("job generate fail (plan mem is too big!)")
+            return None
+        
         if self.monitor.judge_runable_with_resource(pack_resource,job.parallel_num, plan_flage=True, init=True) == False:
             if self.print_level>=2:
                 print("job generate fail (plan resource not runable!)")
@@ -644,11 +649,11 @@ if __name__=="__main__":
     parser.add_argument("--strategy", default="FIFO", type=str)
     parser.add_argument("--mps_flage", default="True", type=str)
     parser.add_argument("--sync_flage", default="True", type=str)
-    parser.add_argument("--node_kind", default="4*3090", type=str, help="4*3090, 3*2080ti, 4*2080")
+    parser.add_argument("--node_kind", default="4*2080", type=str, help="4*3090, 3*2080ti, 4*2080")
     parser.add_argument("--model_kind", default="all_model", type=str, help="cv_model, all_model")
     parser.add_argument("--gpu_mem_percent", default=0.9, type=float, help="because of GPU fragement")
     parser.add_argument("--job_num", default=4, type=int)
-    parser.add_argument("--gpu_id_list", default=[3,6], type=parse_list_arg)
+    parser.add_argument("--gpu_id_list", default=[1,2,3,4], type=parse_list_arg)
     
     parser.add_argument("--print_level", default=11, type=int)
     parser.add_argument("--write_sum", action='store_true')

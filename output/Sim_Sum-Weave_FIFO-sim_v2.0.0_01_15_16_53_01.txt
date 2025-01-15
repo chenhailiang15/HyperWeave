@@ -1,0 +1,19 @@
+****************************************************FIFO***********************************************************
+    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    parameters in experiment    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    
+system name:Weave, 	MPS:True, 	Sync:True
+overshared_factor:2, 	max_cross:1, 	max_gpu_cross:1
+clock_time_factor:10000, 	job_time_factor:1, 	job_ddl_factor:10
+model_name_list:['AlexNet', 'ResNet18', 'ResNet50', 'MobileNetv2', 'VGG16', 'Bert', 'Transformer', 'GCN', 'GraphSage']
+batch_size_dict:{'AlexNet': [8, 16, 32, 64, 128], 'ResNet18': [8, 16, 32, 64, 128], 'ResNet50': [8, 16, 32, 64, 128], 'MobileNetv2': [8, 16, 32, 64, 128], 'VGG16': [8, 16, 32, 64, 128], 'Bert': [8, 16], 'Transformer': [8, 16, 32, 64], 'GCN': [8, 16, 32, 64, 128], 'GraphSage': [8, 16, 32, 64, 128]}
+schedule_interval:10
+ali_trace_job_info_file_name:ali_trace_job_info_long.csv
+ali_trace_node_info_file_name:sim_ali_trace_machine_info.csv
+analyze_file_name:Analyzer-NVIDIA_GeForce_RTX_2080-tim_12_19_16_38_14.csv
+    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    time info in following    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    
+makespan real(s)8.107317924499512, 	 makespan:2742.009132763734
+all job num:100, 	succeed job num:100, 	failed job num:0
+queue length[93, 93, 93, 93, 93, 93, 93, 93, 93, 90, 90, 90, 90, 90, 87, 87, 87, 87, 87, 86, 86, 86, 86, 86, 82, 82, 82, 82, 81, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 79, 79, 79, 79, 79, 79, 77, 77, 77, 77, 75, 75, 73, 73, 72, 72, 72, 72, 72, 71, 71, 71, 71, 71, 71, 71, 68, 68, 68, 68, 68, 68, 64, 63, 63, 63, 63, 62, 62, 62, 62, 62, 62, 62, 62, 61, 61, 61, 61, 61, 60, 60, 60, 60, 60, 60, 60, 60, 59, 59, 59, 59, 56, 56, 54, 54, 54, 54, 53, 53, 53, 53, 53, 53, 53, 51, 51, 51, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 45, 45, 45, 45, 43, 43, 42, 42, 42, 41, 41, 41, 41, 41, 41, 41, 41, 40, 40, 40, 39, 39, 37, 36, 36, 36, 36, 36, 36, 36, 31, 31, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 26, 26, 26, 26, 26, 25, 25, 25, 24, 21, 21, 21, 21, 21, 21, 21, 20, 20, 19, 19, 19, 19, 19, 19, 18, 18, 17, 16, 16, 16, 14, 14, 14, 14, 13, 13, 13, 13, 13, 11, 11, 11, 9, 7, 7, 7, 7, 7, 7, 7, 7, 7, 3, 3, 2, 2, 2, 2, 2, 1, 1, 0]
+job wait time: size-100, 	mean-1158.76, 	min-9.95, 	max-2359.17, 	percentile50-1179.62, 	percentile90-2169.21, 	percentile95-2269.19
+job complete time(JCT): size-100, 	mean-1346.56, 	min-85.37, 	max-2741.18, 	percentile50-1360.17, 	percentile90-2292.41, 	percentile95-2400.57
+
+

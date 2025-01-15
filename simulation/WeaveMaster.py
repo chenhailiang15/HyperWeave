@@ -61,15 +61,15 @@ class WeaveMaster:
 
         self.print_level=print_level
 
-        self.model_name_list=model_list_g    #
-        self.batch_size_dict=model_to_batch_size_g
+        # self.model_name_list=model_list_g    #
+        # self.batch_size_dict=model_to_batch_size_g
 
-        self.max_cross=1           #最大跨node任务数量
-        self.max_gpu_cross=1       #最大跨GPU任务数量（单node）
+        # self.max_cross=1           #最大跨node任务数量
+        # self.max_gpu_cross=1       #最大跨GPU任务数量（单node）
         self.ali_trace_node_info_file_name="sim_ali_trace_machine_info.csv"
         if self.args.validation=="True":
             #用于验证系统准确性
-            self.ali_trace_job_info_file_name="ali_trace_job_info.csv"
+            self.ali_trace_job_info_file_name="ali_trace_job_info_long.csv"
             self.schedule_interval = 10
             self.clock_time_factor = 10000
         elif self.args.validation=="False":
@@ -254,6 +254,8 @@ class WeaveMaster:
         return
 
     def generate_job(self, ali_trace,job_idx):
+        if ali_trace["job_name"]=="75a2830622f04c0eadab92e1":
+            a=1
         
         if ali_trace["cpu_usage"]==0 or ali_trace["avg_mem"]==0:
             return None
@@ -310,6 +312,13 @@ class WeaveMaster:
             return None
 
         if self.args.validation=="True":
+            
+            
+            if ali_trace["plan_mem"]>10:
+                if self.print_level>=2:
+                    print("job generate fail (plan mem is too big!)")
+                return None
+            
             max_cpu_usage=max(self.analyze_loader.get_value(model_info,"stage_init", "cpu"), self.analyze_loader.get_value(model_info,"stage_sample", "cpu"), self.analyze_loader.get_value(model_info,"stage_train", "cpu"))
             if max_cpu_usage>ali_trace["plan_cpu"]:
                 if self.print_level>=2:
@@ -320,7 +329,7 @@ class WeaveMaster:
                                     self.analyze_loader.get_value(model_info,"stage_train", "cpu")]
 
             max_mem_usage=max(self.analyze_loader.get_value(model_info,"stage_init", "mem"), self.analyze_loader.get_value(model_info,"stage_sample", "mem"), self.analyze_loader.get_value(model_info,"stage_train", "mem"))
-            if max_mem_usage>ali_trace["plan_mem"]:
+            if max_mem_usage>ali_trace["plan_mem"]*1024:
                 if self.print_level>=2:
                     print("job generate fail (plan resource less than used (mem)!)")
                 return None
@@ -546,22 +555,27 @@ class WeaveMaster:
             
     def get_sum_info(self):
         
+        #cluster这部分还没修改
         
-        temp_string=f"****************************************************{self.schedule_strategy}***********************************************************\n"
-        temp_string+="    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    parameters in experiment    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    \n"
-        temp_string+=f"system name:{self.system}, \tMPS:{self.MPS_mode}, \tSync:{self.weave_sync_mode}\n"
-        temp_string+=f"overshared_factor:{self.overshared_factor}, \tmax_cross:{self.max_cross}, \tmax_gpu_cross:{self.max_gpu_cross}\n"
-        temp_string+=f"clock_time_factor:{self.clock_time_factor}, \tjob_time_factor:{self.job_time_factor}, \tjob_ddl_factor:{self.job_ddl_factor}\n"
-        temp_string+=f"model_name_list:{self.model_name_list}\n"
-        temp_string+=f"batch_size_dict:{self.batch_size_dict}\n"
+        temp_string=f"system:{self.system}\nschedule_strategy:{self.schedule_strategy}\n"
+        temp_string+=f"node_kind:{self.node_kind}\nvalidation:{self.args.validation}\n"
+        temp_string+=f"model_kind:{self.args.model_kind}\n"
+        temp_string+=f"MPS:{self.MPS_mode}\nSync:{self.weave_sync_mode}\n"
+        temp_string+=f"overshared_factor:{self.overshared_factor}\ngpu_mem_percent:{self.args.gpu_mem_percent}\n"
+        temp_string+=f"clock_time_factor:{self.clock_time_factor}\njob_time_factor:{self.job_time_factor}\njob_ddl_factor:{self.job_ddl_factor}\n"
+        temp_string+=f"node_num:{self.args.node_num}\n"
+        temp_string+=f"job_num:{self.args.job_num}\n"
         temp_string+=f"schedule_interval:{self.schedule_interval}\n"
+        temp_string+=f"makespan_real:{self.makespan_real}\nmakespan:{self.makespan_sim}\n"
+        temp_string+=f"job_come_num:{self.job_come_num}\nsucceed_job_num:{self.succeed_job_num}\nfailed_job_num:{self.failed_job_num}\n"
+        temp_string+=f"queue:{self.queue_length}\n"
+        temp_string+=f"job_wait_time_list:{self.job_wait_time_list}\n"
+        temp_string+=f"job_complete_time_list:{self.job_complete_time_list}\n"
         temp_string+=f"ali_trace_job_info_file_name:{self.ali_trace_job_info_file_name}\n"
         temp_string+=f"ali_trace_node_info_file_name:{self.ali_trace_node_info_file_name}\n"
+        temp_string+=f"model_info_file_name:{self.model_info_file_name}\n"
         temp_string+=f"analyze_file_name:{self.analyze_file_name}\n"
-        temp_string+="    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    time info in following    ^^^^    ^^^^    ^^^^    ^^^^    ^^^^    \n"
-        temp_string+=f"makespan real(s){self.makespan_real}, \t makespan:{self.makespan_sim}\n"
-        temp_string+=f"all job num:{self.job_come_num}, \tsucceed job num:{self.succeed_job_num}, \tfailed job num:{self.failed_job_num}\n"
-        temp_string+=f"queue length{self.queue_length}\n"
+        temp_string+=f"model_time_file_name:{self.model_time_file_name}\n"
         
         return temp_string+self.sum_string+"\n\n\n"
         
