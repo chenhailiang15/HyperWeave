@@ -2,26 +2,24 @@ from util import *
 from models.Framework import *
 
 
-def do_experiment(mps_state):
-    # if mps_state ==True:
-    #     if not start_MPS(password):
-    #         print("MPS open wrong")
-    #         exit(-1)
-    # else:
-    #     if not stop_MPS(password):
-    #         print("MPS close wrong")
-    #         exit(-1)
+
+
+def do_experiment(mps_state,model_list, max_parallel_num,file_writer):
+    if mps_state ==True:
+        start_MPS(11) 
+    else:
+        stop_MPS(11)
     
     for _ in range(2):
         for model_name in model_list:
             for para_num in range(1, max_parallel_num+1):
                 
-                run_model(model_name, para_num)
-                file_writer.write(f"{model_name},mps={mps_state},para_num={para_num},time_list={end_time_list}\n")
+                run_specific_model_paranum(model_name, para_num)
+                file_writer.write(f"mps={mps_state},{model_name},para_num={para_num},time_list={end_time_list}\n")
                 file_writer.flush()
  
  
-def run_model(model_name,para_num):
+def run_specific_model_paranum(model_name,para_num):
     global end_time_list
     end_time_list=[]
     thread_hand=[]
@@ -29,7 +27,7 @@ def run_model(model_name,para_num):
     for index in range(para_num):
         
         command = generate_command(model_name, index)
-        sub_thread=threading.Thread(target=run_command,args=(command, model_name))
+        sub_thread=threading.Thread(target=run_command,args=(command))
         sub_thread.start()
         thread_hand.append(sub_thread)
 
@@ -43,7 +41,7 @@ def run_model(model_name,para_num):
 def generate_command(model_name, index):
     nprocs_list="[1,0]"
 
-    gpu_id_list="[[7],[]]"
+    gpu_id_list=f"[[{gpu_id}],[]]"
     net_card="eno1"
 
     total_epochs=2
@@ -72,7 +70,7 @@ def generate_command(model_name, index):
     return command
 
 
-def run_command( command, model_name):
+def run_command(command):
         start_time=time.time()
         print(f"command: {command}")
         back=os.system(command)
@@ -90,27 +88,35 @@ def run_command( command, model_name):
     
 
 
-
-
-with_mps=True   #这个参数需要手动进行
-max_parallel_num=10
-
-
-password="sim2024"
-now_time    = datetime.datetime.now()
-formatted_time = now_time.strftime('%m_%d_%H_%M_%S')
-out_file_name="Exp_pre_MPS_"+str(with_mps)+"_"+formatted_time+".txt"
-
-model_list=["AlexNet", "Transformer", "GCN", "Bert", "GraphSage", "ResNet18", "ResNet50", "MobileNetv2", "VGG16", ]#"ResNet50", "MobileNetv2", "VGG16",  "Transformer", "GCN" 
-file_writer=open(get_output_dir()+out_file_name,"w")
-
-end_time_list=[]
 port_id=2000
+end_time_list=[]
+gpu_id=7
 
-
-do_experiment(with_mps)
-# do_experiment(False)
-file_writer.close()
+if __name__=="__main__":
+    with_mps=True   
+    max_parallel_num=10
+    model_list=["AlexNet", "Transformer", "GCN", "Bert", "GraphSage", "ResNet18", "ResNet50", "MobileNetv2", "VGG16", ]#"ResNet50", "MobileNetv2", "VGG16",  "Transformer", "GCN" 
+    
+    #记录代码开始时间
+    now_time = datetime.datetime.now()
+    formatted_time = now_time.strftime('%m_%d_%H_%M_%S')
+    
+    out_file_name="ExpPre_compareMPS_"+str(with_mps)+"_"+formatted_time+".txt"
+    file_writer=open(get_output_dir()+out_file_name,"w")
+    do_experiment(with_mps,model_list, max_parallel_num,file_writer )
+    file_writer.close()
+    
+    with_mps=False  
+    
+    out_file_name="ExpPre_compareMPS_"+str(with_mps)+"_"+formatted_time+".txt"
+    file_writer=open(get_output_dir()+out_file_name,"w")
+    do_experiment(with_mps,model_list, max_parallel_num,file_writer )
+    file_writer.close()
+     
+    
+    
+    
+    
 
 
 

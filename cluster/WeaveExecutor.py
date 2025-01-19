@@ -58,24 +58,18 @@ def single_training(local_rank,args):
     # Cleanup the distributed environment after training is complete.
     destroy_process_group()
 
-# def parse_list_shm(list_arg):
-#     list_arg=list_arg.replace("]","").replace("[","").split(",")
-#     shm_list=[]
-#     for shm in list_arg:
-#         shm_list.append(shm)
-        
-#     return shm_list
-    
-    
-# def parse_list_arg(list_arg):
-    
-#     try:
-#         return ast.literal_eval(list_arg)
-#     except (ValueError, SyntaxError) as e:
-#         raise argparse.ArgumentTypeError(f"Invalid list argument: {list_arg}")
+def get_record_gpu_id_list(args):
+    if len(args.gpu_id_list)>args.node_rank:
+        gpu_id_spec_list=args.gpu_id_list[args.node_rank]
+        if len(gpu_id_spec_list)>0:
+            return gpu_id_spec_list[:args.nprocs_list[args.node_rank]]
+        else:
+            return [i for i in range(args.nprocs_list[args.node_rank])]
+    else:
+        return [i for i in range(args.nprocs_list[args.node_rank])]
 
-def Record_resource(args, gpu_id, out_dir, out_file_name,event):
-    record=Record(gpu_id=gpu_id,net_card=args.net_card, sample_interval=args.sample_interval,out_dir=out_dir, out_file_name=out_file_name,event=event,print_flage=args.print_flage)
+def Record_resource(args, gpu_id_list, out_dir, out_file_name,event):
+    record=Record(gpu_id_list, sample_interval=args.sample_interval,out_dir=out_dir,out_file_name=out_file_name, event=event, print_flage=args.print_flage)
     record.run()
 
 def Run_model_training(args_t):
@@ -119,7 +113,7 @@ if __name__=="__main__":
     parser.add_argument('--layer_feature',default=10,type=int,help='Layer feature number for GCN')
 
     #记录参数
-    parser.add_argument("--sample_interval", default=1, type=float,help='sample interval for recorder')
+    parser.add_argument("--sample_interval", default=0.1, type=float,help='sample interval for recorder')
     parser.add_argument("--record_flage", action='store_true', help='A flage for if to use recorder to save resource information')
     parser.add_argument("--print_flage", action='store_true')
     
@@ -195,7 +189,9 @@ if __name__=="__main__":
         "-si:"+sample_interval.__str__()+"-tim:"+formatted_time+".csv"
         print(out_file_name)
         event=threading.Event()
-        subTread_record=threading.Thread(target=Record_resource,args=(args, 0, out_dir,out_file_name,event))
+        gpu_id_record=get_record_gpu_id_list(args)
+        print(f"record gpu list: {gpu_id_record}")
+        subTread_record=threading.Thread(target=Record_resource,args=(args, gpu_id_record, out_dir,out_file_name,event))
         subTread_record.start()
         time.sleep(1)
     #主线程
