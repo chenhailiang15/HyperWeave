@@ -49,28 +49,70 @@ def set_GPU_default(password):
     else:
         return False
     
-def start_MPS(password):
+
+    
+def start_MPS(print_level=0):
     command="nvidia-cuda-mps-control -d"
-    (status, result)=subprocess.getstatusoutput('echo %s| sudo -S %s' %(password,command))
-    print(status)
-    print(result)
+    subprocess.getstatusoutput('%s' %(command))
     
-    if (status==1 and "An instance of this daemon is already running" in result) or (status==0 and "nvidia-cuda-mps-control -d" in result and "nvidia-cuda-mps-server" in result):
+    if validate_MPS(print_level)==True:
+        return True
+    else:
+        return False
+    
+    
+
+def stop_MPS(print_level=0):
+    command="ps -ef | grep mps"
+    (_, result)=subprocess.getstatusoutput('%s' %(command))
+    
+    for line in result.split("\n"):
+        if "nvidia-cuda-mps-server" in line or "nvidia-cuda-mps-control -d" in line:
+            for xx in line.split(" "):
+                if xx.isdigit():
+                    (_, result)=subprocess.getstatusoutput('kill %s' %(xx))
+                    break
+                    
+    if validate_MPS(print_level)==False:
+        return True
+    else:
+        return False
+    
+    
+    
+def validate_MPS(print_level):
+    command="ps -ef | grep mps"
+    (_, result)=subprocess.getstatusoutput('%s' %(command))
+    for line in result.split("\n"):
+        if "nvidia-cuda-mps-server" in line or "nvidia-cuda-mps-control -d" in line:
+            if print_level>10:
+                print("MPS mode open!")
+            return True
+    if print_level>10:
+        print("MPS mode closed!")
+    return False
+
+# def start_MPS(password):
+#     command="nvidia-cuda-mps-control -d"
+#     (status, result)=subprocess.getstatusoutput('echo %s| sudo -S %s' %(password,command))
+#     print(status)
+#     print(result)
+    
+#     if (status==1 and "An instance of this daemon is already running" in result) or (status==0 and "nvidia-cuda-mps-control -d" in result and "nvidia-cuda-mps-server" in result):
         
-        return True
-    else:
-        return False
+#         return True
+#     else:
+#         return False
     
-    
-def stop_MPS(password):
-    command="echo quit | nvidia-cuda-mps-control"
-    (status, result)=subprocess.getstatusoutput('echo %s| sudo -S %s' %(password,command))
-    print(status)
-    print(result)
-    if (status==1 and "Cannot find MPS control daemon process" in result) or (status==0 and "nvidia-cuda-mps-control -d" not in result and "nvidia-cuda-mps-server" not in result):
-        return True
-    else:
-        return False
+# def stop_MPS(password):
+#     command="echo quit | nvidia-cuda-mps-control"
+#     (status, result)=subprocess.getstatusoutput('echo %s| sudo -S %s' %(password,command))
+#     print(status)
+#     print(result)
+#     if (status==1 and "Cannot find MPS control daemon process" in result) or (status==0 and "nvidia-cuda-mps-control -d" not in result and "nvidia-cuda-mps-server" not in result):
+#         return True
+#     else:
+#         return False
     
 
 
