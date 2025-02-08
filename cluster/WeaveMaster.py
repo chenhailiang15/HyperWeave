@@ -53,8 +53,8 @@ class WeaveMaster:
         
         self.print_level=print_level
         
-        self.clock_time_factor=10000
-        self.job_time_factor=1
+        self.job_come_time_factor=1
+        self.job_duration_time_factor=1
         self.job_ddl_factor=10             #ddl是任务持续时间的job_ddl_factor倍
 
         self.schedule_interval=10
@@ -207,7 +207,7 @@ class WeaveMaster:
     def load_ali_trace(self,file_name):
         ali_trace_pd=self.load_csv(file_name,header=0)
         min_start_time=ali_trace_pd["start_time_j"].min()
-        ali_trace_pd["start_time"]=(ali_trace_pd["start_time_j"]-min_start_time)/self.clock_time_factor
+        ali_trace_pd["start_time"]=(ali_trace_pd["start_time_j"]-min_start_time)/self.job_come_time_factor
         self.ali_trace_pd=ali_trace_pd.sort_values(by="start_time")
 
     def load_csv(self, file_name,header=None):
@@ -245,10 +245,12 @@ class WeaveMaster:
                 print(f"job ${job.job_idx}$ come ( detailed info :{job.job_key_info()})")
             self.wait_schedule_queue.put(job)
             self.job_come_num+=1
+            
+            #这里判断job数量是否达到要求，如果达到则退出
             if self.job_come_num>=self.args.job_num:
                 break
             
-            if index+1<len(self.ali_trace_pd):
+            if index+1<len(self.ali_trace_pd) and args.job_together_flage=="False":
                 time.sleep(self.ali_trace_pd.loc[index+1,"start_time"]-self.ali_trace_pd.loc[index,"start_time"])
  
         self.job_come_flage=False
@@ -266,7 +268,7 @@ class WeaveMaster:
 
         parrallel_num=math.ceil(min(plan_gpu, 400)/100)
         model_info=model_name+"-"+str(batch_size)+"-"+str(parrallel_num)
-        duration_time=ali_trace["duration_s"]/self.job_time_factor
+        duration_time=ali_trace["duration_s"]/self.job_duration_time_factor
         init_time=self.analyze_loader.get_value(model_info,"stage_init","time")
         epoch_time=self.analyze_loader.get_value(model_info,"stage_sample","time")+self.analyze_loader.get_value(model_info,"stage_train","time")
         model_duration_time=init_time+epoch_time
@@ -278,7 +280,7 @@ class WeaveMaster:
 
         
         
-        total_epochs=math.ceil((ali_trace["duration_s"]/self.job_time_factor-init_time)/epoch_time)
+        total_epochs=math.ceil((ali_trace["duration_s"]/self.job_duration_time_factor-init_time)/epoch_time)
         each_batch_time=self.analyze_loader.get_time_value(model_info, 1)+self.analyze_loader.get_time_value(model_info, 2)+self.analyze_loader.get_time_value(model_info, 3)
         batch_num=math.ceil(self.analyze_loader.get_value(model_info,"stage_train","time")/each_batch_time)
 
@@ -593,7 +595,7 @@ class WeaveMaster:
         temp_string+=f"model_kind:{self.args.model_kind}\n"
         temp_string+=f"MPS:{self.MPS_mode}\nSync:{self.weave_sync_mode}\n"
         temp_string+=f"overshared_factor:{self.overshared_factor}\ngpu_mem_percent:{self.args.gpu_mem_percent}\n"
-        temp_string+=f"clock_time_factor:{self.clock_time_factor}\njob_time_factor:{self.job_time_factor}\njob_ddl_factor:{self.job_ddl_factor}\n"
+        temp_string+=f"job_come_time_factor:{self.job_come_time_factor}\job_duration_time_factor:{self.job_duration_time_factor}\njob_ddl_factor:{self.job_ddl_factor}\n"
         temp_string+=f"job_num:{self.args.job_num}\n"
         temp_string+=f"schedule_interval:{self.schedule_interval}\n"
         temp_string+=f"makespan_real:{self.makespan}\n"
@@ -651,6 +653,7 @@ if __name__=="__main__":
     parser.add_argument("--strategy", default="FIFO", type=str)
     parser.add_argument("--mps_flage", default="True", type=str)
     parser.add_argument("--sync_flage", default="True", type=str)
+    parser.add_argument("--job_together_flage", default="True", type=str)
     parser.add_argument("--node_kind", default="4*3090", type=str, help="4*3090, 3*2080ti, 4*2080")
     parser.add_argument("--model_kind", default="all_model", type=str, help="cv_model, all_model")
     parser.add_argument("--gpu_mem_percent", default=0.9, type=float, help="because of GPU fragement")
@@ -664,8 +667,9 @@ if __name__=="__main__":
     args=parser.parse_args()
     
     #判断所给值是否符合要求
-    if (args.sync_flage !="True" and  args.sync_flage !="False") or (args.mps_flage !="True" and  args.mps_flage !="False"):
-        print("sync_flage or mps_flage value wrong!")
+    if (args.sync_flage !="True" and  args.sync_flage !="False") or (args.mps_flage !="True" and  args.mps_flage !="False") or\
+        (args.job_together_flage !="True" and  args.job_together_flage !="False"):
+        print("sync_flage or mps_flage value or job_together_flage wrong!")
         exit(-1)
         
     version="v2.0.0"

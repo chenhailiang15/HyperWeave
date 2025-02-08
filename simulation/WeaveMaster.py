@@ -55,7 +55,7 @@ class WeaveMaster:
         self.file_trace=file_trace
 
         
-        self.job_time_factor = 1
+        self.job_duration_time_factor = 1
         self.job_ddl_factor = 10  # ddl是任务持续时间的job_ddl_factor倍
         
 
@@ -71,12 +71,12 @@ class WeaveMaster:
             #用于验证系统准确性
             self.ali_trace_job_info_file_name="ali_trace_job_info_long.csv"
             self.schedule_interval = 10
-            self.clock_time_factor = 10000
+            self.job_come_time_factor = 10000
         elif self.args.validation=="False":
             #纯仿真
             self.ali_trace_job_info_file_name="sim_ali_trace_job_info.csv"
             self.schedule_interval = 360
-            self.clock_time_factor = 1
+            self.job_come_time_factor = 1
         else:
             print("validation is wrong!")
             exit(-1)
@@ -208,7 +208,7 @@ class WeaveMaster:
     def load_ali_trace(self,file_name):
         ali_trace_pd=self.load_csv(file_name,header=0)
         min_start_time=ali_trace_pd["start_time_j"].min()
-        ali_trace_pd["start_time"]=(ali_trace_pd["start_time_j"]-min_start_time)/self.clock_time_factor
+        ali_trace_pd["start_time"]=(ali_trace_pd["start_time_j"]-min_start_time)/self.job_come_time_factor
         self.ali_trace_pd=ali_trace_pd.sort_values(by="start_time")
 
     def load_csv(self, file_name,header=None):
@@ -269,7 +269,7 @@ class WeaveMaster:
 
         parrallel_num=math.ceil(min(plan_gpu, 400)/100)
         model_info=model_name+"-"+str(batch_size)+"-"+str(parrallel_num)
-        duration_time=ali_trace["duration_s"]/self.job_time_factor
+        duration_time=ali_trace["duration_s"]/self.job_duration_time_factor
         init_time=self.analyze_loader.get_value(model_info,"stage_init","time")
         epoch_time=self.analyze_loader.get_value(model_info,"stage_sample","time")+self.analyze_loader.get_value(model_info,"stage_train","time")
         model_duration_time=init_time+epoch_time
@@ -281,7 +281,7 @@ class WeaveMaster:
 
         
         
-        total_epochs=math.ceil((ali_trace["duration_s"]/self.job_time_factor-init_time)/epoch_time)
+        total_epochs=math.ceil((ali_trace["duration_s"]/self.job_duration_time_factor-init_time)/epoch_time)
         each_batch_time=self.analyze_loader.get_time_value(model_info, 1)+self.analyze_loader.get_time_value(model_info, 2)+self.analyze_loader.get_time_value(model_info, 3)
         batch_num=math.ceil(self.analyze_loader.get_value(model_info,"stage_train","time")/each_batch_time)
 
@@ -562,7 +562,7 @@ class WeaveMaster:
         temp_string+=f"model_kind:{self.args.model_kind}\n"
         temp_string+=f"MPS:{self.MPS_mode}\nSync:{self.weave_sync_mode}\n"
         temp_string+=f"overshared_factor:{self.overshared_factor}\ngpu_mem_percent:{self.args.gpu_mem_percent}\n"
-        temp_string+=f"clock_time_factor:{self.clock_time_factor}\njob_time_factor:{self.job_time_factor}\njob_ddl_factor:{self.job_ddl_factor}\n"
+        temp_string+=f"job_come_time_factor:{self.job_come_time_factor}\njob_duration_time_factor:{self.job_duration_time_factor}\njob_ddl_factor:{self.job_ddl_factor}\n"
         temp_string+=f"node_num:{self.args.node_num}\n"
         temp_string+=f"job_num:{self.args.job_num}\n"
         temp_string+=f"schedule_interval:{self.schedule_interval}\n"
