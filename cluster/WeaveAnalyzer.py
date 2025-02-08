@@ -64,23 +64,21 @@ def single_training(local_rank,args):
     destroy_process_group()
 
     
-def Record_resource(args, gpu_id, out_dir, out_file_name,event,queue):
-    record=Record(gpu_id=gpu_id,net_card="", sample_interval=args.sample_interval,out_dir=out_dir, out_file_name=out_file_name,event=event,print_flage=args.print_flage)
+def Record_resource(args, gpu_id_list, out_dir, out_file_name,event,queue):
+    
+    record=Record(gpu_id_list=gpu_id_list,net_card="", sample_interval=args.sample_interval,out_dir=out_dir, out_file_name=out_file_name,event=event,print_flage=args.print_flage)
     record.run_analyze(queue,args.shm_name_for_analyze)
 
 
 
 
-def analyze_tasks(args,dataset_dir,queue,total_epochs=2, max_parrallel=4, model_name_list=None, sync=None):
+def analyze_tasks(args,queue,max_parrallel=4, model_name_list=None, sync=None):
     if args.system=="Muri":
         file_writer=open(args.muri_file_path_name, "w")
-    args.total_epochs=2
-    # args.gpu_id_list=[0,1,2,3]
-    args.node_rank=0
-    args.dataset_dir=dataset_dir
     
-    # model_name_list=["AlexNet","ResNet18","ResNet50","MobileNetv2","VGG16", "GCN", "GraphSage","Transformer", "Bert"]#"AlexNet","ResNet18","ResNet50","MobileNetv2","VGG16"
-    # max_parrallel=4
+    if model_name_list==None:
+        model_name_list=["AlexNet", "GCN", "GraphSage","Transformer", "Bert","ResNet18","ResNet50","MobileNetv2","VGG16"]#"AlexNet","ResNet18","ResNet50","MobileNetv2","VGG16"
+    
     for model_name in model_name_list:
         for batch_size in model_to_batch_size_g[model_name]:
             for parrallel in range(1,max_parrallel+1):
@@ -117,31 +115,35 @@ def analyze_tasks(args,dataset_dir,queue,total_epochs=2, max_parrallel=4, model_
     return
 
 
-def offline_analyze(system="Muri", net_card="eno1", gpu_id_list=[[0]]):
+def offline_analyze(max_parrallel=4,model_name_list=None,system="Muri", net_card="eno1", total_epochs=2, gpu_id_list=[[0]]):
 
     args=args_weave()
-    args.system="Muri"
+    args.system=system
     args.mode="analyze"
-    args.net_card="eno1"
-    args.gpu_id_list=[[3,5,6,7]]   #选择其中指定GPU进行实验
+    args.net_card=net_card
+    args.gpu_id_list=gpu_id_list   #选择其中指定GPU进行实验
+    args.total_epochs=total_epochs
+    args.node_rank=0
+    args.dataset_dir=get_dataset_dir()
+    
     shm_name=generate_shm_name()
     args.shm_name_for_analyze=shm_name
     args.shm_name_list={0:{args.gpu_id_list[0][0]:shm_name}} #传递一个共享内存名字，以local rank=0 进行记录
     my_queue=queue.Queue()
     # args.set_queue(my_queue)
-    dataset_dir=get_dataset_dir()
+    
     output_dir=get_output_dir()
     record_file_name=generate_file_name_for_analyze()
     if args.system == "Weave":
         event=threading.Event()
-        subthread_record=threading.Thread(target=Record_resource,args=(args,-1,output_dir,record_file_name,event,my_queue))
+        subthread_record=threading.Thread(target=Record_resource,args=(args,gpu_id_list,output_dir,record_file_name,event,my_queue))
         subthread_record.start()
         sync_er=None
     elif args.system == "Muri":
         args.muri_file_path_name=output_dir+"/Muri_"+record_file_name
         sync_er=Synchronizer(shm_name, shm_size=16)
     #*************************************************
-    analyze_tasks(args,dataset_dir,my_queue,sync_er)
+    analyze_tasks(args,my_queue,max_parrallel,model_name_list,sync_er)
     #*************************************************
 
     if args.system == "Weave":
@@ -263,7 +265,7 @@ class AnalyzeDataLoader:
 #         return [self.get_value(model_info,0), self.get_value(model_info,1), self.get_value(model_info,2), self.get_value(model_info,3)]
     
 if __name__=="__main__":
-    
+    print("?????")
     offline_analyze()
     # analyze_data=AnalyzeDataLoader("Analyzer-NVIDIA_GeForce_RTX_2080.csv")
     
