@@ -77,7 +77,7 @@ def analyze_tasks(args,queue,max_parrallel=4, model_name_list=None, sync=None):
         file_writer=open(args.muri_file_path_name, "w")
     
     if model_name_list==None:
-        model_name_list=["AlexNet", "GCN", "GraphSage","Transformer", "Bert","ResNet18","ResNet50","MobileNetv2","VGG16"]#"AlexNet","ResNet18","ResNet50","MobileNetv2","VGG16"
+        model_name_list=["AlexNet", "GraphSage","Transformer", "Bert","ResNet18","ResNet50","MobileNetv2","VGG16", "GCN"]#"AlexNet","ResNet18","ResNet50","MobileNetv2","VGG16"
     
     for model_name in model_name_list:
         for batch_size in model_to_batch_size_g[model_name]:
