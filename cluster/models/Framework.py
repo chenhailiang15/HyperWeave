@@ -67,7 +67,7 @@ class model_framework:
         if self.system == "Weave":
             if self.args.mode=="train":
                 self.sync_er=Synchronizer(shm_name, shm_size=3, prior=self.args.prior, enable_flage=enable_flage)
-            elif self.args.mode == "analyze":
+            elif self.args.mode == "analyze" and self.local_rank==0 :
                 self.sync_er=Synchronizer(shm_name, shm_size=4)
         elif self.system == "Muri":
             if self.args.mode=="train":

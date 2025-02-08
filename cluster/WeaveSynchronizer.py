@@ -77,11 +77,11 @@ class Synchronizer:
     def load_share_memory(self):
         try:
             self.shm=shared_memory.SharedMemory(name=self.shm_name)
-            print(f"共享内存 '{self.shm_name}' 已存在。size:{self.shm_size}")
+            print(f"共享内存 '{self.shm_name}' 已存在. size:{self.shm_size}")
             return False
         except FileNotFoundError:
             self.shm=shared_memory.SharedMemory(name=self.shm_name, create=True, size=self.shm_size)
-            print(f"共享内存 '{self.shm_name}' 不存在，现在创建。size:{self.shm_size}")
+            print(f"共享内存 '{self.shm_name}' 不存在,现在创建. size:{self.shm_size}")
             return True
         
         
