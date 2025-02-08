@@ -1,14 +1,14 @@
 #!/bin/bash
 
-system="Normal"
+system="Muri"
 strategy="FIFO"
 gpu_mem_percent=0.9
 
 mps_flage="False"
-sync_flage="True"
+sync_flage="False"
 node_kind="4*3090"                           #"4*3090, 3*2080ti, 4*2080"
 model_kind="all_model"                       #"cv_model, all_model"
-job_num=0
+job_num=100
 print_level=11
 
 python WeaveMaster.py --system ${system} --strategy ${strategy} --mps_flage ${mps_flage} --sync_flage ${sync_flage}\

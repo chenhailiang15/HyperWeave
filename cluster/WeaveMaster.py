@@ -651,11 +651,11 @@ if __name__=="__main__":
     parser.add_argument("--strategy", default="FIFO", type=str)
     parser.add_argument("--mps_flage", default="True", type=str)
     parser.add_argument("--sync_flage", default="True", type=str)
-    parser.add_argument("--node_kind", default="4*2080", type=str, help="4*3090, 3*2080ti, 4*2080")
+    parser.add_argument("--node_kind", default="4*3090", type=str, help="4*3090, 3*2080ti, 4*2080")
     parser.add_argument("--model_kind", default="all_model", type=str, help="cv_model, all_model")
     parser.add_argument("--gpu_mem_percent", default=0.9, type=float, help="because of GPU fragement")
     parser.add_argument("--job_num", default=0, type=int)
-    parser.add_argument("--gpu_id_list", default=[1,2,3,4], type=parse_list_arg)
+    parser.add_argument("--gpu_id_list", default=[4,5,6,7], type=parse_list_arg)
     
     parser.add_argument("--print_level", default=11, type=int)
     parser.add_argument("--write_sum", action='store_true')
