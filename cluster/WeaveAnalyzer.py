@@ -71,7 +71,7 @@ def Record_resource(args, gpu_id, out_dir, out_file_name,event,queue):
 
 
 
-def analyze_tasks(args,dataset_dir,queue,sync=None):
+def analyze_tasks(args,dataset_dir,queue,total_epochs=2, max_parrallel=4, model_name_list=None, sync=None):
     if args.system=="Muri":
         file_writer=open(args.muri_file_path_name, "w")
     args.total_epochs=2
@@ -79,8 +79,8 @@ def analyze_tasks(args,dataset_dir,queue,sync=None):
     args.node_rank=0
     args.dataset_dir=dataset_dir
     
-    model_name_list=["AlexNet","ResNet18","ResNet50","MobileNetv2","VGG16", "GCN", "GraphSage","Transformer", "Bert"]#"AlexNet","ResNet18","ResNet50","MobileNetv2","VGG16"
-    max_parrallel=4
+    # model_name_list=["AlexNet","ResNet18","ResNet50","MobileNetv2","VGG16", "GCN", "GraphSage","Transformer", "Bert"]#"AlexNet","ResNet18","ResNet50","MobileNetv2","VGG16"
+    # max_parrallel=4
     for model_name in model_name_list:
         for batch_size in model_to_batch_size_g[model_name]:
             for parrallel in range(1,max_parrallel+1):
@@ -117,7 +117,7 @@ def analyze_tasks(args,dataset_dir,queue,sync=None):
     return
 
 
-def offline_analyze():
+def offline_analyze(system="Muri", net_card="eno1", gpu_id_list=[[0]]):
 
     args=args_weave()
     args.system="Muri"

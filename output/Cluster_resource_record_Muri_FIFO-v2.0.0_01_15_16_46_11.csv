@@ -1,4 +1,0 @@
-cpu_util,mem_util,gpu_util0,gmem_util0,gpu_util1,gmem_util1,gpu_util2,gmem_util2,gpu_util3,gmem_util3
-100.0,15.2,53,23.68,40,23.69,0,1.27,0,25.45
-100.0,15.3,52,12.96,54,16.77,0,1.27,0,25.45
-100.0,15.2,53,23.68,51,9.66,0,1.27,0,25.45
