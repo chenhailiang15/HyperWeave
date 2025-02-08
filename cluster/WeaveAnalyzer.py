@@ -115,7 +115,7 @@ def analyze_tasks(args,queue,max_parrallel=4, model_name_list=None, sync=None):
     return
 
 
-def offline_analyze(max_parrallel=4,model_name_list=None,system="Muri", net_card="eno1", total_epochs=2, gpu_id_list=[[0]]):
+def offline_analyze(max_parrallel=4,model_name_list=None,system="Muri", net_card="", total_epochs=2, gpu_id_list=[[0]]):
 
     args=args_weave()
     args.system=system
