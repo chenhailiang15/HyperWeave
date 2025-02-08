@@ -157,6 +157,13 @@ class WeaveMaster:
             self.nodes.append(node_3090)
             self.node_num =1
         
+        elif self.node_kind=="s4*3090":
+            node_s3090=Node(self, 0, "s3090node", "10.26.128.51", "eno1", self.overshared_factor, self.print_level)
+            node_s3090.set_init_resouce(48*100,120*1024, 4, 24*1024*args.gpu_mem_percent, self.spec_gpu_id)
+            self.nodes.append(node_s3090)
+            self.node_num=1
+            
+        
         elif self.node_kind=="3*2080ti":
             node_2080ti=Node(self, 0, "2080tinode", "10.26.128.51", "eno1", self.overshared_factor, self.print_level)
             node_2080ti.set_init_resouce(48*100,120*1024, 3, 11*1024*args.gpu_mem_percent, self.spec_gpu_id)
@@ -180,7 +187,7 @@ class WeaveMaster:
         
         
         if self.MPS_mode ==True:
-            flage = start_MPS(self.password)
+            flage = start_MPS(self.print_level)
             if flage:
                 print("MPS 开启")
                 return True
@@ -189,7 +196,7 @@ class WeaveMaster:
                 exit(-1)
                 return False
         else:
-            flage = stop_MPS(self.password)
+            flage = stop_MPS(self.print_level)
             if flage:
                 print("MPS 关闭")
                 return True
@@ -266,9 +273,9 @@ class WeaveMaster:
 
         plan_gpu=ali_trace["plan_gpu"]
         
-        #挑选只有一个GPU的任务。
-        if plan_gpu>100:
-            return None
+        # #挑选只有一个GPU的任务。
+        # if plan_gpu>100:
+        #     return None
 
         parrallel_num=math.ceil(min(plan_gpu, 400)/100)
         model_info=model_name+"-"+str(batch_size)+"-"+str(parrallel_num)
@@ -318,7 +325,6 @@ class WeaveMaster:
         if self.node_kind=="4*2080" and ali_trace["plan_mem"]>10:
             print("job generate fail (plan mem is too big!)")
             return None
-        
         
         
         if self.monitor.judge_runable_with_resource(pack_resource,job.parallel_num, plan_flage=True, init=True) == False:
@@ -660,7 +666,7 @@ if __name__=="__main__":
     parser.add_argument("--mps_flage", default="True", type=str)
     parser.add_argument("--sync_flage", default="True", type=str)
     parser.add_argument("--job_together_flage", default="True", type=str)
-    parser.add_argument("--node_kind", default="4*3090", type=str, help="4*3090, 3*2080ti, 4*2080")
+    parser.add_argument("--node_kind", default="4*3090", type=str, help="s4*3090,4*3090, 3*2080ti, 4*2080")
     parser.add_argument("--model_kind", default="all_model", type=str, help="cv_model, all_model")
     parser.add_argument("--gpu_mem_percent", default=0.9, type=float, help="because of GPU fragement")
     parser.add_argument("--job_num", default=100, type=int)
