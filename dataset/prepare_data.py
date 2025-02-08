@@ -16,9 +16,10 @@ def tiny_ImageNet_download():
     print("start download ImageNet...")
     path = kagglehub.dataset_download("akash2sharma/tiny-imagenet")
     try:
-        os.system(f"mv {path}/* .")
-        os.system("mv tiny-imagenet-200 tiny-ImageNet")
-        tiny_imagenet_dir=path.split("/tiny_imagenet")[0]
+        print("move imagenet...")
+        os.system(f"mv {path}/* {cur_dir}")
+        os.system(f"mv {cur_dir}/tiny-imagenet-200 {cur_dir}/tiny-ImageNet")
+        tiny_imagenet_dir=path.split("/tiny-imagenet/")[0]
         os.system(f"rm -rf {tiny_imagenet_dir}")
     except:
         print("wrong!")
