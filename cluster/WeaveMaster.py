@@ -153,7 +153,7 @@ class WeaveMaster:
         self.nodes=[]
         if self.node_kind=="4*3090":
             node_3090=Node(self, 0, "3090node", "10.26.0.4", "eno1", self.overshared_factor, self.print_level)
-            node_3090.set_init_resouce(96*100, 250*1024, 4, 20*1024*args.gpu_mem_percent, self.spec_gpu_id)
+            node_3090.set_init_resouce(960*100, 512*1024, 4, 24*1024*args.gpu_mem_percent, self.spec_gpu_id)
             self.nodes.append(node_3090)
             self.node_num =1
         
@@ -265,6 +265,10 @@ class WeaveMaster:
         self.model_info_list_index+=1
 
         plan_gpu=ali_trace["plan_gpu"]
+        
+        #挑选只有一个GPU的任务。
+        if plan_gpu>100:
+            return None
 
         parrallel_num=math.ceil(min(plan_gpu, 400)/100)
         model_info=model_name+"-"+str(batch_size)+"-"+str(parrallel_num)
@@ -314,6 +318,8 @@ class WeaveMaster:
         if self.node_kind=="4*2080" and ali_trace["plan_mem"]>10:
             print("job generate fail (plan mem is too big!)")
             return None
+        
+        
         
         if self.monitor.judge_runable_with_resource(pack_resource,job.parallel_num, plan_flage=True, init=True) == False:
             if self.print_level>=2:
@@ -657,7 +663,7 @@ if __name__=="__main__":
     parser.add_argument("--node_kind", default="4*3090", type=str, help="4*3090, 3*2080ti, 4*2080")
     parser.add_argument("--model_kind", default="all_model", type=str, help="cv_model, all_model")
     parser.add_argument("--gpu_mem_percent", default=0.9, type=float, help="because of GPU fragement")
-    parser.add_argument("--job_num", default=0, type=int)
+    parser.add_argument("--job_num", default=100, type=int)
     parser.add_argument("--gpu_id_list", default=[4,5,6,7], type=parse_list_arg)
     
     parser.add_argument("--print_level", default=11, type=int)

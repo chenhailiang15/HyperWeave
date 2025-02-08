@@ -1,6 +1,6 @@
 #!/bin/bash
 
-system="Muri"
+system="Normal"
 strategy="FIFO"
 gpu_mem_percent=0.9
 
