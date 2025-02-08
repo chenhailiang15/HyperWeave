@@ -48,7 +48,7 @@ def single_training(local_rank,args):
     #设置
     os.environ["MASTER_ADDR"]=args.MASTER_ADDR
     os.environ["MASTER_PORT"]=args.MASTER_PORT
-    # os.environ["NCCL_SOCKET_IFNAME"]=args.net_card
+    os.environ["NCCL_SOCKET_IFNAME"]=args.net_card
     
     # Set up the distributed environment, including setting the master address, port, and backend.
     ddp_setup(local_rank, args)
@@ -115,7 +115,7 @@ def analyze_tasks(args,queue,max_parrallel=4, model_name_list=None, sync=None):
     return
 
 
-def offline_analyze(max_parrallel=4,model_name_list=None,system="Muri", net_card="", total_epochs=2, gpu_id_list=[[0]]):
+def offline_analyze(max_parrallel=4,model_name_list=None,system="Muri", net_card="eno1", total_epochs=2, gpu_id_list=[[0]]):
 
     args=args_weave()
     args.system=system
