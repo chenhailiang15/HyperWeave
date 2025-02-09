@@ -267,6 +267,7 @@ class args_weave:
         self.node_rank=0
         self.nprocs_list=[1]
         self.gpu_id_list=[]
+        self.world_size=1
         
         #模型通用参数
         self.model_name="AlexNet"

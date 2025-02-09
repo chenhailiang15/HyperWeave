@@ -95,6 +95,7 @@ def analyze_tasks(args,queue,max_parrallel=4, model_name_list=None, sync=None):
                 args.model_name=model_name
                 args.batch_size=batch_size
                 args.nprocs_per_node=parrallel
+                args.world_size=parrallel
                 mp.spawn(single_training, args=(args,), nprocs=args.nprocs_per_node)
                 if args.system=="Muri":
                     out_line=f"{model_name}-{batch_size}-{parrallel}-[{sync.get_value(0)},{sync.get_value(1)},{sync.get_value(2)},{sync.get_value(3)}]"

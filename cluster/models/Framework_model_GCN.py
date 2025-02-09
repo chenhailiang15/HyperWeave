@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 import torch
 from torch_geometric.datasets import Planetoid
 from torch_geometric.nn import GCNConv  # 从PyTorch几何库中导入图卷积网络层（GCNConv）
-
+import math
 
 
 
@@ -33,7 +33,7 @@ class GCNModel:
         
         self.model.train()
         self.cur_epoch = 0
-        self.total_batch_num=self.args.batch_num
+        self.total_batch_num=math.ceil(self.args.batch_num/self.args.world_size)
     
     
     def prepare_sub(self):  
