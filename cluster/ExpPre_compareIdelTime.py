@@ -45,7 +45,7 @@ if __name__=="__main__":
     
     model_name="AlexNet"
     max_parallel_num=2
-    batch_size_list=[256]#16,64,
+    batch_size_list=[256] #16,64,
     total_epochs=2
     gpu_id_list=[5,6,7]
     net_card="eno1"

@@ -59,8 +59,13 @@ class CVModel:
             self.model.fc = nn.Linear(num_ftrs, len(class_names))
         elif self.args.model_name == "AlexNet":
             self.model = models.alexnet()
-            num_fc = self.model.classifier[6].in_features
-            self.model.classifier[6] = torch.nn.Linear(in_features=num_fc, out_features=len(class_names))
+            # 替换最后一层以适应ImageNet的类别数（1000类）
+            self.model.classifier = nn.Sequential(
+            nn.Linear(9216,512),
+            nn.ReLU(),
+            nn.Dropout(0.5),
+            nn.Linear(512, len(class_names))
+            )
         elif self.args.model_name =="MobileNetv2":
             self.model = models.mobilenet_v2()
             # 替换最后一层以适应ImageNet的类别数（1000类）
@@ -73,8 +78,12 @@ class CVModel:
         elif self.args.model_name =="VGG16":
             self.model = models.vgg16()
             # 替换最后一层以适应ImageNet的类别数（1000类）
-            num_fc = self.model.classifier[6].in_features  # 获取最后一层的输入维度
-            self.model.classifier[6] = torch.nn.Linear(num_fc, len(class_names))  # 修改最后一层的输出维度，即分类
+            self.model.classifier = nn.Sequential(
+            nn.Linear(25088, 512),
+            nn.ReLU(),
+            nn.Dropout(0.5),
+            nn.Linear(512, len(class_names))
+            )
         else:
             print("model name wrong!")
             exit(-1)
@@ -148,48 +157,48 @@ class CVModel:
     
     
     def sample(self):
-        return
-        # self.cur_epoch +=1
-        # self.train_sampler.set_epoch(self.cur_epoch)
-        # self.dataloader_iter = iter(self.train_loader)
+        
+        self.cur_epoch +=1
+        self.train_sampler.set_epoch(self.cur_epoch)
+        self.dataloader_iter = iter(self.train_loader)
         
         
         
     def train(self):
-        self.cur_epoch +=1
+        # self.cur_epoch +=1
+        # batch_idx=0
+        # for data, target in self.train_loader:
+        #     if batch_idx%500 == 0:
+        #         print(f"job_idx: {self.args.job_idx} batch_idx: {batch_idx}/{self.total_batch_num}...")
+        #     data = data.to(self.device)
+        #     target = target.to(self.device)
+        #     self.optimizer.zero_grad()
+        #     # with torch.set_grad_enabled(True):
+        #     output = self.model(data)
+        #     loss =  self.criterion(output, target)
+        #     loss.backward()
+        #     self.optimizer.step()
+        #     batch_idx+=1
+            
+            
+            
         batch_idx=0
-        for data, target in self.train_loader:
-            if batch_idx%500 == 0:
-                print(f"job_idx: {self.args.job_idx} batch_idx: {batch_idx}/{self.total_batch_num}...")
-            data = data.to(self.device)
-            target = target.to(self.device)
-            self.optimizer.zero_grad()
-            with torch.set_grad_enabled(True):
+        while True:
+            try:
+                if batch_idx%500 == 0:
+                    print(f"job_idx: {self.args.job_idx} batch_idx: {batch_idx}/{self.total_batch_num}...")
+                
+                data,target = next(self.dataloader_iter)
+                data=data.to(self.device)
+                target=target.to(self.device)
+                
+                self.optimizer.zero_grad()
                 output = self.model(data)
                 loss =  self.criterion(output, target)
                 loss.backward()
                 self.optimizer.step()
-            batch_idx+=1
-            
-            
-            
-        # batch_idx=0
-        # while True:
-        #     try:
-        #         if batch_idx%500 == 0:
-        #             print(f"job_idx: {self.args.job_idx} batch_idx: {batch_idx}/{self.total_batch_num}...")
-                
-        #         data,target = next(self.dataloader_iter)
-        #         data=data.to(self.device)
-        #         target=target.to(self.device)
-                
-        #         self.optimizer.zero_grad()
-        #         output = self.model(data)
-        #         loss =  self.criterion(output, target)
-        #         loss.backward()
-        #         self.optimizer.step()
-        #         batch_idx+=1
-        #     except StopIteration:
-                # break
+                batch_idx+=1
+            except StopIteration:
+                break
             
         
