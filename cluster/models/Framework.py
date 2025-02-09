@@ -216,12 +216,12 @@ class model_framework:
                     stage2_time_all+=stage3_start_time-stage2_start_time
                     stage3_time_all+=stage_end_time-stage3_start_time
                     record_num+=1
-                    if record_num>=100:
+                    if record_num>=1000:
                         break
                     
                 elif self.mode == "analyze":
                     record_num+=1
-                    if record_num>=100:
+                    if record_num>=1000:
                         break
             
             
