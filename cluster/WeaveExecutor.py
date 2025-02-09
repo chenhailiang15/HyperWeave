@@ -134,7 +134,8 @@ if __name__=="__main__":
     os.environ["MASTER_ADDR"]=args.MASTER_ADDR
     os.environ["MASTER_PORT"]=args.MASTER_PORT
     os.environ["NCCL_SOCKET_IFNAME"]=args.net_card
-    os.environ["PYTORCH_CUDA_ALLOC_CONF"]="max_split_size_mb:128"
+    
+    # os.environ["PYTORCH_CUDA_ALLOC_CONF"]="max_split_size_mb:128"
     # gc.collect()
     # torch.cuda.empty_cache()
     

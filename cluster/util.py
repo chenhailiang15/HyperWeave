@@ -15,8 +15,8 @@ import threading
 import math
 
 
-
-model_to_batch_size_g={"AlexNet" : [8,16,32,64,128],
+#8,16,32,64,
+model_to_batch_size_g={"AlexNet" : [128],
                          "ResNet18" : [8,16,32,64,128],
                          "ResNet50" : [8,16,32,64,128],
                          "MobileNetv2" : [8,16,32,64,128],

@@ -8,7 +8,12 @@ import torch
 import os
 
 
-
+cv_model_dict={"AlexNet": "alexnet",
+               "ResNet18": "resnet18",
+               "ResNet50": "resnet50",
+               "VGG16": "vgg16",
+               "MobileNetv2": "mobilenet_v2"
+               }
 
 
 class CVModel:
@@ -36,10 +41,10 @@ class CVModel:
         self.train_loader = torch.utils.data.DataLoader(
             train_dataset, batch_size=self.args.batch_size, pin_memory=True, shuffle=False,
             sampler=self.train_sampler, num_workers=self.args.worker_num)
-
+        
         num_classes=len(train_dataset.classes)
-        self.model = getattr(models, "alexnet")(num_classes=num_classes)
-
+        self.model = getattr(models, cv_model_dict[self.model_name])(num_classes=num_classes)
+        
         self.criterion = nn.CrossEntropyLoss()
         self.optimizer = optim.SGD(self.model.parameters(), lr=0.0001, momentum=0.9)
         self.model = self.model.to(self.device)
@@ -109,31 +114,48 @@ class CVModel:
     
     
     def sample(self):
-        self.cur_epoch +=1
-        self.train_sampler.set_epoch(self.cur_epoch)
-        self.dataloader_iter = iter(self.train_loader)
+        return
+        # self.cur_epoch +=1
+        # self.train_sampler.set_epoch(self.cur_epoch)
+        # self.dataloader_iter = iter(self.train_loader)
         
         
         
     def train(self):
-
+        self.cur_epoch +=1
         batch_idx=0
-        while True:
-            try:
-                if batch_idx%500 == 0:
-                    print(f"job_idx: {self.args.job_idx} batch_idx: {batch_idx}/{self.total_batch_num}...")
-                
-                data,target = next(self.dataloader_iter)
-                data=data.to(self.device)
-                target=target.to(self.device)
-                
-                self.optimizer.zero_grad()
+        for data, target in self.train_loader:
+            if batch_idx%500 == 0:
+                print(f"job_idx: {self.args.job_idx} batch_idx: {batch_idx}/{self.total_batch_num}...")
+            data = data.to(self.device)
+            target = target.to(self.device)
+            self.optimizer.zero_grad()
+            with torch.set_grad_enabled(True):
                 output = self.model(data)
                 loss =  self.criterion(output, target)
                 loss.backward()
                 self.optimizer.step()
-                batch_idx+=1
-            except StopIteration:
-                break
+            batch_idx+=1
+            
+            
+            
+        # batch_idx=0
+        # while True:
+        #     try:
+        #         if batch_idx%500 == 0:
+        #             print(f"job_idx: {self.args.job_idx} batch_idx: {batch_idx}/{self.total_batch_num}...")
+                
+        #         data,target = next(self.dataloader_iter)
+        #         data=data.to(self.device)
+        #         target=target.to(self.device)
+                
+        #         self.optimizer.zero_grad()
+        #         output = self.model(data)
+        #         loss =  self.criterion(output, target)
+        #         loss.backward()
+        #         self.optimizer.step()
+        #         batch_idx+=1
+        #     except StopIteration:
+                # break
             
         

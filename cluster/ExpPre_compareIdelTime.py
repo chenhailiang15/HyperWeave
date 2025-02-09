@@ -8,12 +8,12 @@ def generate_command(model_name, parallel_num,batch_size,gpu_id_list, net_card):
     world_size=parallel_num
     nprocs_list=f"[{world_size}]"
     gpu_id_list=f"[{gpu_id_list}]".replace(" ","")
-    total_epochs=10
+    total_epochs=2
     
-    if model_name == "Bert":
-        batch_size=8
-    else:
-        batch_size=16           #8 for Bert (default:16)
+    # if model_name == "Bert":
+    #     batch_size=8
+    # else:
+    #     batch_size=16           #8 for Bert (default:16)
     
 
     if model_name == "GCN":
@@ -43,9 +43,9 @@ port_id=2000
 
 if __name__=="__main__":
     
-    model_name="AlexNet"
-    max_parallel_num=3
-    batch_size_list=[16,64,256]
+    model_name="ResNet18"
+    max_parallel_num=2
+    batch_size_list=[256]#16,64,
     
     gpu_id_list=[5,6,7]
     net_card="eno1"
