@@ -80,7 +80,8 @@ def analyze_tasks(args,queue,max_parrallel=4, model_name_list=None, sync=None):
         model_name_list=["AlexNet", "GraphSage","Transformer", "Bert","ResNet18","ResNet50","MobileNetv2","VGG16", "GCN"]#"AlexNet","ResNet18","ResNet50","MobileNetv2","VGG16"
     
     for model_name in model_name_list:
-        for batch_size in model_to_batch_size_g[model_name]:
+        # for batch_size in model_to_batch_size_g[model_name]:
+        for batch_size in [64]:
             for parrallel in range(1,max_parrallel+1):
                 if model_name =="GCN":
                     args.layer_num=100
@@ -136,7 +137,7 @@ def offline_analyze(max_parrallel=4,model_name_list=None,system="Muri", net_card
     record_file_name=generate_file_name_for_analyze()
     if args.system == "Weave":
         event=threading.Event()
-        subthread_record=threading.Thread(target=Record_resource,args=(args,gpu_id_list,output_dir,record_file_name,event,my_queue))
+        subthread_record=threading.Thread(target=Record_resource,args=(args,gpu_id_list[0],output_dir,record_file_name,event,my_queue))
         subthread_record.start()
         sync_er=None
     elif args.system == "Muri":

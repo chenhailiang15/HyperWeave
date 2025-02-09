@@ -4,11 +4,11 @@ from util import *
 
 
 
-def generate_command(model_name, parallel_num,batch_size,gpu_id_list, net_card):
+def generate_command(model_name, parallel_num, total_epochs, batch_size,gpu_id_list, net_card):
     world_size=parallel_num
     nprocs_list=f"[{world_size}]"
     gpu_id_list=f"[{gpu_id_list}]".replace(" ","")
-    total_epochs=2
+    
     
     # if model_name == "Bert":
     #     batch_size=8
@@ -43,10 +43,10 @@ port_id=2000
 
 if __name__=="__main__":
     
-    model_name="ResNet18"
+    model_name="AlexNet"
     max_parallel_num=2
     batch_size_list=[256]#16,64,
-    
+    total_epochs=2
     gpu_id_list=[5,6,7]
     net_card="eno1"
     
@@ -58,7 +58,7 @@ if __name__=="__main__":
         for batch_size in batch_size_list:
             
             # out_file_name="ExpPre__compareIdelTime_"+model_name+"_"+str(batch_size)+"_"+str(parallel_num)+"_"+formatted_time+".txt"
-            command=generate_command(model_name, parallel_num,batch_size,gpu_id_list,net_card)
+            command=generate_command(model_name, parallel_num, total_epochs, batch_size, gpu_id_list, net_card)
             run_command(command)
     
     

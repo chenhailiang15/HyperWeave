@@ -42,8 +42,42 @@ class CVModel:
             train_dataset, batch_size=self.args.batch_size, pin_memory=True, shuffle=False,
             sampler=self.train_sampler, num_workers=self.args.worker_num)
         
-        num_classes=len(train_dataset.classes)
-        self.model = getattr(models, cv_model_dict[self.model_name])(num_classes=num_classes)
+        # num_classes=len(train_dataset.classes)
+        class_names=train_dataset.classes
+        # self.model = getattr(models, cv_model_dict[self.model_name])(num_classes=num_classes)
+        
+        # 加载预训练的ResNet-18,50模型
+        if self.args.model_name == "ResNet18":
+            self.model = models.resnet18()
+            num_ftrs = self.model.fc.in_features
+            # 替换最后一层以适应ImageNet的类别数（1000类）
+            self.model.fc = nn.Linear(num_ftrs, len(class_names))
+        elif self.args.model_name == "ResNet50":
+            self.model = models.resnet50()
+            num_ftrs = self.model.fc.in_features
+            # 替换最后一层以适应ImageNet的类别数（1000类）
+            self.model.fc = nn.Linear(num_ftrs, len(class_names))
+        elif self.args.model_name == "AlexNet":
+            self.model = models.alexnet()
+            num_fc = self.model.classifier[6].in_features
+            self.model.classifier[6] = torch.nn.Linear(in_features=num_fc, out_features=len(class_names))
+        elif self.args.model_name =="MobileNetv2":
+            self.model = models.mobilenet_v2()
+            # 替换最后一层以适应ImageNet的类别数（1000类）
+            self.model.classifier = nn.Sequential(
+            nn.Linear(1280, 512),
+            nn.ReLU(),
+            nn.Dropout(0.5),
+            nn.Linear(512, len(class_names))
+            )
+        elif self.args.model_name =="VGG16":
+            self.model = models.vgg16()
+            # 替换最后一层以适应ImageNet的类别数（1000类）
+            num_fc = self.model.classifier[6].in_features  # 获取最后一层的输入维度
+            self.model.classifier[6] = torch.nn.Linear(num_fc, len(class_names))  # 修改最后一层的输出维度，即分类
+        else:
+            print("model name wrong!")
+            exit(-1)
         
         self.criterion = nn.CrossEntropyLoss()
         self.optimizer = optim.SGD(self.model.parameters(), lr=0.0001, momentum=0.9)
