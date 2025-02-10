@@ -124,7 +124,7 @@ class BertModel:
                 batch = next(self.dataloader_iter)
                 input_ids, attention_mask, token_type_ids, start_positions, end_positions = tuple(t.to(self.device) for t in batch)
                 self.optimizer.zero_grad()
-                time.sleep(1)
+                # time.sleep(1)
                 outputs = self.model(input_ids=input_ids,
                                 attention_mask=attention_mask,
                                 token_type_ids=token_type_ids,
