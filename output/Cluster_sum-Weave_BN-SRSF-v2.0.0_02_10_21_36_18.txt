@@ -1,0 +1,27 @@
+system:Weave
+schedule_strategy:BN-SRSF
+node_kind:4*3090
+model_kind:all_model
+MPS:False
+Sync:True
+overshared_factor:3
+gpu_mem_percent:0.9
+job_come_time_factor:1\job_duration_time_factor:1
+job_ddl_factor:10
+job_num:1
+schedule_interval:10
+makespan_real:120.11123037338257
+job_come_num:1
+succeed_job_num:1
+failed_job_num:0
+queue:[1]
+job_wait_time_list:[10.011857748031616]
+job_complete_time_list:[114.14784288406372]
+ali_trace_job_info_file_name:ali_trace_job_info_long.csv
+model_info_file_name:Full_model_info_12_27_21_27_41.txt
+analyze_file_name:Analyzer-NVIDIA_GeForce_RTX_2080-tim_12_19_16_38_14.csv
+model_time_file_name:Muri_Analyzer-NVIDIA_GeForce_RTX_2080_Ti-tim_12_26_15_24_41.csv
+job wait time: size-1, 	mean-10.01, 	min-10.01, 	max-10.01, 	percentile50-10.01, 	percentile90-10.01, 	percentile95-10.01
+job complete time(JCT): size-1, 	mean-114.15, 	min-114.15, 	max-114.15, 	percentile50-114.15, 	percentile90-114.15, 	percentile95-114.15
+
+

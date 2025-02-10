@@ -59,7 +59,7 @@ class WeaveMonitor:
                     self.occupy_resource_gpu_id_list[instance2.instance_name]=couple_instance_gpu_id_list
 
                 for [node_index, gpu_id_list] in couple_instance_gpu_id_list:
-                    self.nodes[node_index].alloc_resource(instance1.pack_cpu/instance1.job.parallel_num, instance1.pack_mem/instance1.job.parallel_num, instance1.pack_gpu/instance1.job.parallel_num, instance1.pack_gmem/instance1.job.parallel_num, gpu_id_list)
+                    self.nodes[node_index].alloc_resource(round(instance1.pack_cpu/instance1.job.parallel_num,2), round(instance1.pack_mem/instance1.job.parallel_num,2), round(instance1.pack_gpu/instance1.job.parallel_num,2), round(instance1.pack_gmem/instance1.job.parallel_num,2), gpu_id_list)
         
                 
     def takeback_resource(self,instance, plan=False):
@@ -99,7 +99,7 @@ class WeaveMonitor:
                     self.end_job_name.add(instance.instance_name)
                 else:   #没有耦合实例, huozhe ，则直接回收
                     for [node_index , gpu_id_list_t]in self.occupy_resource_gpu_id_list[instance.instance_name]:
-                        self.nodes[node_index].takeback_resource(instance.pack_cpu/instance.job.parallel_num, instance.pack_mem/instance.job.parallel_num, instance.pack_gpu/instance.job.parallel_num, instance.pack_gmem/instance.job.parallel_num, gpu_id_list_t)
+                        self.nodes[node_index].takeback_resource(round(instance.pack_cpu/instance.job.parallel_num,2), round(instance.pack_mem/instance.job.parallel_num,2), round(instance.pack_gpu/instance.job.parallel_num,2), round(instance.pack_gmem/instance.job.parallel_num,2), gpu_id_list_t)
                     # del self.occupy_resource_gpu_id_list[job.job_name]
         
         

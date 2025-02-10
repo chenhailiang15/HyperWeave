@@ -118,8 +118,8 @@ class BertModel:
         batch_idx=0
         while True:
             try:
-                # if batch_idx%500 == 0:
-                print(f"job_idx: {self.args.job_idx} batch_idx: {batch_idx}/{self.total_batch_num}...")
+                if batch_idx%500 == 0:
+                    print(f"job_idx: {self.args.job_idx} batch_idx: {batch_idx}/{self.total_batch_num}...")
                 
                 batch = next(self.dataloader_iter)
                 input_ids, attention_mask, token_type_ids, start_positions, end_positions = tuple(t.to(self.device) for t in batch)

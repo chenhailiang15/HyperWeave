@@ -39,7 +39,7 @@ class WeaveMaster:
         self.single_node_mode=True    #实验中固定为True
         
         if self.system=="Weave":
-            self.overshared_factor=2   
+            self.overshared_factor=3   
         else:
             self.overshared_factor=1       #等于1存在GPU资源不够的情况
             

@@ -1,7 +1,7 @@
 #!/bin/bash
 
-system="Muri"
-strategy="FIFO"
+system="Weave"
+strategy="BN-SRSF"
 gpu_mem_percent=0.9
 
 mps_flage="False"
