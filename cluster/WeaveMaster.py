@@ -506,7 +506,7 @@ class WeaveMaster:
                 self.instance_dealing_num-=1
                 # 回收资源
                 if self.system == "Weave":
-                    self.monitor.takeback_resource(instance)
+                    self.monitor.takeback_resource(instance, plan=False)
                 else:
                     self.monitor.takeback_resource(instance, plan=True)
 
@@ -572,7 +572,7 @@ class WeaveMaster:
             ave_gpu_allocate=ave_gpu_allocate/self.node_num
             ave_gmem_allocate=ave_gmem_allocate/self.node_num
 
-            out_string=f"{ave_cpu_allocate},{ave_mem_allocate},{ave_gpu_allocate},{ave_gmem_allocate},{idel_gpu_num},{self.job_not_start_num},{self.job_dealing_num}\n "
+            out_string=f"{ave_cpu_allocate},{ave_mem_allocate},{ave_gpu_allocate},{ave_gmem_allocate},{idel_gpu_num},{self.job_not_start_num},{self.job_dealing_num}\n"
             self.file_trace.write(out_string)
             self.file_trace.flush()
             
@@ -611,7 +611,7 @@ class WeaveMaster:
         temp_string+=f"model_kind:{self.args.model_kind}\n"
         temp_string+=f"MPS:{self.MPS_mode}\nSync:{self.weave_sync_mode}\n"
         temp_string+=f"overshared_factor:{self.overshared_factor}\ngpu_mem_percent:{self.args.gpu_mem_percent}\n"
-        temp_string+=f"job_come_time_factor:{self.job_come_time_factor}\job_duration_time_factor:{self.job_duration_time_factor}\njob_ddl_factor:{self.job_ddl_factor}\n"
+        temp_string+=f"job_come_time_factor:{self.job_come_time_factor}\njob_duration_time_factor:{self.job_duration_time_factor}\njob_ddl_factor:{self.job_ddl_factor}\n"
         temp_string+=f"job_num:{self.args.job_num}\n"
         temp_string+=f"schedule_interval:{self.schedule_interval}\n"
         temp_string+=f"makespan_real:{self.makespan}\n"
