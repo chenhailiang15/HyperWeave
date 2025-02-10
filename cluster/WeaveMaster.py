@@ -68,8 +68,8 @@ class WeaveMaster:
         self.max_gpu_cross=1       #最大跨GPU任务数量（单node）
         
         self.ali_trace_job_info_file_name="ali_trace_job_info_long.csv"
-        self.analyze_file_name="Analyzer-NVIDIA_GeForce_RTX_2080-tim_12_19_16_38_14.csv"
-        self.model_time_file_name="Muri_Analyzer-NVIDIA_GeForce_RTX_2080_Ti-tim_12_26_15_24_41.csv"
+        self.analyze_file_name="Analyzer-NVIDIA_GeForce_RTX_3090-tim_02_09_23_52_05.csv"
+        self.model_time_file_name="Muri_Analyzer-NVIDIA_GeForce_RTX_3090-tim_02_10_07_04_44.csv"
         if self.args.model_kind=="all_model":
             self.model_info_file_name="Full_model_info_12_27_21_27_41.txt"
         elif self.args.model_kind=="cv_model":
