@@ -5,7 +5,7 @@ import pickle
 from torch.utils.data import TensorDataset
 from torch.utils.data import DataLoader
 from transformers import BertForQuestionAnswering,BertConfig
-
+import time
 
 class BertModel:
     def __init__(self, args):
@@ -118,12 +118,13 @@ class BertModel:
         batch_idx=0
         while True:
             try:
-                if batch_idx%500 == 0:
-                    print(f"job_idx: {self.args.job_idx} batch_idx: {batch_idx}/{self.total_batch_num}...")
+                # if batch_idx%500 == 0:
+                print(f"job_idx: {self.args.job_idx} batch_idx: {batch_idx}/{self.total_batch_num}...")
                 
                 batch = next(self.dataloader_iter)
                 input_ids, attention_mask, token_type_ids, start_positions, end_positions = tuple(t.to(self.device) for t in batch)
                 self.optimizer.zero_grad()
+                time.sleep(1)
                 outputs = self.model(input_ids=input_ids,
                                 attention_mask=attention_mask,
                                 token_type_ids=token_type_ids,

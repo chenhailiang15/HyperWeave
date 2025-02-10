@@ -7,7 +7,7 @@ import torch
 from torch_geometric.datasets import Planetoid
 from torch_geometric.nn import GCNConv  # 从PyTorch几何库中导入图卷积网络层（GCNConv）
 import math
-
+import time
 
 
 
@@ -91,7 +91,7 @@ class GCNModel:
             for batch_idx in range(self.total_batch_num):
                 if batch_idx%500 == 0:
                     print(f"job_idx: {self.args.job_idx} batch_idx: {batch_idx}/{self.total_batch_num}...")
-                
+                time.sleep(0.5)
                 self.optimizer.zero_grad()  # 梯度清零
                 out = self.model(self.data)  # 前向传播，得到模型输出
                 loss = F.nll_loss(out[self.data.train_mask], self.data.y[self.data.train_mask])  # 计算损失，使用负对数似然损失函数
