@@ -243,6 +243,8 @@ class WeaveMaster:
                 print(f"time: {self.env.now}\tjob {job.job_idx} \tcome ( detailed info :{job.job_key_info()})")
             self.wait_schedule_queue.put(job)
             self.job_come_num += 1
+            self.job_not_start_num+=1
+            
             if self.job_come_num>=self.args.job_num:
                 break
 
@@ -435,7 +437,7 @@ class WeaveMaster:
                 if instance_t.job.instance_num==len(instance_t.job.instance_list)+1:
                     self.job_start_num += 1
                     self.job_dealing_num += 1
-            
+                    self.job_not_start_num-=1
             if self.print_level>=2:
                 print(f"time: {round(self.env.now, 1)} start a sub-instance:", instance_t.instance_name)
             self.nodes[instance_t.node_rank].execute_instance(instance_t)
@@ -490,7 +492,7 @@ class WeaveMaster:
 
     def print_current_state(self):
         # self.update_job_not_start_num()
-        self.job_not_start_num=self.wait_schedule_queue.qsize()
+        # self.job_not_start_num=self.wait_schedule_queue.qsize()
         # assert self.job_come_num==self.job_not_start_num+self.job_start_num
         if self.print_level>=1:
             out_string=f"************************current status (now:{self.env.now}) *******************************\n"
@@ -503,7 +505,7 @@ class WeaveMaster:
     def write_current_state(self):
         if self.file_trace!=None:
             if self.env.now == 0:
-                self.file_trace.write("ave_cpu_allocate, ave_mem_allocate, ave_gpu_allocate, ave_gmem_allocate, idel_gpu_num, job_not_start_num, job_dealing_num\n")
+                self.file_trace.write("ave_cpu_allocate,ave_mem_allocate,ave_gpu_allocate,ave_gmem_allocate,idel_gpu_num,job_not_start_num,job_dealing_num\n")
 
             idel_gpu_num=0
             ave_cpu_allocate=0

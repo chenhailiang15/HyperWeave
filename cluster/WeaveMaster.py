@@ -256,7 +256,7 @@ class WeaveMaster:
                 print(f"job ${job.job_idx}$ come ( detailed info :{job.job_key_info()})")
             self.wait_schedule_queue.put(job)
             self.job_come_num+=1
-            
+            self.job_not_start_num+=1
             #这里判断job数量是否达到要求，如果达到则退出
             if self.job_come_num>=self.args.job_num:
                 break
@@ -428,10 +428,12 @@ class WeaveMaster:
             if instance_t.is_main:
                 self.instance_start_num += 1
                 self.instance_dealing_num+=1
-
+                
+                
                 if instance_t.job.instance_num==len(instance_t.job.instance_list)+1:
                     self.job_start_num += 1
                     self.job_dealing_num += 1
+                    self.job_not_start_num-=1
                     
             if instance_t.node_rank==0:
                 if self.print_level>5:
@@ -526,6 +528,7 @@ class WeaveMaster:
                 # self.set_makespan()     #统计系统运行时间
             
     def print_and_store_current_state(self):
+        # time.sleep(self.status_out_interval)
         self.print_current_state()
         self.write_current_state()
 
@@ -538,7 +541,7 @@ class WeaveMaster:
             
     def print_current_state(self):
         # self.update_job_not_start_num()
-        self.job_not_start_num=self.wait_schedule_queue.qsize()
+        # self.job_not_start_num=self.wait_schedule_queue.qsize()
         # assert self.job_come_num==self.job_not_start_num+self.job_start_num
         if self.print_level>=1:
             out_string=f"************************current status (now:{time.time()-self.start_time}) *******************************\n"
@@ -551,7 +554,7 @@ class WeaveMaster:
     def write_current_state(self):
         if self.file_trace!=None:
             if self.write_head == True:
-                self.file_trace.write("ave_cpu_allocate, ave_mem_allocate, ave_gpu_allocate, ave_gmem_allocate, idel_gpu_num, job_not_start_num, job_dealing_num\n")
+                self.file_trace.write("ave_cpu_allocate,ave_mem_allocate,ave_gpu_allocate,ave_gmem_allocate,idel_gpu_num,job_not_start_num,job_dealing_num\n")
                 self.write_head=False
                 
             idel_gpu_num=0
@@ -576,13 +579,15 @@ class WeaveMaster:
             self.file_trace.write(out_string)
             self.file_trace.flush()
             
-    def update_job_not_start_num(self):
-        job_waiting_list=list(self.wait_schedule_queue.queue)
-        self.job_not_start_num=0
-        for job in job_waiting_list:
-            if job.instance_num==len(job.instance_list):
-                self.job_not_start_num+=1
-        return
+    # def update_job_not_start_num(self):
+    #     job_waiting_list=list(self.wait_schedule_queue.queue)
+    #     job_not_start_num_t=0
+        
+    #     for job in job_waiting_list:
+    #         if job.instance_num==len(job.instance_list):
+    #             job_not_start_num_t+=1
+    #     self.job_not_start_num=job_not_start_num_t
+    #     return
                             
     def print_job_time_info(self):
         size, _mean, _min, _max, per_50, per_90, per_95=analyze_datas(self.job_wait_time_list)
@@ -688,7 +693,7 @@ if __name__=="__main__":
         print("sync_flage or mps_flage value or job_together_flage wrong!")
         exit(-1)
         
-    version="v2.0.1-os3"
+    version="v2.1.0-os3"+f"-MPS_{args.mps_flage}-Sync_{args.sync_flage}"
     system=args.system
     strategy=args.strategy
     write_sum = (args.write_sum)
