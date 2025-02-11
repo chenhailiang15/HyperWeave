@@ -1,7 +1,7 @@
 #!/bin/bash
 
 gpu_mem_percent=0.9
-node_kind="4*3090"                           #"s4*3090, 4*3090, 3*2080ti, 4*2080"
+node_kind="s4*3090"                           #"s4*3090, 4*3090, 3*2080ti, 4*2080"
 model_kind="all_model"                       #"cv_model, all_model"
 job_num=100
 print_level=10

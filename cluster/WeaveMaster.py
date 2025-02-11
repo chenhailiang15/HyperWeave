@@ -162,8 +162,8 @@ class WeaveMaster:
             self.node_num =1
         
         elif self.node_kind=="s4*3090":
-            node_s3090=Node(self, 0, "s3090node", "10.26.128.51", "eno1", self.overshared_factor, self.print_level)
-            node_s3090.set_init_resouce(48*100,120*1024, 4, 24*1024*args.gpu_mem_percent, self.spec_gpu_id)
+            node_s3090=Node(self, 0, "s3090node", "10.0.0.205", "enp3s0", self.overshared_factor, self.print_level)
+            node_s3090.set_init_resouce(46*100*resource_factor,235*1024*resource_factor, 4, 24*1024*args.gpu_mem_percent, self.spec_gpu_id)
             self.nodes.append(node_s3090)
             self.node_num=1
             
