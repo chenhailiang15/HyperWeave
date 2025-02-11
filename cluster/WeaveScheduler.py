@@ -421,7 +421,7 @@ class WeaveSchedulor:
         # 循环调度
         key_list=list(bucket_match_instances.keys())
         key_list.sort()
-        print(key_list)
+        print(f"bucket id: {key_list}")
         first_bucket_id=key_list[0]
         for bucket_id in key_list:
             match_instances=bucket_match_instances[bucket_id]

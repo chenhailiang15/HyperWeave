@@ -1,39 +1,49 @@
 #!/bin/bash
 
-system="Weave"
-strategy="BN-SRSF"
-gpu_mem_percent=0.9
 
-mps_flage="False"
-sync_flage="True"
+gpu_mem_percent=0.9
 node_kind="4*3090"                           #"4*3090, 3*2080ti, 4*2080"
 model_kind="all_model"                       #"cv_model, all_model"
 job_num=100
 print_level=11
 
-python WeaveMaster.py --system ${system} --strategy ${strategy} --mps_flage ${mps_flage} --sync_flage ${sync_flage}\
-    --node_kind ${node_kind} --model_kind ${model_kind} --gpu_mem_percent ${gpu_mem_percent} --job_num ${job_num}\
-    --print_level ${print_level} --write_trace --write_sum
-
-system="Weave"
+system="Normal"
 strategy="FIFO"
-sync_flage="True"
+mps_flage="False"
+sync_flage="False"
+
 python WeaveMaster.py --system ${system} --strategy ${strategy} --mps_flage ${mps_flage} --sync_flage ${sync_flage}\
     --node_kind ${node_kind} --model_kind ${model_kind} --gpu_mem_percent ${gpu_mem_percent} --job_num ${job_num}\
     --print_level ${print_level} --write_trace --write_sum
-
 
 system="Muri"
 strategy="FIFO"
+mps_flage="False"
 sync_flage="False"
+
 python WeaveMaster.py --system ${system} --strategy ${strategy} --mps_flage ${mps_flage} --sync_flage ${sync_flage}\
     --node_kind ${node_kind} --model_kind ${model_kind} --gpu_mem_percent ${gpu_mem_percent} --job_num ${job_num}\
     --print_level ${print_level} --write_trace --write_sum
 
-system="Normal"
-python WeaveMaster.py --system ${system} --strategy ${strategy} --mps_flage ${mps_flage} --sync_flage ${sync_flage}\
-    --node_kind ${node_kind} --model_kind ${model_kind} --gpu_mem_percent ${gpu_mem_percent} --job_num ${job_num}\
-    --print_level ${print_level} --write_trace --write_sum
+# system="Weave"
+# strategy="FIFO"
+# sync_flage="True"
+# python WeaveMaster.py --system ${system} --strategy ${strategy} --mps_flage ${mps_flage} --sync_flage ${sync_flage}\
+#     --node_kind ${node_kind} --model_kind ${model_kind} --gpu_mem_percent ${gpu_mem_percent} --job_num ${job_num}\
+#     --print_level ${print_level} --write_trace --write_sum
+
+
+# system="Muri"
+# strategy="FIFO"
+# sync_flage="False"
+# python WeaveMaster.py --system ${system} --strategy ${strategy} --mps_flage ${mps_flage} --sync_flage ${sync_flage}\
+#     --node_kind ${node_kind} --model_kind ${model_kind} --gpu_mem_percent ${gpu_mem_percent} --job_num ${job_num}\
+#     --print_level ${print_level} --write_trace --write_sum
+
+# system="Normal"
+# python WeaveMaster.py --system ${system} --strategy ${strategy} --mps_flage ${mps_flage} --sync_flage ${sync_flage}\
+#     --node_kind ${node_kind} --model_kind ${model_kind} --gpu_mem_percent ${gpu_mem_percent} --job_num ${job_num}\
+#     --print_level ${print_level} --write_trace --write_sum
 
 # system="Muri"
 # strategy="FIFO"

@@ -114,7 +114,7 @@ class WeaveMaster:
         self.write_head=True
         self.spec_gpu_id=args.gpu_id_list
         #################################
-        # self.init_MPS()
+        self.init_MPS()
         
         if self.print_level>0:
             print("load node info...")
@@ -193,7 +193,7 @@ class WeaveMaster:
         if self.MPS_mode ==True:
             flage = start_MPS(self.print_level)
             if flage:
-                print("MPS 开启")
+                print("MPS 开启（成功）")
                 return True
             else:
                 print("MPS 开启失败")
@@ -202,7 +202,7 @@ class WeaveMaster:
         else:
             flage = stop_MPS(self.print_level)
             if flage:
-                print("MPS 关闭")
+                print("MPS 关闭（成功）")
                 return True
             else:
                 print("MPS 关闭失败")
@@ -688,7 +688,7 @@ if __name__=="__main__":
         print("sync_flage or mps_flage value or job_together_flage wrong!")
         exit(-1)
         
-    version="v2.0.0"
+    version="v2.0.1-os3"
     system=args.system
     strategy=args.strategy
     write_sum = (args.write_sum)
