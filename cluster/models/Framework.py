@@ -120,8 +120,8 @@ class model_framework:
     def run(self):
         if self.system=="Weave":
             for epoch in range(self.args.total_epochs):
-                print(f"job_idx: {self.job_idx} idx on gpu: {self.idx_on_gpu} epoch: {epoch+1}/{self.args.total_epochs}...")
-                
+                print(f"job:{self.job_idx} epoch:{epoch+1}/{self.args.total_epochs} gpu:{self.device} ...")
+                 
                 if self.mode == "train":
                     self.sync_er.sync_in_start_epoch(epoch==0)
                     # print("model name:",self.args.model_name,"\tepoch:",epoch,"/",self.args.total_epochs-1)
@@ -171,12 +171,9 @@ class model_framework:
                 record_num=0
                 
             while not self.model.is_end():
-                if self.model.batch_idx==0 or self.model.batch_idx==self.model.total_batch_num:
-                    # gc.collect()
-                    # torch.cuda.empty_cache()
-                    print(f"job_idx: {self.job_idx} idx on gpu: {self.device} epoch: {self.model.cur_epoch+1}/{self.args.total_epochs}...")
-                if self.model.batch_idx%500 == 1:
-                    print(f"job_idx: {self.args.job_idx} batch_idx: {self.model.batch_idx}/{self.model.total_batch_num}...")
+                if self.model.batch_idx==0 :
+                    print(f"job:{self.job_idx} tepoch:{self.args.total_epochs} tbatch:{self.model.total_batch_num} gpu:{self.device} ...")
+                
                 # print(f"batch id: {self.model.batch_idx}")
                 if self.mode == "train":
                     self.sync_er.muri_sync_start(self.idx_on_gpu,1)
@@ -186,6 +183,10 @@ class model_framework:
                 #************************
                 data=self.model.get_data()
                 #************************
+                if self.model.batch_idx%500 == 1:
+                    print(f"job:{self.job_idx} batch:{self.model.batch_idx}/{self.model.total_batch_num} ({self.model.cur_epoch+1}/{self.args.total_epochs}) ...")
+                
+                
                 
                 if self.mode == "train":
                     self.sync_er.muri_sync_end(self.idx_on_gpu,1)

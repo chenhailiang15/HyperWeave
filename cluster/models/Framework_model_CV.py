@@ -186,7 +186,7 @@ class CVModel:
         while True:
             try:
                 if batch_idx%500 == 0:
-                    print(f"job_idx: {self.args.job_idx} batch_idx: {batch_idx}/{self.total_batch_num}...")
+                    print(f"job:{self.args.job_idx} batch:{batch_idx}/{self.total_batch_num}...")
                 
                 data,target = next(self.dataloader_iter)
                 data=data.to(self.device)

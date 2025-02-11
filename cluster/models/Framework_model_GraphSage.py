@@ -63,7 +63,7 @@ class GraphSageModel:
         self.graphSage.train()
         self.cur_epoch = 0
         train_nodes=getattr(self.dataCenter, self.ds+'_train')
-        self.total_batch_num=math.ceil(len(train_nodes) / self.b_sz)
+        self.total_batch_num=math.ceil(len(train_nodes) / self.b_sz/self.args.world_size)
     
     
     def prepare_sub(self): 
