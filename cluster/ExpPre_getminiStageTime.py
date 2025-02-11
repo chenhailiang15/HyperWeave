@@ -5,7 +5,7 @@ from WeaveAnalyzer import offline_analyze
 
 
 if __name__=="__main__":
-    max_parrallel=2
+    max_parrallel=4
     #"AlexNet", "GCN", 
     model_name_list=["AlexNet", "GraphSage","Transformer", "Bert", "ResNet18","ResNet50","MobileNetv2","VGG16", "GCN"]
     gpu_id_list=[[4,5,6,7]]

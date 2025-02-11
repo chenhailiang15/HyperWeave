@@ -152,18 +152,18 @@ class WeaveMaster:
     def init_node(self):
         self.nodes=[]
         if self.args.system=="Muri":
-            resource_factor=10
+            self.Muri_resource_factor=10
         else:
-            resource_factor=1
+            self.Muri_resource_factor=1
         if self.node_kind=="4*3090":
             node_3090=Node(self, 0, "3090node", "10.26.0.4", "eno1", self.overshared_factor, self.print_level)
-            node_3090.set_init_resouce(96*100*resource_factor, 250*1024*resource_factor, 4, 24*1024*args.gpu_mem_percent, self.spec_gpu_id)
+            node_3090.set_init_resouce(96*100, 250*1024, 4, 24*1024*args.gpu_mem_percent, self.spec_gpu_id)
             self.nodes.append(node_3090)
             self.node_num =1
         
         elif self.node_kind=="s4*3090":
             node_s3090=Node(self, 0, "s3090node", "10.0.0.205", "enp3s0", self.overshared_factor, self.print_level)
-            node_s3090.set_init_resouce(46*100*resource_factor,235*1024*resource_factor, 4, 24*1024*args.gpu_mem_percent, self.spec_gpu_id)
+            node_s3090.set_init_resouce(46*100,235*1024, 4, 24*1024*args.gpu_mem_percent, self.spec_gpu_id)
             self.nodes.append(node_s3090)
             self.node_num=1
             
@@ -336,16 +336,16 @@ class WeaveMaster:
                 print("job generate fail (plan resource not runable!)")
             return None
 
-
+        cpu_ratio=self.nodes[0].cpu/self.Muri_resource_factor/self.overshared_factor/100
         #设置各阶段实际资源使用量[init stage, pre-iteration stage, iteration stage]
-        max_cpu_usage=max(self.analyze_loader.get_value(model_info,"stage_init", "cpu"), self.analyze_loader.get_value(model_info,"stage_sample", "cpu"), self.analyze_loader.get_value(model_info,"stage_train", "cpu"))
+        max_cpu_usage=cpu_ratio*max(self.analyze_loader.get_value(model_info,"stage_init", "cpu"), self.analyze_loader.get_value(model_info,"stage_sample", "cpu"), self.analyze_loader.get_value(model_info,"stage_train", "cpu"))
         if max_cpu_usage>ali_trace["plan_cpu"]:
             if self.print_level>=2:
                 print("job generate fail (plan resource less than used (cpu)!)")
             return None
-        job.used_resource_cpu = [self.analyze_loader.get_value(model_info,"stage_init", "cpu"),\
-                                 self.analyze_loader.get_value(model_info,"stage_sample", "cpu"),\
-                                 self.analyze_loader.get_value(model_info,"stage_train", "cpu")]
+        job.used_resource_cpu = [cpu_ratio*self.analyze_loader.get_value(model_info,"stage_init", "cpu"),\
+                                 cpu_ratio*self.analyze_loader.get_value(model_info,"stage_sample", "cpu"),\
+                                 cpu_ratio*self.analyze_loader.get_value(model_info,"stage_train", "cpu")]
 
         max_mem_usage=max(self.analyze_loader.get_value(model_info,"stage_init", "mem"), self.analyze_loader.get_value(model_info,"stage_sample", "mem"), self.analyze_loader.get_value(model_info,"stage_train", "mem"))
         if max_mem_usage>ali_trace["plan_mem"]*1024:
@@ -693,7 +693,7 @@ if __name__=="__main__":
         print("sync_flage or mps_flage value or job_together_flage wrong!")
         exit(-1)
         
-    version="v2.1.0-os3"+f"-MPS_{args.mps_flage}-Sync_{args.sync_flage}"
+    version="v2.2.0-os3"+f"-MPS_{args.mps_flage}-Sync_{args.sync_flage}"
     system=args.system
     strategy=args.strategy
     write_sum = (args.write_sum)
