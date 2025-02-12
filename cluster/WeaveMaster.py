@@ -68,8 +68,12 @@ class WeaveMaster:
         self.max_gpu_cross=1       #最大跨GPU任务数量（单node）
         
         self.ali_trace_job_info_file_name="ali_trace_job_info_long.csv"
-        self.analyze_file_name="Analyzer-NVIDIA_GeForce_RTX_3090-tim_02_09_23_52_05.csv"
-        self.model_time_file_name="Muri_Analyzer-NVIDIA_GeForce_RTX_3090-tim_02_10_07_04_44.csv"
+        if self.args.node_kind=="s4*3090":
+            self.Bigstageresource_file_name="Bigstageresource_Analyzer-NVIDIA_GeForce_RTX_3090-tim_02_12_14_58_41.csv"
+            self.Ministagetime_file_name="Ministagetime_Analyzer-NVIDIA_GeForce_RTX_3090-tim_02_12_13_34_46.csv"
+        else:
+            self.Bigstageresource_file_name="Analyzer-NVIDIA_GeForce_RTX_3090-tim_02_09_23_52_05.csv"
+            self.Ministagetime_file_name="Muri_Analyzer-NVIDIA_GeForce_RTX_3090-tim_02_10_07_04_44.csv"
         if self.args.model_kind=="all_model":
             self.model_info_file_name="Full_model_info_12_27_21_27_41.txt"
         elif self.args.model_kind=="cv_model":
@@ -126,8 +130,8 @@ class WeaveMaster:
         
         if self.print_level>0:
             print("init analyze loader...")
-        self.analyze_loader=AnalyzeDataLoader(self.analyze_file_name, print_level)
-        self.analyze_loader.load_time_csv(self.model_time_file_name)
+        self.analyze_loader=AnalyzeDataLoader(self.Bigstageresource_file_name, print_level)
+        self.analyze_loader.load_time_csv(self.Ministagetime_file_name)
         
         #资源监视器
         if self.print_level>0:
@@ -626,8 +630,8 @@ class WeaveMaster:
         temp_string+=f"job_complete_time_list:{self.job_complete_time_list}\n"
         temp_string+=f"ali_trace_job_info_file_name:{self.ali_trace_job_info_file_name}\n"
         temp_string+=f"model_info_file_name:{self.model_info_file_name}\n"
-        temp_string+=f"analyze_file_name:{self.analyze_file_name}\n"
-        temp_string+=f"model_time_file_name:{self.model_time_file_name}\n"
+        temp_string+=f"Bigstageresource_file_name:{self.Bigstageresource_file_name}\n"
+        temp_string+=f"Ministagetime_file_name:{self.Ministagetime_file_name}\n"
         
         return temp_string+self.sum_string+"\n\n\n"
         
@@ -693,7 +697,7 @@ if __name__=="__main__":
         print("sync_flage or mps_flage value or job_together_flage wrong!")
         exit(-1)
         
-    version="v2.2.0-os3"+f"-MPS_{args.mps_flage}-Sync_{args.sync_flage}"
+    version="v2.2.1-os3"+f"-MPS_{args.mps_flage}-Sync_{args.sync_flage}"
     system=args.system
     strategy=args.strategy
     write_sum = (args.write_sum)
