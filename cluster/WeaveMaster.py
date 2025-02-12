@@ -307,7 +307,7 @@ class WeaveMaster:
         else:
             job.set_model_info(job_name, model_name,total_epochs, batch_size)
             
-        job.batch_num=batch_num    #设置batch numbere
+        job.batch_num=batch_num    #设置batch number
         job.instance_num=1        #多个instance融合为一个
         
         #设置各阶段时间消耗
