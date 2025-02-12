@@ -138,11 +138,11 @@ def offline_analyze(max_parrallel=4,model_name_list=None,system="Muri", net_card
     record_file_name=generate_file_name_for_analyze()
     if args.system == "Weave":
         event=threading.Event()
-        subthread_record=threading.Thread(target=Record_resource,args=(args,gpu_id_list[0],output_dir,record_file_name,event,my_queue))
+        subthread_record=threading.Thread(target=Record_resource,args=(args,gpu_id_list[0],output_dir,"Bigstageresource_"+record_file_name,event,my_queue))
         subthread_record.start()
         sync_er=None
     elif args.system == "Muri":
-        args.muri_file_path_name=output_dir+"/Muri_"+record_file_name
+        args.muri_file_path_name=output_dir+"/Ministagetime_"+record_file_name
         sync_er=Synchronizer(shm_name, shm_size=16)
     #*************************************************
     analyze_tasks(args,my_queue,max_parrallel,model_name_list,sync_er)

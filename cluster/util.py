@@ -191,7 +191,7 @@ def generate_file_name_for_analyze():
         device_name="CPU"
     
     out_file_name="Analyzer-"+device_name+"-tim_"+formatted_time+".csv"
-    print(out_file_name)
+    
     return out_file_name
 
 #系统参数解析，便于修改操作
