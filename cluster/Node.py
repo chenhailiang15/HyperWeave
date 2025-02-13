@@ -23,9 +23,9 @@ class Node:
         self.max_instance_num_for_single_gpu=3   #couple 算一个
         
     def set_init_resouce(self, cpu, mem, gpu_num, gmem, spec_gpu_id=[]):
-        self.cpu=cpu*self.overshared_factor*self.Muri_resource_factor
+        self.cpu=cpu*self.Muri_resource_factor
         self.mem=mem*self.Muri_resource_factor
-        self.cpu_rest=cpu*self.overshared_factor*self.Muri_resource_factor
+        self.cpu_rest=cpu*self.Muri_resource_factor
         self.mem_rest=mem*self.Muri_resource_factor
         if len(spec_gpu_id)==0:
             self.gpu_num=gpu_num
@@ -161,7 +161,7 @@ class Node:
         return idel_gpu_num
     
     def get_ave_allocate_resource(self):
-        ave_cpu=(self.cpu-self.cpu_rest)/(self.cpu/self.overshared_factor/self.Muri_resource_factor)
+        ave_cpu=(self.cpu-self.cpu_rest)/(self.cpu/self.Muri_resource_factor)
         ave_mem=(self.mem-self.mem_rest)/(self.mem/self.Muri_resource_factor)
         gpu_alloc=0
         gmem_alloc=0

@@ -159,6 +159,7 @@ class WeaveMaster:
             self.Muri_resource_factor=10
         else:
             self.Muri_resource_factor=1
+            
         if self.node_kind=="4*3090":
             node_3090=Node(self, 0, "3090node", "10.26.0.4", "eno1", self.overshared_factor, self.print_level)
             node_3090.set_init_resouce(96*100, 250*1024, 4, 24*1024*args.gpu_mem_percent, self.spec_gpu_id)
