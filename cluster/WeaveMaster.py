@@ -30,7 +30,7 @@ class WeaveMaster:
         ##################################################《--设置区域--》开始####################################################
         self.args=args
         self.system=args.system           #"Muri" or "Normal"
-        self.schedule_strategy=args.strategy   # "FIFO", "SRTF"，"SRSF", "BNPF"   Bucket-based Non-blocking SRSF
+        self.schedule_strategy=args.strategy   # "FIFO", "SRTF"，"SRSF", "BN-SRSF"   Bucket-based Non-blocking SRSF
         self.node_kind=args.node_kind
         
         self.weave_sync_mode=(self.args.sync_flage=="True")
@@ -39,7 +39,7 @@ class WeaveMaster:
         self.single_node_mode=True    #实验中固定为True
         
         if self.system=="Weave":
-            self.overshared_factor=3   
+            self.overshared_factor=args.overshared_factor
         else:
             self.overshared_factor=1       #等于1存在GPU资源不够的情况
             
@@ -686,7 +686,7 @@ if __name__=="__main__":
     parser.add_argument("--gpu_mem_percent", default=0.9, type=float, help="because of GPU fragement")
     parser.add_argument("--job_num", default=100, type=int)
     parser.add_argument("--gpu_id_list", default=[4,5,6,7], type=parse_list_arg)
-    
+    parser.add_argument("--overshared_factor", default=3.0, type=float)
     parser.add_argument("--print_level", default=11, type=int)
     parser.add_argument("--write_sum", action='store_true')
     parser.add_argument("--write_trace", action='store_true')
@@ -699,7 +699,7 @@ if __name__=="__main__":
         print("sync_flage or mps_flage value or job_together_flage wrong!")
         exit(-1)
         
-    version="v2.4.0-os3"+f"-MPS_{args.mps_flage}-Sync_{args.sync_flage}"
+    version="v2.4.1-os"+f"{args.overshared_factor}-MPS_{args.mps_flage}-Sync_{args.sync_flage}"
     system=args.system
     strategy=args.strategy
     write_sum = (args.write_sum)
