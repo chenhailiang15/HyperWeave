@@ -252,6 +252,7 @@ class WeaveMaster:
         
         for index in range(len(self.ali_trace_pd)):
             if self.args.job_num==0:
+                
                 self.end_event.set()
                 break
             job=self.generate_job(self.ali_trace_pd.iloc[index,:], self.job_come_num)
@@ -406,6 +407,8 @@ class WeaveMaster:
     #调度子线程，间隔schedule_interval（秒）后，执行一次调度。未调度成功的job需要返回，重新放入队列
     #调度停止的条件是job不再到来（self.job_come_flage=False），并且队列为空(qsize==0)
     def schedule_subthreading(self):
+        print("schedule sleep")
+        time.sleep(100000)
         while self.job_come_flage or self.wait_schedule_queue.qsize()>0:
             time.sleep(self.schedule_interval)
             wait_schedule_list=[]
@@ -534,15 +537,13 @@ class WeaveMaster:
             
     def print_and_store_current_state(self):
         # time.sleep(self.status_out_interval)
-        self.print_current_state()
-        self.write_current_state()
-
-        time.sleep(self.status_out_interval)
-        if not self.end_event.is_set():
-            self.print_and_store_current_state()
-        else:
+        while not self.end_event.is_set():
             self.print_current_state()
             self.write_current_state()
+            time.sleep(self.status_out_interval)
+            
+        self.print_current_state()
+        self.write_current_state()
             
     def print_current_state(self):
         # self.update_job_not_start_num()
@@ -559,7 +560,7 @@ class WeaveMaster:
     def write_current_state(self):
         if self.file_trace!=None:
             if self.write_head == True:
-                self.file_trace.write("ave_cpu_allocate,ave_mem_allocate,ave_gpu_allocate,ave_gmem_allocate,idel_gpu_num,job_not_start_num,job_dealing_num\n")
+                self.file_trace.write("ave_cpu_allocate,ave_mem_allocate,ave_gpu_allocate,ave_gmem_allocate,idel_gpu_num,job_not_start_num,job_dealing_num,job_come_num,job_end_num\n")
                 self.write_head=False
                 
             idel_gpu_num=0
@@ -580,7 +581,7 @@ class WeaveMaster:
             ave_gpu_allocate=ave_gpu_allocate/self.node_num
             ave_gmem_allocate=ave_gmem_allocate/self.node_num
 
-            out_string=f"{ave_cpu_allocate},{ave_mem_allocate},{ave_gpu_allocate},{ave_gmem_allocate},{idel_gpu_num},{self.job_not_start_num},{self.job_dealing_num}\n"
+            out_string=f"{ave_cpu_allocate},{ave_mem_allocate},{ave_gpu_allocate},{ave_gmem_allocate},{idel_gpu_num},{self.job_not_start_num},{self.job_dealing_num},{self.job_come_num},{self.job_end_num}\n"
             self.file_trace.write(out_string)
             self.file_trace.flush()
             
@@ -698,7 +699,7 @@ if __name__=="__main__":
         print("sync_flage or mps_flage value or job_together_flage wrong!")
         exit(-1)
         
-    version="v2.3.0-os3"+f"-MPS_{args.mps_flage}-Sync_{args.sync_flage}"
+    version="v2.4.0-os3"+f"-MPS_{args.mps_flage}-Sync_{args.sync_flage}"
     system=args.system
     strategy=args.strategy
     write_sum = (args.write_sum)
