@@ -281,7 +281,12 @@ class WeaveSchedulor:
                 gmem_factor = self.schedule_weave_cal_similarity(gmem11 + gmem22, gmem12 + gmem21)
                 time_factor = self.schedule_weave_cal_similarity(time11 + time22, time12 + time21)
 
-                pack_resource = [max(cpu10 + cpu20, cpu11 + cpu22, cpu12 + cpu21), max(mem10 + mem20, mem11 + mem22, mem12 + mem21), max(gpu10 + gpu20, gpu11 + gpu22, gpu12 + gpu21), max(gmem10 + gmem20, gmem11 + gmem22, gmem12 + gmem21)]
+                # pack_resource = [max(cpu10 + cpu20, cpu11 + cpu22, cpu12 + cpu21), max(mem10 + mem20, mem11 + mem22, mem12 + mem21), max(gpu10 + gpu20, gpu11 + gpu22, gpu12 + gpu21), max(gmem10 + gmem20, gmem11 + gmem22, gmem12 + gmem21)]
+                if self.master.weave_sync_mode==True:
+                    pack_resource = [max(cpu10 + cpu20, cpu11 + cpu22, cpu12 + cpu21), max(mem10 + mem20, mem11 + mem22, mem12 + mem21), max(gpu10 + gpu20, gpu11 + gpu22, gpu12 + gpu21), max(gmem10 + gmem20, gmem11 + gmem22, gmem12 + gmem21)]
+                else:
+                    pack_resource = [max(cpu10, cpu11, cpu12)+ max(cpu20, cpu21, cpu22), max(mem10, mem11, mem12)+max(mem20, mem21, mem22), max(gpu10, gpu11, gpu12)+max(gpu20, gpu21, gpu22), max(gmem10, gmem11, gmem12)+max(gmem20, gmem21, gmem22)]
+                
                 
                 result = self.master.monitor.judge_runable_with_resource(pack_resource, instance1.job.parallel_num, plan_flage=False, init=False)
                 if result:

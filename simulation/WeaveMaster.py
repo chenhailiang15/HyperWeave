@@ -39,13 +39,14 @@ class WeaveMaster:
         self.system=args.system           #"Muri" or "Normal"
         self.schedule_strategy=args.strategy   # "FIFO", "SRTF"，"SRSF", "BNPF"   Bucket-based Non-blocking SRSF
         self.node_kind=args.node_kind
+        
+        self.weave_sync_mode=(self.args.sync_flage=="True")
+        #需要最好手动确认
+        self.MPS_mode=(self.args.mps_flage=="True")
+        
         if self.system=="Weave":
-            self.weave_sync_mode=True
-            self.MPS_mode=True              #需要最好手动确认
-            self.overshared_factor=2
+            self.overshared_factor=args.overshared_factor
         else:
-            self.weave_sync_mode = False
-            self.MPS_mode = False  # 需要最好手动确认
             self.overshared_factor = 1  # 等于1存在GPU资源不够的情况
 
         if self.schedule_strategy=="BN-SRSF":
@@ -53,14 +54,16 @@ class WeaveMaster:
         self.couple_init_iter_percent=0.2
 
         self.file_trace=file_trace
-
-        
         self.job_duration_time_factor = 1
         self.job_ddl_factor = 10  # ddl是任务持续时间的job_ddl_factor倍
         
 
         self.print_level=print_level
 
+        self.job_come_time_factor = 1
+        
+        
+        
         # self.model_name_list=model_list_g    #
         # self.batch_size_dict=model_to_batch_size_g
 
@@ -71,17 +74,24 @@ class WeaveMaster:
             #用于验证系统准确性
             self.ali_trace_job_info_file_name="ali_trace_job_info_long.csv"
             self.schedule_interval = 10
-            self.job_come_time_factor = 10000
+            self.status_out_interval=10
+            
+            
+            
+            
         elif self.args.validation=="False":
             #纯仿真
-            self.ali_trace_job_info_file_name="sim_ali_trace_job_info.csv"
+            self.ali_trace_job_info_file_name="ali_trace_job_info_long.csv"
             self.schedule_interval = 360
-            self.job_come_time_factor = 1
+            self.status_out_interval=360
+            
         else:
             print("validation is wrong!")
             exit(-1)
         
-        
+        self.Bigstageresource_file_name="Analyzer-NVIDIA_GeForce_RTX_3090-tim_02_09_23_52_05.csv"
+        self.Ministagetime_file_name="Muri_Analyzer-NVIDIA_GeForce_RTX_3090-tim_02_10_07_04_44.csv"
+            
         if self.args.model_kind=="all_model":
             self.model_info_file_name="Full_model_info_12_27_21_27_41.txt"
         elif self.args.model_kind=="cv_model":
@@ -124,6 +134,7 @@ class WeaveMaster:
         self.job_complete_time_list=[]
         self.instance_global_idx = 0
         self.wait_schedule_queue = queue.Queue()
+        self.write_head=True
         #################################
 
         if self.print_level>0:
@@ -136,8 +147,8 @@ class WeaveMaster:
         
         if self.print_level>0:
             print("init analyze loader...")
-        self.analyze_loader=AnalyzeDataLoader(self.analyze_file_name, print_level)
-        self.analyze_loader.load_time_csv(self.model_time_file_name)
+        self.analyze_loader=AnalyzeDataLoader(self.Bigstageresource_file_name, print_level)
+        self.analyze_loader.load_time_csv(self.Ministagetime_file_name)
 
 
         #资源监视器
@@ -154,9 +165,13 @@ class WeaveMaster:
 
     #初始化node信息
     def init_node(self, file_name):
-        self.analyze_file_name="Analyzer-NVIDIA_GeForce_RTX_2080-tim_12_19_16_38_14.csv"
-        self.model_time_file_name="Muri_Analyzer-NVIDIA_GeForce_RTX_2080_Ti-tim_12_26_15_24_41.csv"
+        
         self.nodes=[]
+        if self.args.system=="Muri":
+            self.Muri_resource_factor=10
+        else:
+            self.Muri_resource_factor=1
+            
         if self.node_kind=="cluster":
             node_info_pd = self.load_csv(file_name,header=0)
             node_idx_order=0
@@ -178,7 +193,7 @@ class WeaveMaster:
             
         elif self.node_kind=="4*3090":
             node_3090=Node(self,self.env, "3090node", 0, self.overshared_factor, self.print_level)
-            node_3090.set_init_resouce(96*100, 250*1024, 4, 20*1024*args.gpu_mem_percent)
+            node_3090.set_init_resouce(96*100, 250*1024, 4, 24*1024*args.gpu_mem_percent)
             self.nodes.append(node_3090)
             self.node_num =1
             
@@ -248,7 +263,7 @@ class WeaveMaster:
             if self.job_come_num>=self.args.job_num:
                 break
 
-            if index + 1 < len(self.ali_trace_pd):
+            if index + 1 < len(self.ali_trace_pd) and args.job_together_flage=="False":
                 yield self.env.timeout(self.ali_trace_pd.loc[index + 1, "start_time"] - self.ali_trace_pd.loc[index, "start_time"])
 
         self.job_come_flage = False
@@ -256,13 +271,10 @@ class WeaveMaster:
         return
 
     def generate_job(self, ali_trace,job_idx):
-        if ali_trace["job_name"]=="75a2830622f04c0eadab92e1":
-            a=1
         
         if ali_trace["cpu_usage"]==0 or ali_trace["avg_mem"]==0:
             return None
 
-        
         model_name=self.model_info_list[self.model_info_list_index%self.model_info_list_max].split("-")[0]
         batch_size=int(self.model_info_list[self.model_info_list_index%self.model_info_list_max].split("-")[1])
         self.model_info_list_index+=1
@@ -290,6 +302,11 @@ class WeaveMaster:
         job = Job(job_idx, self.system)
         job_name = ali_trace["job_name"]
         job.set_model_info(job_name, model_name,total_epochs, batch_size)
+        if model_name == "GCN":
+            job.set_model_info(job_name, model_name,total_epochs, batch_size, layer_num=100, layer_feature=100)
+        else:
+            job.set_model_info(job_name, model_name,total_epochs, batch_size)
+            
         job.batch_num=batch_num    #设置batch numbere
         job.instance_num=1        #多个instance融合为一个
         
@@ -308,27 +325,29 @@ class WeaveMaster:
         job.set_plan_resource(ali_trace["plan_cpu"], ali_trace["plan_mem"]*1024, ali_trace["plan_gpu"])
 
         pack_resource=[ali_trace["plan_cpu"], ali_trace["plan_mem"]*1024, ali_trace["plan_gpu"],0]
+        
+        if self.node_kind=="4*2080" and ali_trace["plan_mem"]>10:
+            print("job generate fail (plan mem is too big!)")
+            return None
+        
+        
         if self.monitor.judge_runable_with_resource(pack_resource,job.parallel_num, plan_flage=True, init=True) == False:
             if self.print_level>=2:
                 print("job generate fail (plan resource not runable!)")
             return None
 
-        if self.args.validation=="True":
+        if self.args.validation=="True":  #两种模式加载的模型其实际使用资源不同，必须分开
             
-            
-            if ali_trace["plan_mem"]>10:
-                if self.print_level>=2:
-                    print("job generate fail (plan mem is too big!)")
-                return None
-            
-            max_cpu_usage=max(self.analyze_loader.get_value(model_info,"stage_init", "cpu"), self.analyze_loader.get_value(model_info,"stage_sample", "cpu"), self.analyze_loader.get_value(model_info,"stage_train", "cpu"))
+            cpu_ratio=self.nodes[0].cpu/self.Muri_resource_factor/self.overshared_factor/100
+            #设置各阶段实际资源使用量[init stage, pre-iteration stage, iteration stage]
+            max_cpu_usage=cpu_ratio*max(self.analyze_loader.get_value(model_info,"stage_init", "cpu"), self.analyze_loader.get_value(model_info,"stage_sample", "cpu"), self.analyze_loader.get_value(model_info,"stage_train", "cpu"))
             if max_cpu_usage>ali_trace["plan_cpu"]:
                 if self.print_level>=2:
                     print("job generate fail (plan resource less than used (cpu)!)")
                 return None
-            job.used_resource_cpu = [self.analyze_loader.get_value(model_info,"stage_init", "cpu"),\
-                                    self.analyze_loader.get_value(model_info,"stage_sample", "cpu"),\
-                                    self.analyze_loader.get_value(model_info,"stage_train", "cpu")]
+            job.used_resource_cpu = [cpu_ratio*self.analyze_loader.get_value(model_info,"stage_init", "cpu"),\
+                                    cpu_ratio*self.analyze_loader.get_value(model_info,"stage_sample", "cpu"),\
+                                    cpu_ratio*self.analyze_loader.get_value(model_info,"stage_train", "cpu")]
 
             max_mem_usage=max(self.analyze_loader.get_value(model_info,"stage_init", "mem"), self.analyze_loader.get_value(model_info,"stage_sample", "mem"), self.analyze_loader.get_value(model_info,"stage_train", "mem"))
             if max_mem_usage>ali_trace["plan_mem"]*1024:
@@ -576,8 +595,8 @@ class WeaveMaster:
         temp_string+=f"ali_trace_job_info_file_name:{self.ali_trace_job_info_file_name}\n"
         temp_string+=f"ali_trace_node_info_file_name:{self.ali_trace_node_info_file_name}\n"
         temp_string+=f"model_info_file_name:{self.model_info_file_name}\n"
-        temp_string+=f"analyze_file_name:{self.analyze_file_name}\n"
-        temp_string+=f"model_time_file_name:{self.model_time_file_name}\n"
+        temp_string+=f"Bigstageresource_file_name:{self.Bigstageresource_file_name}\n"
+        temp_string+=f"Ministagetime_file_name:{self.Ministagetime_file_name}\n"
         
         return temp_string+self.sum_string+"\n\n\n"
         
@@ -608,6 +627,9 @@ if __name__=="__main__":
     parser = argparse.ArgumentParser(description='simulation for DL training job')
     parser.add_argument("--system",default="Weave",type=str)
     parser.add_argument("--strategy", default="FIFO", type=str)
+    parser.add_argument("--mps_flage", default="True", type=str)
+    parser.add_argument("--sync_flage", default="True", type=str)
+    parser.add_argument("--job_together_flage", default="True", type=str)
     parser.add_argument("--print_level", default=11, type=int)
     parser.add_argument("--node_kind", default="4*3090", type=str, help="cluster, 4*3090, 3*2080ti, 4*2080")
     parser.add_argument("--model_kind", default="cv_model", type=str, help="cv_model, all_model")
@@ -615,11 +637,10 @@ if __name__=="__main__":
     parser.add_argument("--node_num", default=100, type=int, help="only for node kind is cluster")
     parser.add_argument("--job_num", default=10, type=int)
     parser.add_argument("--validation", default="True", type=str)
-    
+    parser.add_argument("--overshared_factor", default=3.0, type=float)
     parser.add_argument("--write_sum", action='store_true')
     parser.add_argument("--write_trace", action='store_true')
-    # parser.add_argument("--mps_flage", action='store_true')
-    # parser.add_argument("--sync_flage", action='store_true')
+
     args=parser.parse_args()
 
 

@@ -17,7 +17,9 @@ from NodeCommunicate import CommunicateServer
 from WeaveAnalyzer import AnalyzeDataLoader
 from WeaveScheduler import WeaveSchedulor
 from WeaveMonitor import WeaveMonitor
+import random
 
+random.seed(3)
 #cpu, gpu 按照百分比表示需求和剩余，即1个GPU 表示为100
 #mem, gmem按照存储单位表示，本平台中使用MB
 
@@ -49,7 +51,7 @@ class WeaveMaster:
             
         self.file_trace=file_trace
         
-        self.password=" "      #"sim2024"for sim812 " "for jf
+        # self.password=" "      #"sim2024"for sim812 " "for jf
         
         self.print_level=print_level
         
@@ -61,11 +63,11 @@ class WeaveMaster:
         self.status_out_interval=10
         
         
-        self.model_name_list=model_list_g    #
-        self.batch_size_dict=model_to_batch_size_g
+        # self.model_name_list=model_list_g    #
+        # self.batch_size_dict=model_to_batch_size_g
         
-        self.max_cross=1           #最大跨node任务数量
-        self.max_gpu_cross=1       #最大跨GPU任务数量（单node）
+        # self.max_cross=1           #最大跨node任务数量
+        # self.max_gpu_cross=1       #最大跨GPU任务数量（单node）
         
         self.ali_trace_job_info_file_name="ali_trace_job_info_long.csv"
         if self.args.node_kind=="s4*3090":
@@ -637,9 +639,7 @@ class WeaveMaster:
         
         return temp_string+self.sum_string+"\n\n\n"
         
-import random
 
-random.seed(3)
 
 def Record_resource( gpu_id_list, out_dir, out_file_name,event):
     record=Record(gpu_id_list, sample_interval=0.1,out_dir=out_dir, out_file_name=out_file_name,event=event,print_flage=False)
@@ -699,7 +699,7 @@ if __name__=="__main__":
         print("sync_flage or mps_flage value or job_together_flage wrong!")
         exit(-1)
         
-    version="v2.4.1-os"+f"{args.overshared_factor}-MPS_{args.mps_flage}-Sync_{args.sync_flage}"
+    version="v2.4.2-os"+f"{args.overshared_factor}-MPS_{args.mps_flage}-Sync_{args.sync_flage}"
     system=args.system
     strategy=args.strategy
     write_sum = (args.write_sum)
