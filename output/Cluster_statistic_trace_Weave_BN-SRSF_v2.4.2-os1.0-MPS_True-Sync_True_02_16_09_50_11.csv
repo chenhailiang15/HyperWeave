@@ -1,2 +1,0 @@
-ave_cpu_allocate,ave_mem_allocate,ave_gpu_allocate,ave_gmem_allocate,idel_gpu_num,job_not_start_num,job_dealing_num,job_come_num,job_end_num
-0.0,0.0,0.0,0.0,4,7,0,7,0
