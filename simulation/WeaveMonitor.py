@@ -156,7 +156,7 @@ class WeaveMonitor:
         if plan_flage:
             if parallel_num <= 1:
                 for i in range(self.node_num):
-                    satisfy_gpu_num = self.nodes[i].get_satisfy_gpu_num_by_cap(resource)
+                    satisfy_gpu_num = self.nodes[i].get_satisfy_gpu_num_by_cap(resource, real=init)
                     if satisfy_gpu_num>0:
                         return True
             else:
@@ -164,7 +164,7 @@ class WeaveMonitor:
                 pack_resource = [cpu_need/factor, mem_need/factor, 100, gmem_need/factor]
 
                 for i in range(self.node_num):
-                    satisfy_gpu_num = self.nodes[i].get_satisfy_gpu_num_by_cap(pack_resource)
+                    satisfy_gpu_num = self.nodes[i].get_satisfy_gpu_num_by_cap(pack_resource, real=init)
                     parallel_num-=satisfy_gpu_num
                     if parallel_num<=0:
                         return True
@@ -177,7 +177,7 @@ class WeaveMonitor:
                     return False
 
                 for i in range(self.node_num):
-                    satisfy_gpu_num = self.nodes[i].get_satisfy_gpu_num_by_cap(resource)
+                    satisfy_gpu_num = self.nodes[i].get_satisfy_gpu_num_by_cap(resource, real=init)
                     if satisfy_gpu_num > 0:
                         return True
             else:
@@ -187,7 +187,7 @@ class WeaveMonitor:
                         print("used gpu resource more than 100 per GPU")
                     return False
                 for i in range(self.node_num):
-                    satisfy_gpu_num = self.nodes[i].get_satisfy_gpu_num_by_cap(pack_resource)
+                    satisfy_gpu_num = self.nodes[i].get_satisfy_gpu_num_by_cap(pack_resource, real=init)
                     parallel_num -= satisfy_gpu_num
                     if parallel_num <= 0:
                         return True

@@ -78,7 +78,6 @@ class WeaveMaster:
             
             
             
-            
         elif self.args.validation=="False":
             #纯仿真
             self.ali_trace_job_info_file_name="ali_trace_job_info_long.csv"
@@ -338,7 +337,7 @@ class WeaveMaster:
 
         if self.args.validation=="True":  #两种模式加载的模型其实际使用资源不同，必须分开
             
-            cpu_ratio=self.nodes[0].cpu/self.Muri_resource_factor/self.overshared_factor/100
+            cpu_ratio=self.nodes[0].cpu/self.Muri_resource_factor/100
             #设置各阶段实际资源使用量[init stage, pre-iteration stage, iteration stage]
             max_cpu_usage=cpu_ratio*max(self.analyze_loader.get_value(model_info,"stage_init", "cpu"), self.analyze_loader.get_value(model_info,"stage_sample", "cpu"), self.analyze_loader.get_value(model_info,"stage_train", "cpu"))
             if max_cpu_usage>ali_trace["plan_cpu"]:
@@ -632,10 +631,10 @@ if __name__=="__main__":
     parser.add_argument("--job_together_flage", default="True", type=str)
     parser.add_argument("--print_level", default=11, type=int)
     parser.add_argument("--node_kind", default="4*3090", type=str, help="cluster, 4*3090, 3*2080ti, 4*2080")
-    parser.add_argument("--model_kind", default="cv_model", type=str, help="cv_model, all_model")
+    parser.add_argument("--model_kind", default="all_model", type=str, help="cv_model, all_model")
     parser.add_argument("--gpu_mem_percent", default=0.8, type=float, help="because of GPU fragement")
     parser.add_argument("--node_num", default=100, type=int, help="only for node kind is cluster")
-    parser.add_argument("--job_num", default=10, type=int)
+    parser.add_argument("--job_num", default=100, type=int)
     parser.add_argument("--validation", default="True", type=str)
     parser.add_argument("--overshared_factor", default=3.0, type=float)
     parser.add_argument("--write_sum", action='store_true')
