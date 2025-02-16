@@ -269,7 +269,8 @@ class Node:
             #更新当前GPU中所有任务的最大执行数量和时间 
             time_t=self.env.now
             gpu_id=str(self.node_id)+"-"+str(gpu_index)
-            cur_num=len(self.dealing_instance_name[gpu_index])   
+            cur_num=len(self.dealing_instance_name[gpu_index])  
+            #需要修改 
             if cur_num>3:
                 a=1
             for instance_t in self.dealing_instance[gpu_index]:

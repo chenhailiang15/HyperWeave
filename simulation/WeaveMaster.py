@@ -500,7 +500,7 @@ class WeaveMaster:
         self.print_current_state()
         self.write_current_state()
 
-        yield self.env.timeout(10000)
+        yield self.env.timeout(self.status_out_interval)
         if not self.end_event.is_set():
             self.env.process(self.print_and_store_current_state())
         else:
@@ -523,7 +523,7 @@ class WeaveMaster:
     def write_current_state(self):
         if self.file_trace!=None:
             if self.env.now == 0:
-                self.file_trace.write("ave_cpu_allocate,ave_mem_allocate,ave_gpu_allocate,ave_gmem_allocate,idel_gpu_num,job_not_start_num,job_dealing_num\n")
+                self.file_trace.write("ave_cpu_allocate,ave_mem_allocate,ave_gpu_allocate,ave_gmem_allocate,idel_gpu_num,job_not_start_num,job_dealing_num,self.job_come_num,self.job_end_num\n")
 
             idel_gpu_num=0
             ave_cpu_allocate=0
@@ -543,7 +543,7 @@ class WeaveMaster:
             ave_gpu_allocate=ave_gpu_allocate/self.node_num
             ave_gmem_allocate=ave_gmem_allocate/self.node_num
 
-            out_string=f"{ave_cpu_allocate},{ave_mem_allocate},{ave_gpu_allocate},{ave_gmem_allocate},{idel_gpu_num},{self.job_not_start_num},{self.job_dealing_num}\n "
+            out_string=f"{ave_cpu_allocate},{ave_mem_allocate},{ave_gpu_allocate},{ave_gmem_allocate},{idel_gpu_num},{self.job_not_start_num},{self.job_dealing_num},{self.job_come_num},{self.job_end_num}\n"
             self.file_trace.write(out_string)
             self.file_trace.flush()
 
@@ -644,7 +644,7 @@ if __name__=="__main__":
 
 
     #control parameters
-    version="sim_v2.0.0"
+    version="sim_v2.1.0"
 
     system=args.system
     strategy=args.strategy
