@@ -8,9 +8,9 @@ job_num=100
 print_level=10
 
 
-system="Weave"
-strategy="BN-SRSF"
-mps_flage="True"
+system="Normal"
+strategy="SRSF"
+mps_flage="False"
 sync_flage="True"
 overshared_factor=1
 python WeaveMaster.py --system ${system} --strategy ${strategy} --mps_flage ${mps_flage} --sync_flage ${sync_flage}\

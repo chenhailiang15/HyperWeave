@@ -14,7 +14,8 @@ class Node:
         self.node_name=node_name
         self.node_id=node_id
         self.overshared_factor=overshared_factor
-
+        self.Muri_resource_factor=master.Muri_resource_factor
+        
         self.print_level=print_level
         self.cross_gpu_job_num=0
         self.current_port=2000
@@ -29,14 +30,14 @@ class Node:
         
         
     def set_init_resouce(self, cpu, mem, gpu_num, gmem):
-        self.cpu=cpu
-        self.mem=mem
+        self.cpu=cpu*self.Muri_resource_factor
+        self.mem=mem*self.Muri_resource_factor
         self.gpu=np.array([100.0*self.overshared_factor for i in range(gpu_num)])
         self.gmem=np.array([gmem for i in range(gpu_num)])
         self.gpu_num=gpu_num
         
-        self.cpu_rest=cpu
-        self.mem_rest=mem
+        self.cpu_rest=cpu*self.Muri_resource_factor
+        self.mem_rest=mem*self.Muri_resource_factor
         self.gpu_rest=np.array([100.0*self.overshared_factor for i in range(gpu_num)])
         self.gmem_rest=np.array([gmem for i in range(gpu_num)])
         #初始化记录信息
@@ -163,8 +164,8 @@ class Node:
         return idel_gpu_num
 
     def get_ave_allocate_resource(self):
-        ave_cpu=(self.cpu-self.cpu_rest)/self.cpu
-        ave_mem=(self.mem-self.mem_rest)/self.mem
+        ave_cpu=(self.cpu-self.cpu_rest)/(self.cpu/self.Muri_resource_factor)
+        ave_mem=(self.mem-self.mem_rest)/(self.mem/self.Muri_resource_factor)
         gpu_alloc=0
         gmem_alloc=0
         useful_gpu_num=0

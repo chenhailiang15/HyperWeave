@@ -125,23 +125,36 @@ class Node:
 
             return satisfy_gpu_id_list, len(satisfy_gpu_id_list)
         
-    def get_satisfy_gpu_num_by_cap(self,pack_resource):
+    def get_satisfy_gpu_num_by_cap(self,pack_resource, real):
         cpu_need = pack_resource[0]
         mem_need = pack_resource[1]
         gpu_need = pack_resource[2]
         gmem_need = pack_resource[3]
+        if real==True:
+            if self.cpu/self.Muri_resource_factor < cpu_need or self.mem/self.Muri_resource_factor < mem_need or self.gpu_num==0:
+                return 0
+            
+            satisfy_num=0
+            for i in range(self.gpu_num):
+                if self.gmem[i]>=gmem_need and self.gpu[i]/self.overshared_factor>=gpu_need:
+                    satisfy_num+=1
 
-        if self.cpu < cpu_need or self.mem < mem_need or self.gpu_num==0:
-            return 0
+            satisfy_gpu_num = min(math.floor(self.cpu/self.Muri_resource_factor / cpu_need), math.floor(self.mem/self.Muri_resource_factor / mem_need), satisfy_num)
         
-        satisfy_num=0
-        for i in range(self.gpu_num):
-            if self.gmem[i]>=gmem_need and self.gpu[i]>=gpu_need:
-                satisfy_num+=1
+        else:
+            if self.cpu < cpu_need or self.mem < mem_need or self.gpu_num==0:
+                return 0
+            
+            satisfy_num=0
+            for i in range(self.gpu_num):
+                if self.gmem[i]>=gmem_need and self.gpu[i]>=gpu_need:
+                    satisfy_num+=1
 
-        satisfy_gpu_num = min(math.floor(self.cpu / cpu_need), math.floor(self.mem / mem_need), satisfy_num)
-
+            satisfy_gpu_num = min(math.floor(self.cpu / cpu_need), math.floor(self.mem / mem_need), satisfy_num)
+            
         return satisfy_gpu_num
+    
+    
         
     def get_idle_port(self):
         with self.lock:
