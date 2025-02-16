@@ -1,3 +1,4 @@
+# 生成不同模型在MPS开启和不开启之下，并行时的资源消耗
 from util import *
 from models.Framework import *
 
@@ -10,7 +11,7 @@ def do_experiment(mps_state,model_list, max_parallel_num,file_writer):
     else:
         stop_MPS(11)
     
-    for _ in range(2):
+    for _ in range(1):
         for model_name in model_list:
             for para_num in range(1, max_parallel_num+1):
                 
@@ -27,7 +28,7 @@ def run_specific_model_paranum(model_name,para_num):
     for index in range(para_num):
         
         command = generate_command(model_name, index)
-        sub_thread=threading.Thread(target=run_command,args=(command))
+        sub_thread=threading.Thread(target=run_command,args=(command, ))
         sub_thread.start()
         thread_hand.append(sub_thread)
 
@@ -90,12 +91,13 @@ def run_command(command):
 
 port_id=2000
 end_time_list=[]
-gpu_id=7
+gpu_id=6
 
 if __name__=="__main__":
     with_mps=True   
     max_parallel_num=10
-    model_list=["AlexNet", "Transformer", "GCN", "Bert", "GraphSage", "ResNet18", "ResNet50", "MobileNetv2", "VGG16", ]#"ResNet50", "MobileNetv2", "VGG16",  "Transformer", "GCN" 
+    # 
+    model_list=["AlexNet", "Transformer", "GCN", "Bert", "GraphSage", "ResNet18", "ResNet50", "MobileNetv2", "VGG16"]#"ResNet50", "MobileNetv2", "VGG16",  "Transformer", "GCN" 
     
     #记录代码开始时间
     now_time = datetime.datetime.now()

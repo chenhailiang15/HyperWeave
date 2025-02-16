@@ -1,3 +1,5 @@
+# 分析生成每个模型大阶段资源消耗和耗时
+
 from WeaveAnalyzer import offline_analyze
 
 

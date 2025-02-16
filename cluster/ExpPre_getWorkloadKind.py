@@ -1,3 +1,6 @@
+# 生成模型相关信息
+# 包含模型类型和batch size
+
 import sys
 sys.path.append("../..")
 from cluster.util import *
