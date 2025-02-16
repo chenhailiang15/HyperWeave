@@ -862,7 +862,8 @@ class WeaveSchedulor:
             early_end_instance.duration_time=cur_time
             temp_instance_list.remove(early_end_instance)
             acc_batch_num+=min_batch_num
-            print(f"instance {early_end_instance.instance_name}, init duration {early_end_instance.job.duration_time}, new duration {early_end_instance.duration_time}")
+            if self.print_level>10:
+                print(f"instance {early_end_instance.instance_name}, init duration {early_end_instance.job.duration_time}, new duration {early_end_instance.duration_time}")
         return
 
     def schedule_muri_update_duration_time_get_batch_time(self,instance_list):
