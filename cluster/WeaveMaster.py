@@ -69,7 +69,7 @@ class WeaveMaster:
         # self.max_cross=1           #最大跨node任务数量
         # self.max_gpu_cross=1       #最大跨GPU任务数量（单node）
         
-        self.ali_trace_job_info_file_name="ali_trace_job_info_long.csv"
+        self.ali_trace_job_info_file_name="ali_trace_job_info_sift_plan_gpu.csv"
         if self.args.node_kind=="s4*3090":
             self.Bigstageresource_file_name="Bigstageresource_Analyzer-NVIDIA_GeForce_RTX_3090-tim_02_12_14_58_41.csv"
             self.Ministagetime_file_name="Ministagetime_Analyzer-NVIDIA_GeForce_RTX_3090-tim_02_12_13_34_46.csv"

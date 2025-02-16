@@ -69,18 +69,16 @@ class WeaveMaster:
 
         # self.max_cross=1           #最大跨node任务数量
         # self.max_gpu_cross=1       #最大跨GPU任务数量（单node）
-        self.ali_trace_node_info_file_name="sim_ali_trace_machine_info.csv"
+        self.ali_trace_node_info_file_name="ali_trace_machine_info.csv"
         if self.args.validation=="True":
             #用于验证系统准确性
-            self.ali_trace_job_info_file_name="ali_trace_job_info_long.csv"
+            self.ali_trace_job_info_file_name="ali_trace_job_info_sift_plan_gpu.csv"
             self.schedule_interval = 10
             self.status_out_interval=10
-            
-            
-            
+
         elif self.args.validation=="False":
             #纯仿真
-            self.ali_trace_job_info_file_name="ali_trace_job_info_long.csv"
+            self.ali_trace_job_info_file_name="ali_trace_job_info_clear.csv"
             self.schedule_interval = 360
             self.status_out_interval=360
             
@@ -624,18 +622,18 @@ def experiment_one_group_parameters(args, file_sum, file_trace, print_level):
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description='simulation for DL training job')
-    parser.add_argument("--system",default="Weave",type=str)
+    parser.add_argument("--system",default="Muri",type=str)
     parser.add_argument("--strategy", default="FIFO", type=str)
     parser.add_argument("--mps_flage", default="True", type=str)
     parser.add_argument("--sync_flage", default="True", type=str)
-    parser.add_argument("--job_together_flage", default="True", type=str)
+    parser.add_argument("--job_together_flage", default="False", type=str)
     parser.add_argument("--print_level", default=11, type=int)
-    parser.add_argument("--node_kind", default="4*3090", type=str, help="cluster, 4*3090, 3*2080ti, 4*2080")
+    parser.add_argument("--node_kind", default="cluster", type=str, help="cluster, 4*3090, 3*2080ti, 4*2080")
     parser.add_argument("--model_kind", default="all_model", type=str, help="cv_model, all_model")
     parser.add_argument("--gpu_mem_percent", default=0.8, type=float, help="because of GPU fragement")
-    parser.add_argument("--node_num", default=100, type=int, help="only for node kind is cluster")
-    parser.add_argument("--job_num", default=100, type=int)
-    parser.add_argument("--validation", default="True", type=str)
+    parser.add_argument("--node_num", default=1000, type=int, help="only for node kind is cluster")
+    parser.add_argument("--job_num", default=10000, type=int)
+    parser.add_argument("--validation", default="False", type=str)
     parser.add_argument("--overshared_factor", default=3.0, type=float)
     parser.add_argument("--write_sum", action='store_true')
     parser.add_argument("--write_trace", action='store_true')
