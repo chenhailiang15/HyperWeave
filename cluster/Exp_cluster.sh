@@ -31,6 +31,16 @@ system="Weave"
 strategy="BN-SRSF"
 mps_flage="True"
 sync_flage="True"
+overshared_factor=3
+python WeaveMaster.py --system ${system} --strategy ${strategy} --mps_flage ${mps_flage} --sync_flage ${sync_flage}\
+    --node_kind ${node_kind} --model_kind ${model_kind} --gpu_mem_percent ${gpu_mem_percent} --job_num ${job_num}\
+    --print_level ${print_level} --write_trace --write_sum --gpu_id_list ${gpu_id_list} --overshared_factor ${overshared_factor}
+
+
+system="Weave"
+strategy="BN-SRSF"
+mps_flage="True"
+sync_flage="True"
 overshared_factor=4
 python WeaveMaster.py --system ${system} --strategy ${strategy} --mps_flage ${mps_flage} --sync_flage ${sync_flage}\
     --node_kind ${node_kind} --model_kind ${model_kind} --gpu_mem_percent ${gpu_mem_percent} --job_num ${job_num}\

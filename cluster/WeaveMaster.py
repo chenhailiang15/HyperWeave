@@ -344,7 +344,7 @@ class WeaveMaster:
                 print("job generate fail (plan resource not runable!)")
             return None
 
-        cpu_ratio=self.nodes[0].cpu/self.Muri_resource_factor/self.overshared_factor/100
+        cpu_ratio=self.nodes[0].cpu/self.Muri_resource_factor/100
         #设置各阶段实际资源使用量[init stage, pre-iteration stage, iteration stage]
         max_cpu_usage=cpu_ratio*max(self.analyze_loader.get_value(model_info,"stage_init", "cpu"), self.analyze_loader.get_value(model_info,"stage_sample", "cpu"), self.analyze_loader.get_value(model_info,"stage_train", "cpu"))
         if max_cpu_usage>ali_trace["plan_cpu"]:
@@ -409,8 +409,7 @@ class WeaveMaster:
     #调度子线程，间隔schedule_interval（秒）后，执行一次调度。未调度成功的job需要返回，重新放入队列
     #调度停止的条件是job不再到来（self.job_come_flage=False），并且队列为空(qsize==0)
     def schedule_subthreading(self):
-        print("schedule sleep")
-        time.sleep(100000)
+        
         while self.job_come_flage or self.wait_schedule_queue.qsize()>0:
             time.sleep(self.schedule_interval)
             wait_schedule_list=[]
