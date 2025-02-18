@@ -49,7 +49,7 @@ def generate_command(model_name, index):
     if model_name == "Bert":
         batch_size=8
     else:
-        batch_size=16           #8 for Bert (default:16)
+        batch_size=32           #8 for Bert (default:16)
     
 
     if model_name == "GCN":
@@ -96,8 +96,8 @@ gpu_id=6
 if __name__=="__main__":
     with_mps=True   
     max_parallel_num=10
-    # 
-    model_list=["AlexNet", "Transformer", "GCN", "Bert", "GraphSage", "ResNet18", "ResNet50", "MobileNetv2", "VGG16"]#"ResNet50", "MobileNetv2", "VGG16",  "Transformer", "GCN" 
+    # "AlexNet", "Transformer", "GCN", "Bert", "GraphSage", "ResNet18", "ResNet50",, "VGG16"
+    model_list=[ "MobileNetv2"]#"ResNet50", "MobileNetv2", "VGG16",  "Transformer", "GCN" 
     
     #记录代码开始时间
     now_time = datetime.datetime.now()
@@ -108,14 +108,14 @@ if __name__=="__main__":
     do_experiment(with_mps,model_list, max_parallel_num,file_writer )
     file_writer.close()
     
-    with_mps=False  
+    with_mps=False 
     
     out_file_name="ExpPre_compareMPS_"+str(with_mps)+"_"+formatted_time+".txt"
     file_writer=open(get_output_dir()+out_file_name,"w")
     do_experiment(with_mps,model_list, max_parallel_num,file_writer )
     file_writer.close()
      
-    
+    stop_MPS(11)
     
     
     

@@ -23,7 +23,7 @@ class Node:
         
         self.dealing_instance={}
         self.dealing_instance_name={}
-        self.max_instance_num_for_single_gpu=3   #couple 算一个
+        self.max_instance_num_for_single_gpu=float("inf")   #couple 算一个
         
         
         
