@@ -19,7 +19,7 @@ import simpy
 import random
 import copy
 random.seed(3)
-
+result_dict={}
 #cpu, gpu 按照百分比表示需求和剩余，即1个GPU 表示为100
 #mem, gmem按照存储单位表示，本平台中使用MB
 
@@ -50,8 +50,8 @@ class WeaveMaster:
             self.overshared_factor = 1  # 等于1存在GPU资源不够的情况
 
         if self.schedule_strategy=="BN-SRSF":
-            self.bucket_length=100000
-        self.couple_init_iter_percent=0.2
+            self.bucket_length=args.bucket_length
+        self.couple_init_iter_percent=args.couple_init_iter_percent
 
         self.file_trace=file_trace
         self.job_duration_time_factor = 1
@@ -132,6 +132,8 @@ class WeaveMaster:
         self.instance_global_idx = 0
         self.wait_schedule_queue = queue.Queue()
         self.write_head=True
+        
+        self.should_schedule=True
         #################################
 
         if self.print_level>0:
@@ -184,19 +186,19 @@ class WeaveMaster:
                 node.set_init_resouce(cpu_cap, mem_cap, gpu_cap, gmem_cap)
                 self.nodes.append(node)
                 node_idx_order += 1
-                if node_idx_order>=args.node_num:
+                if node_idx_order>=self.args.node_num:
                     break
             self.node_num = node_idx_order
             
         elif self.node_kind=="4*3090":
             node_3090=Node(self,self.env, "3090node", 0, self.overshared_factor, self.print_level)
-            node_3090.set_init_resouce(96*100, 250*1024, 4, 24*1024*args.gpu_mem_percent)
+            node_3090.set_init_resouce(96*100, 250*1024, 4, 24*1024*self.args.gpu_mem_percent)
             self.nodes.append(node_3090)
             self.node_num =1
             
         elif self.node_kind=="3*2080ti":
             node_2080ti=Node(self, self.env, "2080tinode",0, self.overshared_factor, self.print_level)
-            node_2080ti.set_init_resouce(48*100,120*1024, 3, 11*1024*args.gpu_mem_percent)
+            node_2080ti.set_init_resouce(48*100,120*1024, 3, 11*1024*self.args.gpu_mem_percent)
             self.nodes.append(node_2080ti)
             self.node_num=1
             
@@ -256,11 +258,11 @@ class WeaveMaster:
             self.wait_schedule_queue.put(job)
             self.job_come_num += 1
             self.job_not_start_num+=1
-            
+            self.should_schedule=True  #有来的，则进行调度
             if self.job_come_num>=self.args.job_num:
                 break
 
-            if index + 1 < len(self.ali_trace_pd) and args.job_together_flage=="False":
+            if index + 1 < len(self.ali_trace_pd) and self.args.job_together_flage=="False":
                 yield self.env.timeout(self.ali_trace_pd.loc[index + 1, "start_time"] - self.ali_trace_pd.loc[index, "start_time"])
 
         self.job_come_flage = False
@@ -411,7 +413,7 @@ class WeaveMaster:
         self.instance_global_idx+=1
         instance.set_duration_time(duration_time)
         job.instance_list.append(instance)
-        if system=="Muri":
+        if self.system=="Muri":
             job.set_time_for_muri()
         return job
         
@@ -420,20 +422,23 @@ class WeaveMaster:
     def schedule(self):
         yield self.env.timeout(self.schedule_interval)
         if self.job_come_flage or self.wait_schedule_queue.qsize()>0:
-            wait_schedule_list=[]
+            
             # self.queue_length.append(self.wait_schedule_queue.qsize())
+            if self.should_schedule==True:
+                self.should_schedule=False
+                wait_schedule_list=[]
+                while self.wait_schedule_queue.qsize()>0:
+                    wait_schedule_list.append(self.wait_schedule_queue.get())
+                
+                
+                rest_jobs=self.scheduler.do_schedule(wait_schedule_list)
+                
 
-            while self.wait_schedule_queue.qsize()>0:
-                wait_schedule_list.append(self.wait_schedule_queue.get())
+                for job in rest_jobs:
+                    # print(f"wait for next scheduling:job name({job.job_name})")
+                    self.wait_schedule_queue.put(job)
             
-            
-            rest_jobs=self.scheduler.do_schedule(wait_schedule_list)
-
-            for job in rest_jobs:
-                # print(f"wait for next scheduling:job name({job.job_name})")
-                self.wait_schedule_queue.put(job)
             self.queue_length.append(self.wait_schedule_queue.qsize())
-
             self.env.process(self.schedule())
                 
             
@@ -442,6 +447,7 @@ class WeaveMaster:
     
     def send_instance_to_execution(self, instance_t):
         with self.lock:
+            self.should_schedule=True
             #记录统计数据
             self.command_start_num += 1
             self.command_dealing_num += 1
@@ -464,7 +470,7 @@ class WeaveMaster:
             print(f"time: {round(self.env.now, 1)} end a sub-instance:", instance.instance_name)
 
         with self.lock:
-
+            self.should_schedule=True
             #统计信息
             self.command_end_num += 1
             self.command_dealing_num -= 1
@@ -556,12 +562,15 @@ class WeaveMaster:
     def print_job_time_info(self):
         size, _mean, _min, _max, per_50, per_90, per_95=analyze_datas(self.job_wait_time_list)
         out_string1=f"job wait time: size-{size}, \tmean-{_mean}, \tmin-{_min}, \tmax-{_max}, \tpercentile50-{per_50}, \tpercentile90-{per_90}, \tpercentile95-{per_95}"
-        print(out_string1)
+        if self.print_level>0:
+            print(out_string1)
         size, _mean, _min, _max, per_50, per_90, per_95=analyze_datas(self.job_complete_time_list)
         out_string2=f"job complete time(JCT): size-{size}, \tmean-{_mean}, \tmin-{_min}, \tmax-{_max}, \tpercentile50-{per_50}, \tpercentile90-{per_90}, \tpercentile95-{per_95}"
-        print(out_string2)
+        if self.print_level>0:
+            print(out_string2)
         
         self.sum_string=out_string1+"\n"+out_string2
+        result_dict["JCT"]=_mean
 
 
 
@@ -606,43 +615,83 @@ def experiment_one_group_parameters(args, file_sum, file_trace, print_level):
 
     weave_master=WeaveMaster(args, file_trace, print_level)
     weave_master.run()
+    weave_master.print_job_time_info()
     if print_level>=1:
-        weave_master.print_job_time_info()
+        
         print(f"The simulation end (system:{args.system}, strategy:{args.strategy}, file_sum:{file_sum != None}, file_trace:{file_trace != None}) !")
 
     if file_sum != None:
         out_string=weave_master.get_sum_info()
         file_sum.write(out_string)
         file_sum.flush()
+        
+    result_dict["sum_info"]= weave_master.get_sum_info()
 
 
 
+def run_system(args):
+    global result_dict
+    
+    #control parameters
+    version=f"sim_v2.2.0_os{args.overshared_factor}"
 
+    system=args.system
+    strategy=args.strategy
+    write_sum =False#args.write_sum
+    write_trace = False#args.write_trace
+    print_level=args.print_level
+
+    cur_dir=os.path.dirname(os.path.abspath(__file__))
+    parent_dir= os.path.dirname(os.path.abspath(cur_dir))
+    # 格式化输出
+    now_time= datetime.datetime.now()
+    formatted_time = now_time.strftime('%m_%d_%H_%M_%S')
+    sim_sum_file_name="Sim_Sum-"+system+"_"+strategy+"-"+version+"_"+formatted_time+".txt"
+    sim_trace_file_name="Sim_Trace_"+system+"_"+strategy+"_"+version+"_"+formatted_time+".csv"
+    if write_sum:
+        file_sum=open(parent_dir+"/output/"+sim_sum_file_name,"w")
+    else:
+        file_sum=None
+
+    if write_trace:
+        file_trace = open(parent_dir + "/output/" + sim_trace_file_name, "w")
+    else:
+        file_trace=None
+
+    experiment_one_group_parameters(args, file_sum, file_trace, print_level)
+
+    if write_sum:
+        file_sum.close()
+    if write_trace:
+        file_trace.close()
+        
+    return result_dict
 
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description='simulation for DL training job')
-    parser.add_argument("--system",default="Muri",type=str)
-    parser.add_argument("--strategy", default="FIFO", type=str)
+    parser.add_argument("--system",default="Normal",type=str)
+    parser.add_argument("--strategy", default="SRSF", type=str)
     parser.add_argument("--mps_flage", default="True", type=str)
     parser.add_argument("--sync_flage", default="True", type=str)
-    parser.add_argument("--job_together_flage", default="False", type=str)
+    parser.add_argument("--job_together_flage", default="True", type=str)
     parser.add_argument("--print_level", default=11, type=int)
-    parser.add_argument("--node_kind", default="cluster", type=str, help="cluster, 4*3090, 3*2080ti, 4*2080")
+    parser.add_argument("--node_kind", default="4*3090", type=str, help="cluster, 4*3090, 3*2080ti, 4*2080")
     parser.add_argument("--model_kind", default="all_model", type=str, help="cv_model, all_model")
-    parser.add_argument("--gpu_mem_percent", default=0.8, type=float, help="because of GPU fragement")
+    parser.add_argument("--gpu_mem_percent", default=0.9, type=float, help="because of GPU fragement")
     parser.add_argument("--node_num", default=1000, type=int, help="only for node kind is cluster")
-    parser.add_argument("--job_num", default=10000, type=int)
-    parser.add_argument("--validation", default="False", type=str)
+    parser.add_argument("--job_num", default=100, type=int)
+    parser.add_argument("--validation", default="True", type=str)
     parser.add_argument("--overshared_factor", default=3.0, type=float)
     parser.add_argument("--write_sum", action='store_true')
     parser.add_argument("--write_trace", action='store_true')
-
+    parser.add_argument("--couple_init_iter_percent", default=0.2,type=float)
+    parser.add_argument("--bucket_length", default=100000, type=int)
     args=parser.parse_args()
 
 
     #control parameters
-    version="sim_v2.1.0"
+    version=f"sim_v2.2.0_os{args.overshared_factor}"
 
     system=args.system
     strategy=args.strategy

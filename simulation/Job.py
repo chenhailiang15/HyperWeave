@@ -180,8 +180,8 @@ class Job:
                 
             #判断是否需要更新time_extend
             if time_t> max_parallel_start_time and local_max_parallel!=global_max_parallel:
-
-                time_extend+=(mps_time_extend[self.model_name][global_max_parallel-1]-1)*(time_t-max_parallel_start_time)
+                mps_index=min(len(mps_time_extend[self.model_name]), global_max_parallel)
+                time_extend+=(mps_time_extend[self.model_name][mps_index-1]-1)*(time_t-max_parallel_start_time)
                 global_max_parallel=local_max_parallel
                 max_parallel_start_time=time_t
                 

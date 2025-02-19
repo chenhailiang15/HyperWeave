@@ -698,7 +698,7 @@ if __name__=="__main__":
         print("sync_flage or mps_flage value or job_together_flage wrong!")
         exit(-1)
         
-    version="v2.4.2-os"+f"{args.overshared_factor}-MPS_{args.mps_flage}-Sync_{args.sync_flage}"
+    version="v2.5.0-os"+f"{args.overshared_factor}-MPS_{args.mps_flage}-Sync_{args.sync_flage}"
     system=args.system
     strategy=args.strategy
     write_sum = (args.write_sum)

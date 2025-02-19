@@ -8,10 +8,15 @@ job_num=100
 print_level=10
 
 
-system="Weave"
+
+
+
+
+system="Normal"
 strategy="SRSF"
 mps_flage="True"
-sync_flage="True"
+sync_flage="False"
+
 python WeaveMaster.py --system ${system} --strategy ${strategy} --mps_flage ${mps_flage} --sync_flage ${sync_flage}\
     --node_kind ${node_kind} --model_kind ${model_kind} --gpu_mem_percent ${gpu_mem_percent} --job_num ${job_num}\
     --print_level ${print_level} --write_trace --write_sum --gpu_id_list ${gpu_id_list}
@@ -25,11 +30,11 @@ python WeaveMaster.py --system ${system} --strategy ${strategy} --mps_flage ${mp
     --node_kind ${node_kind} --model_kind ${model_kind} --gpu_mem_percent ${gpu_mem_percent} --job_num ${job_num}\
     --print_level ${print_level} --write_trace --write_sum --gpu_id_list ${gpu_id_list}
 
-system="Normal"
+    
+system="Weave"
 strategy="SRSF"
 mps_flage="True"
-sync_flage="False"
-
+sync_flage="True"
 python WeaveMaster.py --system ${system} --strategy ${strategy} --mps_flage ${mps_flage} --sync_flage ${sync_flage}\
     --node_kind ${node_kind} --model_kind ${model_kind} --gpu_mem_percent ${gpu_mem_percent} --job_num ${job_num}\
     --print_level ${print_level} --write_trace --write_sum --gpu_id_list ${gpu_id_list}

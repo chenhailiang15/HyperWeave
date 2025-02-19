@@ -149,11 +149,11 @@ class WeaveSchedulor:
 
         for [instance1,instance2,pack_resource] in matched_instances:
             if instance2 != None:
-                rest_time1=instance1.job.ddl_time-time_now-instance1.duration_time
-                rest_time2=instance2.job.ddl_time-time_now-instance2.duration_time
+                rest_time1=instance1.duration_time
+                rest_time2=instance2.duration_time
                 rest_time=min(rest_time1, rest_time2)
             else:
-                rest_time=instance1.job.ddl_time-time_now-instance1.duration_time
+                rest_time=instance1.duration_time
             order_matched_instances.append([instance1, instance2, pack_resource, rest_time])
         
         #match_jobs排序
@@ -168,11 +168,11 @@ class WeaveSchedulor:
 
         for [instance1,instance2,pack_resource] in matched_instances:
             if instance2 != None:
-                rest_time1=(instance1.job.ddl_time-time_now-instance1.duration_time)*instance1.job.parallel_num
-                rest_time2=(instance2.job.ddl_time-time_now-instance2.duration_time)*instance2.job.parallel_num
+                rest_time1=instance1.duration_time*instance1.job.parallel_num
+                rest_time2=instance2.duration_time*instance2.job.parallel_num
                 rest_time=min(rest_time1, rest_time2)
             else:
-                rest_time=instance1.job.ddl_time-time_now-instance1.duration_time
+                rest_time=instance1.duration_time*instance1.job.parallel_num
             order_matched_instances.append([instance1, instance2, pack_resource, rest_time])
         
         #match_jobs排序
@@ -188,11 +188,11 @@ class WeaveSchedulor:
 
             for [instance1, instance2, pack_resource] in matched_instance:
                 if instance2 != None:
-                    rest_time1 = (instance1.job.ddl_time - time_now - instance1.duration_time) * instance1.job.parallel_num
-                    rest_time2 = (instance2.job.ddl_time - time_now - instance2.duration_time) * instance2.job.parallel_num
+                    rest_time1 = instance1.duration_time * instance1.job.parallel_num
+                    rest_time2 = instance2.duration_time * instance2.job.parallel_num
                     rest_time = min(rest_time1, rest_time2)
                 else:
-                    rest_time = instance1.job.ddl_time - time_now - instance1.duration_time
+                    rest_time = instance1.duration_time * instance1.duration_time
                 order_matched_jobs.append([instance1, instance2, pack_resource, rest_time])
 
             # match_jobs排序
@@ -678,7 +678,7 @@ class WeaveSchedulor:
         for instance_list in all_matched_instance_list:
             rest_time=float('inf')
             for instance in instance_list:
-                rest_time_t=instance.job.ddl_time-time_now-instance.job.duration_time
+                rest_time_t=instance.job.duration_time
                 rest_time=min(rest_time, rest_time_t)
             order_matched_instances.append([rest_time, instance_list])
         #matched_jobs排序
@@ -692,7 +692,7 @@ class WeaveSchedulor:
         for instance_list in all_matched_instance_list:
             rest_time=float('inf')
             for instance in instance_list:
-                rest_time_t=(instance.job.ddl_time-time_now-instance.job.duration_time)**instance.job.parallel_num
+                rest_time_t=instance.job.duration_time*instance.job.parallel_num
                 rest_time=min(rest_time, rest_time_t)
             order_matched_instances.append([rest_time, instance_list])
         #matched_jobs排序
@@ -814,7 +814,7 @@ class WeaveSchedulor:
     def schedule_normal_SRTF(self, job_list):
         time_now=time.time()
         #按照到来的先后顺序排序
-        job_list.sort(key=lambda x: x.ddl_time-time_now-x.duration_time)
+        job_list.sort(key=lambda x: x.duration_time)
         rest_job=self.schedule_normal_single_job_list(job_list)
             
         return rest_job
@@ -824,7 +824,7 @@ class WeaveSchedulor:
         time_now=time.time()
             
         #按照到来的先后顺序排序
-        job_list.sort(key=lambda x: (x.ddl_time-time_now-x.duration_time)*x.parallel_num)
+        job_list.sort(key=lambda x: x.duration_time*x.parallel_num)
         rest_job=self.schedule_normal_single_job_list(job_list)
         return rest_job
     

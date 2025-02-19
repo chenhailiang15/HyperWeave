@@ -152,8 +152,8 @@ class WeaveSchedulor:
 
         for [instance1,instance2,pack_resource] in matched_instances:
             if instance2 != None:
-                rest_time1=instance1.job.ddl_time-time_now-instance1.duration_time
-                rest_time2=instance2.job.ddl_time-time_now-instance2.duration_time
+                rest_time1=instance1.duration_time#instance1.job.ddl_time-time_now-instance1.duration_time
+                rest_time2=instance2.duration_time#instance2.job.ddl_time-time_now-instance2.duration_time
                 rest_time=min(rest_time1, rest_time2)
             else:
                 rest_time=instance1.job.ddl_time-time_now-instance1.duration_time
@@ -171,8 +171,8 @@ class WeaveSchedulor:
 
         for [instance1,instance2,pack_resource] in matched_instances:
             if instance2 != None:
-                rest_time1=(instance1.job.ddl_time-time_now-instance1.duration_time)*instance1.job.parallel_num
-                rest_time2=(instance2.job.ddl_time-time_now-instance2.duration_time)*instance2.job.parallel_num
+                rest_time1=instance1.duration_time*instance1.job.parallel_num
+                rest_time2=instance2.duration_time*instance2.job.parallel_num
                 rest_time=min(rest_time1, rest_time2)
             else:
                 rest_time=instance1.job.ddl_time-time_now-instance1.duration_time
@@ -191,8 +191,8 @@ class WeaveSchedulor:
 
             for [instance1, instance2, pack_resource] in matched_instance:
                 if instance2 != None:
-                    rest_time1 = (instance1.job.ddl_time - time_now - instance1.duration_time) * instance1.job.parallel_num
-                    rest_time2 = (instance2.job.ddl_time - time_now - instance2.duration_time) * instance2.job.parallel_num
+                    rest_time1 =instance1.duration_time* instance1.job.parallel_num
+                    rest_time2 = instance2.duration_time * instance2.job.parallel_num
                     rest_time = min(rest_time1, rest_time2)
                 else:
                     rest_time = instance1.job.ddl_time - time_now - instance1.duration_time
@@ -444,7 +444,8 @@ class WeaveSchedulor:
         # 循环调度
         key_list=list(bucket_match_instances.keys())
         key_list.sort()
-        print(key_list)
+        if self.print_level>10:
+            print(f"key list: {key_list}")
         first_bucket_id=key_list[0]
         for bucket_id in key_list:
             match_instances=bucket_match_instances[bucket_id]
@@ -722,7 +723,7 @@ class WeaveSchedulor:
         for instance_list in all_matched_instance_list:
             rest_time=float('inf')
             for instance in instance_list:
-                rest_time_t=instance.job.ddl_time-time_now-instance.job.duration_time
+                rest_time_t=instance.job.duration_time
                 rest_time=min(rest_time, rest_time_t)
             order_matched_instances.append([rest_time, instance_list])
         #matched_jobs排序
@@ -736,7 +737,7 @@ class WeaveSchedulor:
         for instance_list in all_matched_instance_list:
             rest_time=float('inf')
             for instance in instance_list:
-                rest_time_t=(instance.job.ddl_time-time_now-instance.job.duration_time)**instance.job.parallel_num
+                rest_time_t=instance.job.duration_time*instance.job.parallel_num
                 rest_time=min(rest_time, rest_time_t)
             order_matched_instances.append([rest_time, instance_list])
         #matched_jobs排序
@@ -747,7 +748,8 @@ class WeaveSchedulor:
         #是否继续调度的标志，当遇到一个无法调度的任务时，停止调度等待下一轮调度，将剩余的job返回
         continue_schedule_flage=True
         #循环调度
-        print(f"schedule_muri_ordered_matched_job_list cycle-{len(match_instances)}")
+        if self.print_level>10:
+            print(f"schedule_muri_ordered_matched_job_list cycle-{len(match_instances)}")
         temp_cycle=0
         for [order_value, instance_list] in match_instances:
             # print(f"cycle - {temp_cycle}")
@@ -815,14 +817,16 @@ class WeaveSchedulor:
                     instance.idx_on_gou=idx_on_gou
                     instance.max_sync_num=len(instance_list)
                     idx_on_gou+=1
-                    print(f"start do instance:{instance.instance_name}")
+                    if self.print_level>10:
+                        print(f"start do instance:{instance.instance_name}")
 
 
                     self.master.monitor.alloc_resource(instance, None, instance_gpu_id_list, plan=True)
 
                     instance.job.instance_list.remove(instance)
                     if len(instance.job.instance_list) == 0:
-                        print(f"remove: job- {instance.job.job_idx}")
+                        if self.print_level>10:
+                            print(f"remove: job- {instance.job.job_idx}")
                         job_list.remove(instance.job)
 
                     self.execute_schedule(instance, instance_gpu_id_list, False, shm_name_dict)
@@ -945,7 +949,7 @@ class WeaveSchedulor:
     def schedule_normal_SRTF(self, job_list):
         time_now=time.time()
         #按照到来的先后顺序排序
-        job_list.sort(key=lambda x: x.ddl_time-time_now-x.duration_time)
+        job_list.sort(key=lambda x: x.duration_time)
         rest_job=self.schedule_normal_single_job_list(job_list)
             
         return rest_job
@@ -957,7 +961,7 @@ class WeaveSchedulor:
         #     job.set_schedule_order(time_now)
             
         #按照到来的先后顺序排序
-        job_list.sort(key=lambda x: (x.ddl_time-time_now-x.duration_time)*x.parallel_num)
+        job_list.sort(key=lambda x: x.duration_time*x.parallel_num)
         rest_job=self.schedule_normal_single_job_list(job_list)
         return rest_job
 

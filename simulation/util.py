@@ -14,12 +14,12 @@ import math
 
 mps_time_extend={"AlexNet":[1.03, 1.08, 1.07, 1.08, 1.16, 1.32, 1.47, 1.63, 1.76, 1.94],
                  "ResNet18":[1.01, 1.24, 1.27, 1.22, 1.25, 1.4, 1.53, 1.75, 1.89, 2.15],
-                 "ResNet50":[1.02, 0.99, 1.15, 1.4, 1.65, 1.93, 2.16, 2.5, 2.74],
+                 "ResNet50":[1.02, 1.02, 1.15, 1.4, 1.65, 1.93, 2.16, 2.5, 2.74],
                  "MobileNetv2":[1.34, 1.29, 1.27, 1.33, 1.3, 1.3, 1.38, 1.37, 1.47, 1.59],
                  "VGG16":[1.0, 1.67, 2.33, 3.08, 3.75, 4.52, 5.22, 5.95],
                  "Bert":[1.01, 1.2, 1.42, 1.65, 1.84, 2.08],
-                 "Transformer":[0.91, 1.15, 1.51, 1.9, 2.26, 2.69, 3.03, 3.47, 3.84, 4.29],
-                 "GCN":[1.0, 0.95, 1.06, 1.01, 1.05, 1.13, 1.23, 1.41, 1.42, 1.54],
+                 "Transformer":[1, 1.15, 1.51, 1.9, 2.26, 2.69, 3.03, 3.47, 3.84, 4.29],
+                 "GCN":[1.0, 1, 1.06, 1.01, 1.05, 1.13, 1.23, 1.41, 1.42, 1.54],
                  "GraphSage":[1.01, 1.09, 1.71, 2.64, 3.89, 4.9, 5.74, 6.66, 7.44, 8.41]}
 
 gpu_mem_dict={"T4":16.0,
@@ -254,6 +254,20 @@ class args_weave:
         self.dataset_dir=None
         self.muri_file_path_name=None
         
+        self.overshared_factor=3
+        self.strategy="FIFO"
+        self.print_level=11
+        self.node_kind="4*3090"
+        self.sync_flage="True"
+        self.mps_flage="True"
+        self.validation="True"
+        self.model_kind="all_model"
+        self.node_num=100
+        self.job_num=100
+        self.job_together_flage="True"
+        self.gpu_mem_percent=0.9
+        self.couple_init_iter_percent=0.2
+        self.bucket_length=100000
         
         
     def set_queue(self, queue):
