@@ -47,6 +47,9 @@ for strategy in ["FIFO", "SRTF", "SRSF","BN-SRSF"]:
     jct_value=result_dict["JCT"]
     print(f"\tJCT:{jct_value}")
     file_writer.write(f"({strategy},{jct_value}),")
+    file_writer.flush()
+    
+    
 sum_info=result_dict["sum_info"]
 file_writer.write(f"\n{sum_info}")
 file_writer.close()

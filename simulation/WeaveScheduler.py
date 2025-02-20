@@ -444,7 +444,7 @@ class WeaveSchedulor:
         # 循环调度
         key_list=list(bucket_match_instances.keys())
         key_list.sort()
-        if self.print_level>10:
+        if self.print_level>0:
             print(f"key list: {key_list}")
         first_bucket_id=key_list[0]
         for bucket_id in key_list:

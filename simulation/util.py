@@ -267,8 +267,8 @@ class args_weave:
         self.job_together_flage="True"
         self.gpu_mem_percent=0.9
         self.couple_init_iter_percent=0.2
-        self.bucket_length=100000
-        
+        self.bucket_length=10000
+        self.trace_id=0
         
     def set_queue(self, queue):
         self.queue=queue

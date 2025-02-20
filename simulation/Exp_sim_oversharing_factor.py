@@ -14,8 +14,8 @@ def generate_default_args():
     args.node_kind="cluster"
     args.model_kind="all_model"
     args.gpu_mem_percent=0.9
-    args.node_num=100
-    args.job_num=10000
+    args.node_num=200
+    args.job_num=2000
     args.validation="False"
     args.overshared_factor=3
     args.write_sum=False
@@ -38,15 +38,18 @@ file_writer=get_out_file_writer()
 file_writer.write("JCT:")
 for index in range(1,  10):
     
-    oversharing_factor=index
-    print(f"matching_factor:{oversharing_factor}",end="")
+    overshared_factor=index
+    print(f"matching_factor:{overshared_factor}",end="")
     
     args=generate_default_args()
-    args.oversharing_factor=oversharing_factor
+    args.overshared_factor=overshared_factor
     result_dict=run_system(args)
     jct_value=result_dict["JCT"]
     print(f"\tJCT:{jct_value}")
-    file_writer.write(f"({oversharing_factor},{jct_value}),")
+    file_writer.write(f"({overshared_factor},{jct_value}),")
+    file_writer.flush()
+    
+    
 sum_info=result_dict["sum_info"]
 file_writer.write(f"\n{sum_info}")
 file_writer.close()

@@ -134,6 +134,9 @@ class WeaveMaster:
         self.write_head=True
         
         self.should_schedule=True
+        
+        self.Weave_modify_factor=2
+        self.Muri_modify_factor=1.1
         #################################
 
         if self.print_level>0:
@@ -245,7 +248,7 @@ class WeaveMaster:
         
         self.job_come_flage = True
 
-        for index in range(len(self.ali_trace_pd)):
+        for index in range(self.args.trace_id*self.args.job_num, len(self.ali_trace_pd)):
             if self.args.job_num==0:
                 self.end_event.set()
                 break
@@ -687,6 +690,11 @@ if __name__=="__main__":
     parser.add_argument("--write_trace", action='store_true')
     parser.add_argument("--couple_init_iter_percent", default=0.2,type=float)
     parser.add_argument("--bucket_length", default=100000, type=int)
+    parser.add_argument("--trace_id", default=0, type=int)
+    
+    
+    
+    
     args=parser.parse_args()
 
 

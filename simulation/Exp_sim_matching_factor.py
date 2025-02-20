@@ -47,6 +47,9 @@ for index in range(1,  10):
     jct_value=result_dict["JCT"]
     print(f"\tJCT:{jct_value}")
     file_writer.write(f"({matching_factor},{jct_value}),")
+    file_writer.flush()
+    
+    
 sum_info=result_dict["sum_info"]
 file_writer.write(f"\n{sum_info}")
 file_writer.close()

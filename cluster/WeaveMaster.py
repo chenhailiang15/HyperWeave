@@ -252,7 +252,7 @@ class WeaveMaster:
     #job到来的函数，持续运行，直到读取的文件中的job结束
     def job_come(self):
         
-        for index in range(len(self.ali_trace_pd)):
+        for index in range(self.args.trace_id*self.args.job_num, len(self.ali_trace_pd)):
             if self.args.job_num==0:
                 
                 self.end_event.set()
@@ -689,6 +689,7 @@ if __name__=="__main__":
     parser.add_argument("--print_level", default=11, type=int)
     parser.add_argument("--write_sum", action='store_true')
     parser.add_argument("--write_trace", action='store_true')
+    parser.add_argument("--trace_id", default=0, type=int)
     
     args=parser.parse_args()
     
