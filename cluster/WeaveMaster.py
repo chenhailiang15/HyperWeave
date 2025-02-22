@@ -22,7 +22,7 @@ import random
 random.seed(3)
 #cpu, gpu 按照百分比表示需求和剩余，即1个GPU 表示为100
 #mem, gmem按照存储单位表示，本平台中使用MB
-
+# 需要解决 S4*3090 初始调度问题
 
 class WeaveMaster:
     
@@ -163,13 +163,13 @@ class WeaveMaster:
             self.Muri_resource_factor=1
             
         if self.node_kind=="4*3090":
-            node_3090=Node(self, 0, "3090node", "10.26.0.4", "eno1", self.overshared_factor, self.print_level)
+            node_3090=Node(self, 0, "3090node", "localhost", "eno1", self.overshared_factor, self.print_level)
             node_3090.set_init_resouce(96*100, 250*1024, 4, 24*1024*args.gpu_mem_percent, self.spec_gpu_id)
             self.nodes.append(node_3090)
             self.node_num =1
         
-        elif self.node_kind=="s4*3090":
-            node_s3090=Node(self, 0, "s3090node", "10.0.0.205", "enp3s0", self.overshared_factor, self.print_level)
+        elif self.node_kind=="s4*3090":#enp3s0
+            node_s3090=Node(self, 0, "s3090node", "localhost", "enp3s0", self.overshared_factor, self.print_level)
             node_s3090.set_init_resouce(46*100,235*1024, 4, 24*1024*args.gpu_mem_percent, self.spec_gpu_id)
             self.nodes.append(node_s3090)
             self.node_num=1
@@ -412,6 +412,7 @@ class WeaveMaster:
         
         while self.job_come_flage or self.wait_schedule_queue.qsize()>0:
             time.sleep(self.schedule_interval)
+            print("start scheduling ... ")
             wait_schedule_list=[]
             self.queue_length.append(self.wait_schedule_queue.qsize())
             
@@ -621,6 +622,7 @@ class WeaveMaster:
         temp_string=f"system:{self.system}\nschedule_strategy:{self.schedule_strategy}\n"
         temp_string+=f"node_kind:{self.node_kind}\n"
         temp_string+=f"model_kind:{self.args.model_kind}\n"
+        temp_string+=f"trace_id:{self.args.trace_id}\n"
         temp_string+=f"MPS:{self.MPS_mode}\nSync:{self.weave_sync_mode}\n"
         temp_string+=f"overshared_factor:{self.overshared_factor}\ngpu_mem_percent:{self.args.gpu_mem_percent}\n"
         temp_string+=f"job_come_time_factor:{self.job_come_time_factor}\njob_duration_time_factor:{self.job_duration_time_factor}\njob_ddl_factor:{self.job_ddl_factor}\n"
@@ -635,6 +637,7 @@ class WeaveMaster:
         temp_string+=f"model_info_file_name:{self.model_info_file_name}\n"
         temp_string+=f"Bigstageresource_file_name:{self.Bigstageresource_file_name}\n"
         temp_string+=f"Ministagetime_file_name:{self.Ministagetime_file_name}\n"
+        
         
         return temp_string+self.sum_string+"\n\n\n"
         
@@ -699,7 +702,7 @@ if __name__=="__main__":
         print("sync_flage or mps_flage value or job_together_flage wrong!")
         exit(-1)
         
-    version="v2.5.0-os"+f"{args.overshared_factor}-MPS_{args.mps_flage}-Sync_{args.sync_flage}"
+    version="v2.6.1-os"+f"{args.overshared_factor}-MPS_{args.mps_flage}-Sync_{args.sync_flage}"
     system=args.system
     strategy=args.strategy
     write_sum = (args.write_sum)

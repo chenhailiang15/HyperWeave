@@ -156,7 +156,7 @@ class WeaveSchedulor:
                 rest_time2=instance2.duration_time#instance2.job.ddl_time-time_now-instance2.duration_time
                 rest_time=min(rest_time1, rest_time2)
             else:
-                rest_time=instance1.job.ddl_time-time_now-instance1.duration_time
+                rest_time=instance1.duration_time
             order_matched_instances.append([instance1, instance2, pack_resource, rest_time])
         
         #match_jobs排序
@@ -175,7 +175,7 @@ class WeaveSchedulor:
                 rest_time2=instance2.duration_time*instance2.job.parallel_num
                 rest_time=min(rest_time1, rest_time2)
             else:
-                rest_time=instance1.job.ddl_time-time_now-instance1.duration_time
+                rest_time=instance1.duration_time*instance1.job.parallel_num
             order_matched_instances.append([instance1, instance2, pack_resource, rest_time])
         
         #match_jobs排序
@@ -195,7 +195,7 @@ class WeaveSchedulor:
                     rest_time2 = instance2.duration_time * instance2.job.parallel_num
                     rest_time = min(rest_time1, rest_time2)
                 else:
-                    rest_time = instance1.job.ddl_time - time_now - instance1.duration_time
+                    rest_time = instance1.duration_time* instance1.job.parallel_num
                 order_matched_jobs.append([instance1, instance2, pack_resource, rest_time])
 
             # match_jobs排序
