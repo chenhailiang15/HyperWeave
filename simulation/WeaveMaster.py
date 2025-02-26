@@ -48,7 +48,7 @@ class WeaveMaster:
             self.overshared_factor=args.overshared_factor
         else:
             self.overshared_factor = 1  # 等于1存在GPU资源不够的情况
-
+        print(f"system name {self.system}")
         if self.schedule_strategy=="BN-SRSF":
             self.bucket_length=args.bucket_length
         self.couple_init_iter_percent=args.couple_init_iter_percent
@@ -163,6 +163,13 @@ class WeaveMaster:
         self.scheduler=WeaveSchedulor(self, print_level=self.print_level)
 
         self.init_model_info()
+        
+        self.a_time_delay, self.b_time_delay=fit_mps_time_delay()
+
+        
+        
+    def get_mps_time_delay(self,parallel_number):
+        return self.a_time_delay*parallel_number+self.b_time_delay
 
 
     #初始化node信息
@@ -280,65 +287,67 @@ class WeaveMaster:
         model_name=self.model_info_list[self.model_info_list_index%self.model_info_list_max].split("-")[0]
         batch_size=int(self.model_info_list[self.model_info_list_index%self.model_info_list_max].split("-")[1])
         self.model_info_list_index+=1
-
-        plan_gpu=ali_trace["plan_gpu"]
-
-        parrallel_num=math.ceil(min(plan_gpu, 400)/100)
-        model_info=model_name+"-"+str(batch_size)+"-"+str(parrallel_num)
-        duration_time=ali_trace["duration_s"]/self.job_duration_time_factor
-        init_time=self.analyze_loader.get_value(model_info,"stage_init","time")
-        epoch_time=self.analyze_loader.get_value(model_info,"stage_sample","time")+self.analyze_loader.get_value(model_info,"stage_train","time")
-        model_duration_time=init_time+epoch_time
-
-        if model_duration_time>=duration_time:
-            if self.print_level>=2:
-                print("job generate fail (duration time is too small)")
-            return None
-
         
-        
-        total_epochs=math.ceil((ali_trace["duration_s"]/self.job_duration_time_factor-init_time)/epoch_time)
-        each_batch_time=self.analyze_loader.get_time_value(model_info, 1)+self.analyze_loader.get_time_value(model_info, 2)+self.analyze_loader.get_time_value(model_info, 3)
-        batch_num=math.ceil(self.analyze_loader.get_value(model_info,"stage_train","time")/each_batch_time)
-
-        job = Job(job_idx, self.system)
-        job_name = ali_trace["job_name"]
-        job.set_model_info(job_name, model_name,total_epochs, batch_size)
-        if model_name == "GCN":
-            job.set_model_info(job_name, model_name,total_epochs, batch_size, layer_num=100, layer_feature=100)
-        else:
-            job.set_model_info(job_name, model_name,total_epochs, batch_size)
-            
-        job.batch_num=batch_num    #设置batch numbere
-        job.instance_num=1        #多个instance融合为一个
-        
-        #设置各阶段时间消耗
-        job.time_init=self.analyze_loader.get_time_value(model_info,0)
-        job.time_init_iter=self.analyze_loader.get_value(model_info,"stage_sample","time")
-        job.time_get_data=self.analyze_loader.get_time_value(model_info,1)
-        job.time_forward_back=self.analyze_loader.get_time_value(model_info,2)
-        job.time_commu=self.analyze_loader.get_time_value(model_info,3)
-        job.time_epoch_no_init_iter=batch_num*(job.time_get_data+job.time_forward_back+job.time_commu)-job.time_get_data
-        job.init_iter_percent=job.time_init_iter/(job.time_epoch_no_init_iter+job.time_init_iter)
-        # 通过batchnum 和 epoch 以及各阶段时间，计算总持续时间
-        duration_time =job.time_init+total_epochs*(job.time_epoch_no_init_iter+job.time_init_iter)
-
-        #设置计划资源使用量
-        job.set_plan_resource(ali_trace["plan_cpu"], ali_trace["plan_mem"]*1024, ali_trace["plan_gpu"])
-
-        pack_resource=[ali_trace["plan_cpu"], ali_trace["plan_mem"]*1024, ali_trace["plan_gpu"],0]
-        
-        if self.node_kind=="4*2080" and ali_trace["plan_mem"]>10:
-            print("job generate fail (plan mem is too big!)")
-            return None
-        
-        
-        if self.monitor.judge_runable_with_resource(pack_resource,job.parallel_num, plan_flage=True, init=True) == False:
-            if self.print_level>=2:
-                print("job generate fail (plan resource not runable!)")
-            return None
-
         if self.args.validation=="True":  #两种模式加载的模型其实际使用资源不同，必须分开
+    
+            plan_gpu=ali_trace["plan_gpu"]
+
+            parrallel_num=math.ceil(min(plan_gpu, 400)/100)
+            model_info=model_name+"-"+str(batch_size)+"-"+str(parrallel_num)
+            duration_time=ali_trace["duration_s"]/self.job_duration_time_factor
+            init_time=self.analyze_loader.get_value(model_info,"stage_init","time")
+            epoch_time=self.analyze_loader.get_value(model_info,"stage_sample","time")+self.analyze_loader.get_value(model_info,"stage_train","time")
+            model_duration_time=init_time+epoch_time
+
+            if model_duration_time>=duration_time:
+                if self.print_level>=2:
+                    print("job generate fail (duration time is too small)")
+                return None
+
+            
+            
+            total_epochs=math.ceil((ali_trace["duration_s"]/self.job_duration_time_factor-init_time)/epoch_time)
+            each_batch_time=self.analyze_loader.get_time_value(model_info, 1)+self.analyze_loader.get_time_value(model_info, 2)+self.analyze_loader.get_time_value(model_info, 3)
+            batch_num=math.ceil(self.analyze_loader.get_value(model_info,"stage_train","time")/each_batch_time)
+
+            job = Job(job_idx, self.system)
+            job_name = ali_trace["job_name"]
+            job.set_model_info(job_name, model_name,total_epochs, batch_size)
+            if model_name == "GCN":
+                job.set_model_info(job_name, model_name,total_epochs, batch_size, layer_num=100, layer_feature=100)
+            else:
+                job.set_model_info(job_name, model_name,total_epochs, batch_size)
+                
+            job.batch_num=batch_num    #设置batch numbere
+            job.instance_num=1        #多个instance融合为一个
+            
+            #设置各阶段时间消耗
+            job.time_init=self.analyze_loader.get_time_value(model_info,0)
+            job.time_init_iter=self.analyze_loader.get_value(model_info,"stage_sample","time")
+            job.time_get_data=self.analyze_loader.get_time_value(model_info,1)
+            job.time_forward_back=self.analyze_loader.get_time_value(model_info,2)
+            job.time_commu=self.analyze_loader.get_time_value(model_info,3)
+            job.time_epoch_no_init_iter=batch_num*(job.time_get_data+job.time_forward_back+job.time_commu)-job.time_get_data
+            job.init_iter_percent=job.time_init_iter/(job.time_epoch_no_init_iter+job.time_init_iter)
+            # 通过batchnum 和 epoch 以及各阶段时间，计算总持续时间
+            duration_time =job.time_init+total_epochs*(job.time_epoch_no_init_iter+job.time_init_iter)
+
+            #设置计划资源使用量
+            job.set_plan_resource(ali_trace["plan_cpu"], ali_trace["plan_mem"]*1024, ali_trace["plan_gpu"])
+
+            pack_resource=[ali_trace["plan_cpu"], ali_trace["plan_mem"]*1024, ali_trace["plan_gpu"],0]
+            
+            if self.node_kind=="4*2080" and ali_trace["plan_mem"]>10:
+                print("job generate fail (plan mem is too big!)")
+                return None
+            
+            
+            if self.monitor.judge_runable_with_resource(pack_resource,job.parallel_num, plan_flage=True, init=True) == False:
+                if self.print_level>=2:
+                    print("job generate fail (plan resource not runable!)")
+                return None
+
+        
             
             cpu_ratio=self.nodes[0].cpu/self.Muri_resource_factor/100
             #设置各阶段实际资源使用量[init stage, pre-iteration stage, iteration stage]
@@ -377,7 +386,67 @@ class WeaveMaster:
             job.used_resource_gmem = [self.analyze_loader.get_value(model_info,"stage_init", "gmem"),\
                                     self.analyze_loader.get_value(model_info,"stage_sample", "gmem"),\
                                     self.analyze_loader.get_value(model_info,"stage_train", "gmem")]*factor
-        else:
+        else:   #大规模情况
+            
+            plan_gpu=ali_trace["plan_gpu"]
+
+            parrallel_num=math.ceil(min(plan_gpu, 400)/100)
+            model_info=model_name+"-"+str(batch_size)+"-"+str(parrallel_num)
+            duration_time=ali_trace["duration_s"]/self.job_duration_time_factor
+            init_time=self.analyze_loader.get_time_value(model_info,0)
+            one_sample_time=self.analyze_loader.get_value(model_info,"stage_sample","time")
+            get_data_time=self.analyze_loader.get_time_value(model_info,1)
+            forward_back_time=self.analyze_loader.get_time_value(model_info,2)
+            commu_time=self.analyze_loader.get_time_value(model_info,3)
+            one_batch_time=get_data_time+forward_back_time+commu_time
+            
+            total_epochs_r= random.randint(10, 100)
+            if one_sample_time==0:
+                total_epochs_max=float("inf")
+            else:
+                total_epochs_max=math.ceil((duration_time-init_time)/one_sample_time)
+            total_epochs=min(total_epochs_r, total_epochs_max)
+            
+            batch_num=math.ceil(((duration_time-init_time)/total_epochs-one_sample_time)/one_batch_time)
+            
+            
+            job = Job(job_idx, self.system)
+            job_name = ali_trace["job_name"]
+            job.set_model_info(job_name, model_name,total_epochs, batch_size)
+            if model_name == "GCN":
+                job.set_model_info(job_name, model_name,total_epochs, batch_size, layer_num=100, layer_feature=100)
+            else:
+                job.set_model_info(job_name, model_name,total_epochs, batch_size)
+                
+            job.batch_num=batch_num    #设置batch number
+            job.instance_num=1        #多个instance融合为一个
+            
+            #设置各阶段时间消耗
+            job.time_init=init_time
+            job.time_init_iter=one_sample_time
+            job.time_get_data=get_data_time
+            job.time_forward_back=forward_back_time
+            job.time_commu=commu_time
+            job.time_epoch_no_init_iter=batch_num*one_batch_time-get_data_time
+            job.init_iter_percent=job.time_init_iter/(job.time_epoch_no_init_iter+job.time_init_iter)
+            # 通过batchnum 和 epoch 以及各阶段时间，计算总持续时间
+            duration_time =job.time_init+total_epochs*(job.time_epoch_no_init_iter+job.time_init_iter)
+
+            #设置计划资源使用量
+            job.set_plan_resource(ali_trace["plan_cpu"], ali_trace["plan_mem"]*1024, ali_trace["plan_gpu"])
+
+            pack_resource=[ali_trace["plan_cpu"], ali_trace["plan_mem"]*1024, ali_trace["plan_gpu"],0]
+            
+            if self.node_kind=="4*2080" and ali_trace["plan_mem"]>10:
+                print("job generate fail (plan mem is too big!)")
+                return None
+            
+            
+            if self.monitor.judge_runable_with_resource(pack_resource,job.parallel_num, plan_flage=True, init=True) == False:
+                if self.print_level>=2:
+                    print("job generate fail (plan resource not runable!)")
+                return None
+        
             #设置各阶段实际资源使用量[init stage, pre-iteration stage, iteration stage]
             max_cpu_usage=max(self.analyze_loader.get_value(model_info,"stage_init", "cpu"), self.analyze_loader.get_value(model_info,"stage_sample", "cpu"), self.analyze_loader.get_value(model_info,"stage_train", "cpu"))
             job.used_resource_cpu = [ali_trace["cpu_usage"]*self.analyze_loader.get_value(model_info,"stage_init", "cpu")/max_cpu_usage,\
@@ -595,6 +664,8 @@ class WeaveMaster:
         temp_string+=f"job_come_time_factor:{self.job_come_time_factor}\njob_duration_time_factor:{self.job_duration_time_factor}\njob_ddl_factor:{self.job_ddl_factor}\n"
         temp_string+=f"node_num:{self.args.node_num}\n"
         temp_string+=f"job_num:{self.args.job_num}\n"
+        temp_string+=f"trace_id:{self.args.trace_id}\n"
+        temp_string+=f"bucket_length:{self.args.bucket_length}\n"
         temp_string+=f"schedule_interval:{self.schedule_interval}\n"
         temp_string+=f"makespan_real:{self.makespan_real}\nmakespan:{self.makespan_sim}\n"
         temp_string+=f"job_come_num:{self.job_come_num}\nsucceed_job_num:{self.succeed_job_num}\nfailed_job_num:{self.failed_job_num}\n"
@@ -699,7 +770,7 @@ if __name__=="__main__":
 
 
     #control parameters
-    version=f"sim_v2.2.0_os{args.overshared_factor}"
+    version=f"sim_v3.1_os{args.overshared_factor}"
 
     system=args.system
     strategy=args.strategy
@@ -712,8 +783,8 @@ if __name__=="__main__":
     # 格式化输出
     now_time= datetime.datetime.now()
     formatted_time = now_time.strftime('%m_%d_%H_%M_%S')
-    sim_sum_file_name="Sim_Sum-"+system+"_"+strategy+"-"+version+"_"+formatted_time+".txt"
-    sim_trace_file_name="Sim_Trace_"+system+"_"+strategy+"_"+version+"_"+formatted_time+".csv"
+    sim_sum_file_name="Sim_sum-"+system+"_"+strategy+"-"+version+"_"+formatted_time+".txt"
+    sim_trace_file_name="Sim_trace_"+system+"_"+strategy+"_"+version+"_"+formatted_time+".csv"
     if write_sum:
         file_sum=open(parent_dir+"/output/"+sim_sum_file_name,"w")
     else:

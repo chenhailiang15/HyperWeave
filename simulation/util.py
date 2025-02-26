@@ -11,11 +11,11 @@ import json
 import numpy as np
 import subprocess
 import math
-
+# 1.34, 1.29, 1.27, 1.33, 1.3, 1.3, 1.38, 1.37, 1.47, 1.59
 mps_time_extend={"AlexNet":[1.03, 1.08, 1.07, 1.08, 1.16, 1.32, 1.47, 1.63, 1.76, 1.94],
                  "ResNet18":[1.01, 1.24, 1.27, 1.22, 1.25, 1.4, 1.53, 1.75, 1.89, 2.15],
                  "ResNet50":[1.02, 1.02, 1.15, 1.4, 1.65, 1.93, 2.16, 2.5, 2.74],
-                 "MobileNetv2":[1.34, 1.29, 1.27, 1.33, 1.3, 1.3, 1.38, 1.37, 1.47, 1.59],
+                 "MobileNetv2":[1.0, 1.1, 1.09, 1.14, 1.11, 1.11, 1.18, 1.17, 1.26, 1.36],
                  "VGG16":[1.0, 1.67, 2.33, 3.08, 3.75, 4.52, 5.22, 5.95],
                  "Bert":[1.01, 1.2, 1.42, 1.65, 1.84, 2.08],
                  "Transformer":[1, 1.15, 1.51, 1.9, 2.26, 2.69, 3.03, 3.47, 3.84, 4.29],
@@ -43,7 +43,35 @@ model_to_batch_size_g={"AlexNet" : [8,16,32,64,128],
 model_list_g=["AlexNet", "ResNet18", "ResNet50", "MobileNetv2", "VGG16", "Bert", "Transformer", "GCN", "GraphSage" ]
 
 
+def fit_mps_time_delay():
+    # 找到最大长度
+    max_length = max(len(values) for values in mps_time_extend.values())
 
+    # 初始化平均列表
+    average_values = [0] * max_length
+    counts = [0] * max_length
+
+    # 计算每个位置的总和与计数
+    for values in mps_time_extend.values():
+        for i, val in enumerate(values):
+            average_values[i] += val
+            counts[i] += 1
+
+    # 计算平均值
+    for i in range(max_length):
+        if counts[i] > 0:
+            average_values[i] /= counts[i]
+
+    # 生成对应的 x 索引
+    x = np.arange(1,len(average_values)+1)
+
+    # 进行线性拟合
+    coefficients = np.polyfit(x, average_values, 1)
+    a = coefficients[0]  # 斜率
+    b = coefficients[1]  # 截距
+    return a,b
+    
+    
 
 
 def start_MPS(password):

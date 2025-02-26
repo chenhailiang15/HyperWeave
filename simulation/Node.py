@@ -24,7 +24,7 @@ class Node:
         self.dealing_instance={}
         self.dealing_instance_name={}
         self.max_instance_num_for_single_gpu=float("inf")   #couple 算一个
-        
+        self.dealing_instance_num_dict={}
         
         
         
@@ -44,6 +44,7 @@ class Node:
         for index in range(self.gpu_num):
             self.dealing_instance[index]=[]
             self.dealing_instance_name[index]=[]
+            self.dealing_instance_num_dict[index]=0
         
     
         
@@ -207,6 +208,12 @@ class Node:
     
 
     def execute_instance(self, instance):
+        #记录每个GPU正在运行的instance数量
+        for gpu_id in instance.gpu_id_list[instance.node_rank]:
+            self.dealing_instance_num_dict[gpu_id]+=1
+        
+        
+        
         if self.print_level > 5:
             print(f"node: {self.node_id} execute instance:{instance.instance_name} ...")
         instance.start_time=self.env.now
@@ -226,10 +233,12 @@ class Node:
 
     def end_instance(self,instance):
         if self.master.system=="Weave":
-            time_extend=instance.duration_time*self.master.Weave_modify_factor
+            time_extend=instance.duration_time*self.master.get_mps_time_delay(self.get_max_parallel_for_instance(instance))
         else:
             time_extend=instance.duration_time
         yield self.env.timeout(time_extend)
+        for gpu_id in instance.gpu_id_list[instance.node_rank]:
+            self.dealing_instance_num_dict[gpu_id]-=1
         # if self.master.system=="Weave":
         #     while True:
                 
@@ -253,7 +262,14 @@ class Node:
         
         
     
-    
+    def get_max_parallel_for_instance(self,instance):
+        max_parallel=1
+        for gpu_id in instance.gpu_id_list[instance.node_rank]:
+            max_parallel = max(max_parallel, self.dealing_instance_num_dict[gpu_id])
+        return max_parallel
+        
+        
+        
     def record_start_instance_for_mps_time_extend(self, instance):
         for gpu_index in instance.gpu_id_list[self.node_id]:
                 
