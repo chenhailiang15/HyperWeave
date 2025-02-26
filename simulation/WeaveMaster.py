@@ -135,8 +135,8 @@ class WeaveMaster:
         
         self.should_schedule=True
         
-        self.Weave_modify_factor=2
-        self.Muri_modify_factor=1.1
+        self.Weave_modify_factor=1.8
+        self.Muri_modify_factor=1
         #################################
 
         if self.print_level>0:

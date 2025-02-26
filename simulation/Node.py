@@ -225,19 +225,22 @@ class Node:
     
 
     def end_instance(self,instance):
-        time_extend=instance.duration_time
-        yield self.env.timeout(time_extend)
         if self.master.system=="Weave":
-            while True:
+            time_extend=instance.duration_time*self.master.Weave_modify_factor
+        else:
+            time_extend=instance.duration_time
+        yield self.env.timeout(time_extend)
+        # if self.master.system=="Weave":
+        #     while True:
                 
-                time_extend=instance.get_time_extend(self.env.now-time_extend, self.env.now)
+        #         time_extend=instance.get_time_extend(self.env.now-time_extend, self.env.now)*self.master.Weave_modify_factor
                 
-                if time_extend==0:
-                    break
-                else:
-                    yield self.env.timeout(time_extend)
+        #         if time_extend==0:
+        #             break
+        #         else:
+        #             yield self.env.timeout(time_extend)
                     
-            self.record_end_instance_for_mps_time_extend(instance)
+        #     self.record_end_instance_for_mps_time_extend(instance)
         
         if self.print_level > 5:
             print(f"node: {self.node_id} end instance:{instance.instance_name} !")
