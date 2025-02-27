@@ -170,7 +170,10 @@ class WeaveMaster:
         
         
     def get_mps_time_delay(self,parallel_number):
-        return self.a_time_delay*parallel_number+self.b_time_delay
+        if parallel_number==1:
+            return 1
+        else:
+            return self.a_time_delay*parallel_number+self.b_time_delay
 
 
     #初始化node信息
@@ -284,7 +287,7 @@ class WeaveMaster:
 
     def generate_job(self, ali_trace,job_idx):
         
-        if ali_trace["cpu_usage"]==0 or ali_trace["avg_mem"]==0:
+        if ali_trace["cpu_usage"]==0 or ali_trace["avg_mem"]==0 or ali_trace["duration_s"]>10000:
             return None
 
         model_name=self.model_info_list[self.model_info_list_index%self.model_info_list_max].split("-")[0]
@@ -764,24 +767,24 @@ def run_system(args):
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description='simulation for DL training job')
-    parser.add_argument("--system",default="Weave",type=str)
+    parser.add_argument("--system",default="Normal",type=str)
     parser.add_argument("--strategy", default="SRSF", type=str)
     parser.add_argument("--mps_flage", default="True", type=str)
     parser.add_argument("--sync_flage", default="True", type=str)
-    parser.add_argument("--job_together_flage", default="True", type=str)
+    parser.add_argument("--job_together_flage", default="False", type=str)
     parser.add_argument("--print_level", default=1, type=int)
     parser.add_argument("--node_kind", default="cluster", type=str, help="cluster, 4*3090, 3*2080ti, 4*2080")
     parser.add_argument("--model_kind", default="all_model", type=str, help="cv_model, all_model")
     parser.add_argument("--gpu_mem_percent", default=0.9, type=float, help="because of GPU fragement")
-    parser.add_argument("--node_num", default=200, type=int, help="only for node kind is cluster")
-    parser.add_argument("--job_num", default=10000, type=int)
+    parser.add_argument("--node_num", default=4, type=int, help="only for node kind is cluster")
+    parser.add_argument("--job_num", default=10, type=int)
     parser.add_argument("--validation", default="False", type=str)
     parser.add_argument("--overshared_factor", default=1.0, type=float)
     parser.add_argument("--write_sum", action='store_true')
     parser.add_argument("--write_trace", action='store_true')
     parser.add_argument("--couple_init_iter_percent", default=0.2,type=float)
     parser.add_argument("--bucket_length", default=100000000, type=int)
-    parser.add_argument("--trace_id", default=2, type=int)
+    parser.add_argument("--trace_id", default=0, type=int)
     
     
     

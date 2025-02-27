@@ -122,8 +122,12 @@ class Node:
                     satisfy_gpu_id_list.sort(key=lambda x: x[1], reverse=True)  # 进行排序，降序
                     max_gpu_num=min(math.floor(self.cpu_rest/cpu_need), math.floor(self.mem_rest/mem_need))
                     satisfy_gpu_id_list=satisfy_gpu_id_list[:max_gpu_num]
-
-            return satisfy_gpu_id_list, len(satisfy_gpu_id_list)
+                
+                node_score=0
+                for [i, ave_per] in satisfy_gpu_id_list:
+                     node_score+=ave_per
+                     
+            return satisfy_gpu_id_list, len(satisfy_gpu_id_list)+node_score
         
     def get_satisfy_gpu_num_by_cap(self,pack_resource, real):
         cpu_need = pack_resource[0]

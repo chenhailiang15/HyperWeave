@@ -7,13 +7,16 @@ gpu_mem_percent=0.9
 node_kind="cluster"                           #"s4*3090, 4*3090, 3*2080ti, 4*2080"
 model_kind="all_model"                       #"cv_model, all_model"
 print_level=5
-job_together_flage="True"
 validation="False"
-overshared_factor=1
+overshared_factor=3
 bucket_length=10000000
-node_num=200   #max 1814
+sync_flage="True"
+
+
+job_together_flage="False"
+node_num=4   #max 1814
 job_num=10000
-sync_flage="False"
+
 
 system=$1
 strategy=$2

@@ -222,6 +222,9 @@ class Instance:
         self.rest_batch_num=0
         self.init_iter_num=0
         
+        self.couple_instance_name =None
+        self.pack_gpu=job.plan_gpu
+        
 
     def __eq__(self, other):
         if isinstance(other, Instance):

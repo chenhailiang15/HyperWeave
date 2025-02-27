@@ -23,8 +23,10 @@ class Node:
         
         self.dealing_instance={}
         self.dealing_instance_name={}
+        self.dealing_instance_name_for_time_delay={}
         self.max_instance_num_for_single_gpu=float("inf")   #couple 算一个
         self.dealing_instance_num_dict={}
+        # self.dealing_instance_num_dict={}
         
         
         
@@ -45,6 +47,7 @@ class Node:
             self.dealing_instance[index]=[]
             self.dealing_instance_name[index]=[]
             self.dealing_instance_num_dict[index]=0
+            self.dealing_instance_name_for_time_delay[index]=set()
         
     
         
@@ -121,7 +124,10 @@ class Node:
                     max_gpu_num=min(math.floor(self.cpu_rest/cpu_need), math.floor(self.mem_rest/mem_need))
                     satisfy_gpu_id_list=satisfy_gpu_id_list[:max_gpu_num]
 
-            return satisfy_gpu_id_list, len(satisfy_gpu_id_list)
+                node_score=0
+                for [i, ave_per] in satisfy_gpu_id_list:
+                     node_score+=ave_per
+            return satisfy_gpu_id_list, len(satisfy_gpu_id_list)+node_score
 
 
 
@@ -210,7 +216,15 @@ class Node:
     def execute_instance(self, instance):
         #记录每个GPU正在运行的instance数量
         for gpu_id in instance.gpu_id_list[instance.node_rank]:
-            self.dealing_instance_num_dict[gpu_id]+=1
+            if instance.couple_instance_name==None and instance.pack_gpu!=0:
+                self.dealing_instance_num_dict[gpu_id]+=1
+                # self.dealing_instance_name_for_time_delay[gpu_id].append(instance.instance_name)
+            elif instance.couple_instance_name!=None and instance.pack_gpu!=0:
+                if instance.couple_instance_name not in self.dealing_instance_name_for_time_delay[gpu_id] :
+                    self.dealing_instance_num_dict[gpu_id]+=1
+                    self.dealing_instance_name_for_time_delay[gpu_id].add(instance.instance_name)
+                else:
+                    self.dealing_instance_name_for_time_delay[gpu_id].add(instance.instance_name)
         
         
         
@@ -232,13 +246,27 @@ class Node:
     
 
     def end_instance(self,instance):
-        if self.master.system=="Muri":
+        if self.master.system=="Muri" or instance.pack_gpu==0:
             time_extend=instance.duration_time
         else:
             time_extend=instance.duration_time*self.master.get_mps_time_delay(self.get_max_parallel_for_instance(instance))
         yield self.env.timeout(time_extend)
         for gpu_id in instance.gpu_id_list[instance.node_rank]:
-            self.dealing_instance_num_dict[gpu_id]-=1
+            if instance.couple_instance_name==None and instance.pack_gpu!=0:
+                self.dealing_instance_num_dict[gpu_id]-=1
+                # self.dealing_instance_name_for_time_delay[gpu_id].append(instance.instance_name)
+            elif instance.couple_instance_name!=None and instance.pack_gpu!=0:
+                if instance.couple_instance_name not in self.dealing_instance_name_for_time_delay[gpu_id] :
+                    self.dealing_instance_num_dict[gpu_id]-=1
+                    self.dealing_instance_name_for_time_delay[gpu_id].remove(instance.instance_name)
+                else:
+                    self.dealing_instance_name_for_time_delay[gpu_id].remove(instance.instance_name)
+            
+            
+            
+            
+            
+            
         # if self.master.system=="Weave":
         #     while True:
                 
