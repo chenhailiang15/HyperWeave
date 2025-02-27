@@ -7,13 +7,13 @@ gpu_mem_percent=0.9
 node_kind="cluster"                           #"s4*3090, 4*3090, 3*2080ti, 4*2080"
 model_kind="all_model"                       #"cv_model, all_model"
 print_level=5
-job_together_flage="False"
+job_together_flage="True"
 validation="False"
-overshared_factor=3
+overshared_factor=1
 bucket_length=10000000
 node_num=200   #max 1814
 job_num=10000
-
+sync_flage="False"
 
 system=$1
 strategy=$2
@@ -22,7 +22,7 @@ trace_id=$3
 python WeaveMaster.py --system ${system} --strategy ${strategy} \
     --node_kind ${node_kind} --model_kind ${model_kind} --gpu_mem_percent ${gpu_mem_percent} --job_num ${job_num}\
     --print_level ${print_level} --write_trace --write_sum  --overshared_factor ${overshared_factor} --job_together_flage ${job_together_flage}\
-    --validation ${validation} --node_num ${node_num} --trace_id ${trace_id} --bucket_length ${bucket_length}
+    --validation ${validation} --node_num ${node_num} --trace_id ${trace_id} --bucket_length ${bucket_length} --sync_flage ${sync_flage}
 
 
 # system="Weave"

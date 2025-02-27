@@ -237,11 +237,17 @@ class WeaveSchedulor:
         # not_matched_instance_name = set()
         for i in range(len(instances_list)-1, -1, -1):
             instance= instances_list[i]
-            if instance.job.init_iter_percent < self.master.couple_init_iter_percent:
-                pack_resource = [max(instance.job.used_resource_cpu), max(instance.job.used_resource_mem), max(instance.job.used_resource_gpu), max(instance.job.used_resource_gmem)]
-                out_matched_instances_list.append([instance, None, pack_resource])
-                instances_list.remove(instance)
-               
+            if self.master.args.job_together_flage=="True":
+                if instance.job.init_iter_percent < self.master.couple_init_iter_percent or self.master.weave_sync_mode==False:
+                    pack_resource = [max(instance.job.used_resource_cpu), max(instance.job.used_resource_mem), max(instance.job.used_resource_gpu), max(instance.job.used_resource_gmem)]
+                    out_matched_instances_list.append([instance, None, pack_resource])
+                    instances_list.remove(instance)
+            else:
+                if self.master.last_schedule_rest==False or instance.job.init_iter_percent < self.master.couple_init_iter_percent or self.master.weave_sync_mode==False:
+                    pack_resource = [max(instance.job.used_resource_cpu), max(instance.job.used_resource_mem), max(instance.job.used_resource_gpu), max(instance.job.used_resource_gmem)]
+                    out_matched_instances_list.append([instance, None, pack_resource])
+                    instances_list.remove(instance)
+                    
         if len(instances_list) == 0:
             return out_matched_instances_list
         
@@ -586,7 +592,8 @@ class WeaveSchedulor:
     #********************************************************************************Muri***********************************************************************************************
     #muri 调度主线
     def schedule_muri(self,job_list):
-        print("start schedule_muri... ")
+        if self.print_level>5:
+            print("start schedule_muri... ")
         self.global_idx_to_instance={}
         all_matched_instance_list=[]
         instance_group={}
@@ -608,11 +615,12 @@ class WeaveSchedulor:
                         instance_group[job.parallel_num].append(instance_mini)
                     else:
                         instance_group[job.parallel_num]=[instance_mini]
-        print("start Blossom_Same... ")
+        if self.print_level>5:
+            print("start Blossom_Same... ")
         packings=Blossom_Same.run(instance_group, self.master.monitor.get_idle_gpu_num())
-        print("end Blossom_Same... ")
+        if self.print_level>5:
+            print("end Blossom_Same... ")
         succeed_matched_instance_idx=set()
-        faile_matched_instance_idx=set()
         for gpu_num in packings:
             # print(f"blossom gpu num:{gpu_num} ... ")
             
@@ -624,44 +632,42 @@ class WeaveSchedulor:
                     # print(job_t.job_idx,end="\t")
                     matched_instance.append(self.global_idx_to_instance[instance_mini_t.job_idx])
                     #如果有一个已经属于被匹配了的，本次匹配失败，后续单独处理
+                    # print(instance_mini_t.job_idx,end="\t")
                     if instance_mini_t.job_idx in succeed_matched_instance_idx:
                         matched_flage=False
-                # print("")
+                
             
             
                 #处理一个匹配
-                if matched_flage==True:
+                if matched_flage==True and self.schedule_muri_is_max_resource_satisfy(matched_instance): #判断资源是否足够，足够才能算匹配成功
 
-                    if self.schedule_muri_is_max_resource_satisfy(matched_instance): #判断资源是否足够，足够才能算匹配成功
-
-                        # 将匹配后，两个及以上成功匹配的，放入缓存
-                        # assert len(matched_instance)>=2
-                        if len(matched_instance)<4:
-                            all_matched_instance_list.append(matched_instance)
-                        else:
-                            self.paired_instance_list.append(matched_instance)
-                            for instance in matched_instance:
-                                self.paired_instance_name.append(instance.instance_name)
-
-                        match_instance_num+=len(matched_instance)
-                        # print(f"0000000000000000000000000000000000000000000000000 match num:  {len(matched_job)}")
-                        for instance in matched_instance:
-                            succeed_matched_instance_idx.add(instance.instance_global_idx)
+                    # 将匹配后，两个及以上成功匹配的，放入缓存
+                    # assert len(matched_instance)>=2
+                    if len(matched_instance)<4:
+                        all_matched_instance_list.append(matched_instance)
                     else:
+                        self.paired_instance_list.append(matched_instance)
                         for instance in matched_instance:
-                            faile_matched_instance_idx.add(instance.instance_global_idx)
-                else:
+                            self.paired_instance_name.append(instance.instance_name)
+
+                    match_instance_num+=len(matched_instance)
                     for instance in matched_instance:
-                        faile_matched_instance_idx.add(instance.instance_global_idx)
-        print("end match... ")
+                        succeed_matched_instance_idx.add(instance.instance_global_idx)
+                    
+        if self.print_level>5:        
+            print("end match... ")
         #将失败的单独调度
-        for instance_global_idx in faile_matched_instance_idx:
-            if instance_global_idx not in succeed_matched_instance_idx:
-                all_matched_instance_list.append([self.global_idx_to_instance[instance_global_idx]])
-                match_instance_num+=1
+        for job in job_list:
+            for instance in job.instance_list:
+                if instance.instance_name not in self.paired_instance_name and instance.instance_global_idx not in succeed_matched_instance_idx:
+                    all_matched_instance_list.append([instance])
+                    match_instance_num+=1
+        
 
 
         # 这里是个判断，判断上述匹配是否已经完成所有匹配
+        if match_instance_num != need_match_instance_num:
+            a=1
         assert match_instance_num == need_match_instance_num
         all_matched_instance_list.extend(self.paired_instance_list)
         # try:
@@ -671,7 +677,8 @@ class WeaveSchedulor:
         #         if job.job_idx not in faile_matched_job_idx and job.job_idx not in succeed_matched_job_idx:
         #             print(f"******************fix blossom with add job:{job.job_idx}")
         #             all_matched_job_list.append([job])
-        print("start strategy... ")
+        if self.print_level>5:
+            print("start strategy... ")
         if self.strategy=="FIFO":
             self.schedule_muri_FIFO(all_matched_instance_list, job_list)
         elif self.strategy=="SRTF":
@@ -697,7 +704,7 @@ class WeaveSchedulor:
 
         pack_resource=[max_cpu, all_need_mem, max_gpu, 0]
         flage= self.master.monitor.judge_runable_with_resource(pack_resource, parallel_num, plan_flage=True, init=False)
-        if flage:
+        if flage and self.print_level>5:
             print(f"匹配好 {len(matched_instance)}，资源够")
         else:
             print(f"匹配好 {len(matched_instance)}，资源不够")
@@ -866,7 +873,7 @@ class WeaveSchedulor:
             early_end_instance.duration_time=cur_time
             temp_instance_list.remove(early_end_instance)
             acc_batch_num+=min_batch_num
-            if self.print_level>10:
+            if self.print_level>0:
                 print(f"instance {early_end_instance.instance_name}, init duration {early_end_instance.job.duration_time}, new duration {early_end_instance.duration_time}")
         return
 

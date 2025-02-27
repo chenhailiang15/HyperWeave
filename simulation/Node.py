@@ -232,10 +232,10 @@ class Node:
     
 
     def end_instance(self,instance):
-        if self.master.system=="Weave":
-            time_extend=instance.duration_time*self.master.get_mps_time_delay(self.get_max_parallel_for_instance(instance))
-        else:
+        if self.master.system=="Muri":
             time_extend=instance.duration_time
+        else:
+            time_extend=instance.duration_time*self.master.get_mps_time_delay(self.get_max_parallel_for_instance(instance))
         yield self.env.timeout(time_extend)
         for gpu_id in instance.gpu_id_list[instance.node_rank]:
             self.dealing_instance_num_dict[gpu_id]-=1
@@ -263,10 +263,11 @@ class Node:
         
     
     def get_max_parallel_for_instance(self,instance):
-        max_parallel=1
+        parallel_list=[]
         for gpu_id in instance.gpu_id_list[instance.node_rank]:
-            max_parallel = max(max_parallel, self.dealing_instance_num_dict[gpu_id])
-        return max_parallel
+            parallel_list.append(self.dealing_instance_num_dict[gpu_id])
+        print(f"parallel num: {np.mean(parallel_list)}")
+        return np.mean(parallel_list)
         
         
         

@@ -137,6 +137,7 @@ class WeaveMaster:
         
         self.Weave_modify_factor=1.8
         self.Muri_modify_factor=1
+        self.last_schedule_rest=False
         #################################
 
         if self.print_level>0:
@@ -185,6 +186,8 @@ class WeaveMaster:
             node_info_pd = self.load_csv(file_name,header=0)
             node_idx_order=0
             for index in range(len(node_info_pd)):
+                if node_info_pd.loc[index, "gpu_type"]!="V100M32":
+                    continue
                 name=node_info_pd.loc[index, "machine"]
                 cpu_cap= node_info_pd.loc[index, "cap_cpu"]*100.0
                 mem_cap=node_info_pd.loc[index, "cap_mem"]*1024.0
@@ -193,7 +196,7 @@ class WeaveMaster:
                     continue
                 gmem_cap=gpu_mem_dict[node_info_pd.loc[index, "gpu_type"]]*1024.0
                 node=Node(self, self.env,name,node_idx_order, self.overshared_factor, self.print_level)
-                node.set_init_resouce(cpu_cap, mem_cap, gpu_cap, gmem_cap)
+                node.set_init_resouce(cpu_cap, mem_cap, gpu_cap, gmem_cap*self.args.gpu_mem_percent)
                 self.nodes.append(node)
                 node_idx_order += 1
                 if node_idx_order>=self.args.node_num:
@@ -247,7 +250,7 @@ class WeaveMaster:
 
         self.env.process(self.job_come())
         self.env.process(self.schedule())
-        self.env.process(self.print_and_store_current_state())
+        self.print_and_store_current_state()
         self.env.run()
 
     # job到来的函数，持续运行，直到读取的文件中的job结束
@@ -437,9 +440,7 @@ class WeaveMaster:
 
             pack_resource=[ali_trace["plan_cpu"], ali_trace["plan_mem"]*1024, ali_trace["plan_gpu"],0]
             
-            if self.node_kind=="4*2080" and ali_trace["plan_mem"]>10:
-                print("job generate fail (plan mem is too big!)")
-                return None
+            
             
             
             if self.monitor.judge_runable_with_resource(pack_resource,job.parallel_num, plan_flage=True, init=True) == False:
@@ -467,7 +468,17 @@ class WeaveMaster:
             job.used_resource_gmem = [1024*ali_trace["avg_gpu_wrk_mem"]*self.analyze_loader.get_value(model_info,"stage_init", "gmem")/max_gmem_usage,\
                                     1024*ali_trace["avg_gpu_wrk_mem"]*self.analyze_loader.get_value(model_info,"stage_sample", "gmem")/max_gmem_usage,\
                                     1024*ali_trace["avg_gpu_wrk_mem"]*self.analyze_loader.get_value(model_info,"stage_train", "gmem")/max_gmem_usage]
+            
+            
+            
         pack_resource=[max(job.used_resource_cpu), max(job.used_resource_mem), max(job.used_resource_gpu), max(job.used_resource_gmem)]
+        
+        
+        if pack_resource[0]>job.plan_cpu or pack_resource[1]>job.plan_mem or pack_resource[2]>job.plan_gpu:
+            if self.print_level>=2:
+                print(f"job generate fail (used resource bigger than plan)!")
+            return None
+        
         # 并行度为1，实际使用为188，存在问题
         if self.monitor.judge_runable_with_resource(pack_resource, job.parallel_num, plan_flage=False, init=True) == False:
             if self.print_level>=2:
@@ -505,13 +516,21 @@ class WeaveMaster:
                 
                 rest_jobs=self.scheduler.do_schedule(wait_schedule_list)
                 
-
+                if len(rest_jobs)>0:
+                    self.last_schedule_rest=True
+                else:
+                    self.last_schedule_rest-False
                 for job in rest_jobs:
+                    
                     # print(f"wait for next scheduling:job name({job.job_name})")
                     self.wait_schedule_queue.put(job)
             
             self.queue_length.append(self.wait_schedule_queue.qsize())
+           
+            self.print_and_store_current_state()
             self.env.process(self.schedule())
+        else:
+            self.print_and_store_current_state()
                 
             
 
@@ -576,12 +595,12 @@ class WeaveMaster:
         self.print_current_state()
         self.write_current_state()
 
-        yield self.env.timeout(self.status_out_interval)
-        if not self.end_event.is_set():
-            self.env.process(self.print_and_store_current_state())
-        else:
-            self.print_current_state()
-            self.write_current_state()
+        # yield self.env.timeout(self.status_out_interval)
+        # if not self.end_event.is_set():
+        #     self.env.process(self.print_and_store_current_state())
+        # else:
+        #     self.print_current_state()
+        #     self.write_current_state()
 
 
     def print_current_state(self):
@@ -662,23 +681,24 @@ class WeaveMaster:
         temp_string+=f"MPS:{self.MPS_mode}\nSync:{self.weave_sync_mode}\n"
         temp_string+=f"overshared_factor:{self.overshared_factor}\ngpu_mem_percent:{self.args.gpu_mem_percent}\n"
         temp_string+=f"job_come_time_factor:{self.job_come_time_factor}\njob_duration_time_factor:{self.job_duration_time_factor}\njob_ddl_factor:{self.job_ddl_factor}\n"
-        temp_string+=f"node_num:{self.args.node_num}\n"
+        temp_string+=f"node_num:{self.node_num}\n"
         temp_string+=f"job_num:{self.args.job_num}\n"
         temp_string+=f"trace_id:{self.args.trace_id}\n"
         temp_string+=f"bucket_length:{self.args.bucket_length}\n"
         temp_string+=f"schedule_interval:{self.schedule_interval}\n"
         temp_string+=f"makespan_real:{self.makespan_real}\nmakespan:{self.makespan_sim}\n"
         temp_string+=f"job_come_num:{self.job_come_num}\nsucceed_job_num:{self.succeed_job_num}\nfailed_job_num:{self.failed_job_num}\n"
-        temp_string+=f"queue:{self.queue_length}\n"
-        temp_string+=f"job_wait_time_list:{self.job_wait_time_list}\n"
-        temp_string+=f"job_complete_time_list:{self.job_complete_time_list}\n"
         temp_string+=f"ali_trace_job_info_file_name:{self.ali_trace_job_info_file_name}\n"
         temp_string+=f"ali_trace_node_info_file_name:{self.ali_trace_node_info_file_name}\n"
         temp_string+=f"model_info_file_name:{self.model_info_file_name}\n"
         temp_string+=f"Bigstageresource_file_name:{self.Bigstageresource_file_name}\n"
         temp_string+=f"Ministagetime_file_name:{self.Ministagetime_file_name}\n"
+        temp_string+=self.sum_string+"\n"
+        temp_string+=f"queue:{self.queue_length}\n"
+        temp_string+=f"job_wait_time_list:{self.job_wait_time_list}\n"
+        temp_string+=f"job_complete_time_list:{self.job_complete_time_list}\n"
         
-        return temp_string+self.sum_string+"\n\n\n"
+        return temp_string
         
 
 
@@ -744,24 +764,24 @@ def run_system(args):
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description='simulation for DL training job')
-    parser.add_argument("--system",default="Normal",type=str)
+    parser.add_argument("--system",default="Weave",type=str)
     parser.add_argument("--strategy", default="SRSF", type=str)
     parser.add_argument("--mps_flage", default="True", type=str)
     parser.add_argument("--sync_flage", default="True", type=str)
     parser.add_argument("--job_together_flage", default="True", type=str)
-    parser.add_argument("--print_level", default=11, type=int)
-    parser.add_argument("--node_kind", default="4*3090", type=str, help="cluster, 4*3090, 3*2080ti, 4*2080")
+    parser.add_argument("--print_level", default=1, type=int)
+    parser.add_argument("--node_kind", default="cluster", type=str, help="cluster, 4*3090, 3*2080ti, 4*2080")
     parser.add_argument("--model_kind", default="all_model", type=str, help="cv_model, all_model")
     parser.add_argument("--gpu_mem_percent", default=0.9, type=float, help="because of GPU fragement")
-    parser.add_argument("--node_num", default=1000, type=int, help="only for node kind is cluster")
-    parser.add_argument("--job_num", default=100, type=int)
-    parser.add_argument("--validation", default="True", type=str)
-    parser.add_argument("--overshared_factor", default=3.0, type=float)
+    parser.add_argument("--node_num", default=200, type=int, help="only for node kind is cluster")
+    parser.add_argument("--job_num", default=10000, type=int)
+    parser.add_argument("--validation", default="False", type=str)
+    parser.add_argument("--overshared_factor", default=1.0, type=float)
     parser.add_argument("--write_sum", action='store_true')
     parser.add_argument("--write_trace", action='store_true')
     parser.add_argument("--couple_init_iter_percent", default=0.2,type=float)
-    parser.add_argument("--bucket_length", default=100000, type=int)
-    parser.add_argument("--trace_id", default=0, type=int)
+    parser.add_argument("--bucket_length", default=100000000, type=int)
+    parser.add_argument("--trace_id", default=2, type=int)
     
     
     
@@ -770,7 +790,7 @@ if __name__=="__main__":
 
 
     #control parameters
-    version=f"sim_v3.1_os{args.overshared_factor}"
+    version=f"sim_v4.0_os{args.overshared_factor}"
 
     system=args.system
     strategy=args.strategy
