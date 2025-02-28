@@ -40,13 +40,15 @@ def run_once(overshared_factor, trace_id):
     
 version="v1.0.0"
 task_args_list=[]
-for overshared_factor in range(1,  10):
-    for trace_id in [0,1,2,3]:
+for overshared_factor in np.arange(1,  5.01, 0.2):
+    overshared_factor=round(overshared_factor,1)
+    for trace_id in range(10):
+        print((overshared_factor, trace_id))
         task_args_list.append((overshared_factor, trace_id))
     
     
     
-with multiprocessing.Pool(processes=6) as pool:
+with multiprocessing.Pool(processes=30) as pool:
         # 使用 starmap 方法将任务分配给进程池中的进程执行
         result=pool.starmap(run_once, task_args_list)
         
