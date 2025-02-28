@@ -26,7 +26,9 @@ gpu_mem_dict={"T4":16.0,
               "MISC":16.0,
               "P100":16.0,
               "V100":16.0,
-              "V100M32":32.0
+              "V100M32":32.0,
+              "A100M40":40.0,
+              "A100M80":80.0
               }
 
 model_to_batch_size_g={"AlexNet" : [8,16,32,64,128],
@@ -300,7 +302,7 @@ class args_weave:
         self.job_come_time_factor=1
         self.write_trace=False
         self.write_sum=False
-        
+        self.gpu_kind="None"
         
     def set_queue(self, queue):
         self.queue=queue

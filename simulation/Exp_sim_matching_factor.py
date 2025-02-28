@@ -1,7 +1,7 @@
 from WeaveMaster import *
 from util import *
 import datetime
-
+import multiprocessing
 
 def generate_default_args():
     args=args_weave()
@@ -18,38 +18,36 @@ def generate_default_args():
     args.job_num=10000
     args.validation="False"
     args.overshared_factor=3
-    args.write_sum=False
-    args.write_trace=False
+    args.write_sum=True
+    args.write_trace=True
+    args.couple_init_iter_percent=0.2
+    args.job_come_time_factor=2
+    args.bucket_length=100000000
     return args
 
 
-def get_out_file_writer():
-    now_time= datetime.datetime.now()
-    formatted_time = now_time.strftime('%m_%d_%H_%M_%S')
-    out_file_name="Sim_match_factor-"+version+"_"+formatted_time+".txt"
-    cur_dir=os.path.dirname(os.path.abspath(__file__))
-    parent_dir= os.path.dirname(os.path.abspath(cur_dir))
-    file_writer=open(parent_dir+"/output/"+out_file_name,"w")
-    return file_writer
-
-
-version="v1.0.0"
-file_writer=get_out_file_writer()
-file_writer.write("JCT:")
-for index in range(1,  10):
-    
-    matching_factor=index/10
-    print(f"matching_factor:{matching_factor}",end="")
-    
+def run_once(matching_factor, trace_id):
+    print(f"start once {matching_factor}, {trace_id}")
     args=generate_default_args()
     args.couple_init_iter_percent=matching_factor
-    result_dict=run_system(args)
-    jct_value=result_dict["JCT"]
-    print(f"\tJCT:{jct_value}")
-    file_writer.write(f"({matching_factor},{jct_value}),")
-    file_writer.flush()
+    args.trace_id=trace_id
+    args_copy=copy.deepcopy(args)
+    run_system = Runsystem()
+    run_system.run(args_copy)
+    print(f"End once {matching_factor}, {trace_id}")
+    
+version="v1.0.0"
+task_args_list=[]
+for matching_factor in np.arange(0,  1.01, 0.1):
+    matching_factor=round(matching_factor,1)
+    for trace_id in range(10):
+        print((matching_factor, trace_id))
+        task_args_list.append((matching_factor, trace_id))
     
     
-sum_info=result_dict["sum_info"]
-file_writer.write(f"\n{sum_info}")
-file_writer.close()
+    
+with multiprocessing.Pool(processes=40) as pool:
+        # 使用 starmap 方法将任务分配给进程池中的进程执行
+        result=pool.starmap(run_once, task_args_list)
+        
+print("End all sub threadings")

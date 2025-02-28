@@ -28,27 +28,29 @@ def generate_default_args():
 
 
 
-def run_once(overshared_factor, trace_id):
-    print(f"start once {overshared_factor}, {trace_id}")
+def run_once(overshared_factor, trace_id, gpu_kind):
+    print(f"start once {overshared_factor}, {trace_id}, {gpu_kind}")
     args=generate_default_args()
     args.overshared_factor=overshared_factor
     args.trace_id=trace_id
+    args.gpu_kind=gpu_kind
     args_copy=copy.deepcopy(args)
     run_system = Runsystem()
     run_system.run(args_copy)
-    print(f"End once {overshared_factor}, {trace_id}")
+    print(f"End once {overshared_factor}, {trace_id}, {gpu_kind}")
     
 version="v1.0.0"
 task_args_list=[]
-for overshared_factor in np.arange(1,  5.01, 0.2):
-    overshared_factor=round(overshared_factor,1)
-    for trace_id in range(10):
-        print((overshared_factor, trace_id))
-        task_args_list.append((overshared_factor, trace_id))
+for gpu_kind in ["V100","A100M40","A100M80"]:
+    for overshared_factor in np.arange(1,  5.01, 1):
+        overshared_factor=round(overshared_factor,1)
+        for trace_id in range(10):
+            print((overshared_factor, trace_id, gpu_kind))
+            task_args_list.append((overshared_factor, trace_id, gpu_kind))
     
     
     
-with multiprocessing.Pool(processes=30) as pool:
+with multiprocessing.Pool(processes=40) as pool:
         # 使用 starmap 方法将任务分配给进程池中的进程执行
         result=pool.starmap(run_once, task_args_list)
         

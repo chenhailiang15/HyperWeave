@@ -202,7 +202,10 @@ class WeaveMaster:
                 gpu_cap=node_info_pd.loc[index, "cap_gpu"]
                 if gpu_cap==0:
                     continue
-                gmem_cap=gpu_mem_dict[node_info_pd.loc[index, "gpu_type"]]*1024.0
+                if self.args.gpu_kind=="None":
+                    gmem_cap=gpu_mem_dict[node_info_pd.loc[index, "gpu_type"]]*1024.0
+                else:
+                    gmem_cap=gpu_mem_dict[self.args.gpu_kind]*1024
                 node=Node(self, self.env,name,node_idx_order, self.overshared_factor, self.print_level)
                 node.set_init_resouce(cpu_cap, mem_cap, gpu_cap, gmem_cap*self.args.gpu_mem_percent)
                 self.nodes.append(node)
@@ -737,7 +740,7 @@ class Runsystem:
         
         
         #control parameters
-        version=f"sim_v5.1_os{args.overshared_factor}_trace{args.trace_id}_together{args.job_together_flage}"
+        version=f"sim_v5.2_os{args.overshared_factor}_trace{args.trace_id}_together{args.job_together_flage}_match{args.couple_init_iter_percent}_bucket{args.bucket_length}_gpukind{args.gpu_kind}"
 
         system=args.system
         strategy=args.strategy
@@ -793,7 +796,7 @@ if __name__=="__main__":
     parser.add_argument("--bucket_length", default=100000000, type=int)
     parser.add_argument("--trace_id", default=0, type=int)
     parser.add_argument("--job_come_time_factor", default=1, type=int)
-    
+    parser.add_argument("--gpu_kind", default="None", type=str)
     
     
     args=parser.parse_args()
