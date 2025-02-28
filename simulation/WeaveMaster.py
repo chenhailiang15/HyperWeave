@@ -414,14 +414,16 @@ class WeaveMaster:
             commu_time=self.analyze_loader.get_time_value(model_info,3)
             one_batch_time=get_data_time+forward_back_time+commu_time
             
-            total_epochs_r= random.randint(10, 100)
-            if one_sample_time==0:
-                total_epochs_max=float("inf")
-            else:
-                total_epochs_max=math.ceil((duration_time-init_time)/one_sample_time)
-            total_epochs=min(total_epochs_r, total_epochs_max)
+            # total_epochs_r= random.randint(100, 10000)  #10-100
+            # if one_sample_time==0:
+            #     total_epochs_max=float("inf")
+            # else:
+            #     total_epochs_max=math.ceil((duration_time-init_time)/one_sample_time)
+            # total_epochs=min(total_epochs_r, total_epochs_max)
+            epoch_time=self.analyze_loader.get_value(model_info,"stage_sample","time")+self.analyze_loader.get_value(model_info,"stage_train","time")
+            total_epochs=math.ceil((ali_trace["duration_s"]/self.job_duration_time_factor-init_time)/epoch_time)
             
-            batch_num=math.ceil(((duration_time-init_time)/total_epochs-one_sample_time)/one_batch_time)
+            batch_num=math.ceil(epoch_time/one_batch_time)
             
             
             job = Job(job_idx, self.system)
@@ -740,7 +742,7 @@ class Runsystem:
         
         
         #control parameters
-        version=f"sim_v5.2_os{args.overshared_factor}_trace{args.trace_id}_together{args.job_together_flage}_match{args.couple_init_iter_percent}_bucket{args.bucket_length}_gpukind{args.gpu_kind}"
+        version=f"sim_v6.0_os{args.overshared_factor}_trace{args.trace_id}_together{args.job_together_flage}_match{args.couple_init_iter_percent}_bucket{args.bucket_length}_gpukind{args.gpu_kind}"
 
         system=args.system
         strategy=args.strategy
