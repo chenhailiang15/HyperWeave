@@ -52,28 +52,53 @@ def run_once(system, strategy, job_together_flage, trace_id):
     
 
 version="v1.0.0"
-# file_writer=get_out_file_writer()
-# file_writer.write("JCT:")
-thread_list=[]
+
+task_args_list=[]
 
 for trace_id in [0,1,2,3]:
-    for job_together_flage in ["True", "False"]:
-        for system in [ "Normal","Muri", "Weave"]:
+    for job_together_flage in ["True"]:#, "False"
+        for system in ["Muri"]: #"Normal","Muri", "Weave"
             if system == "Weave":
                 strategy="BN-SRSF"
-                thread_hand=multiprocessing.Process(target=run_once, args=(system, strategy, job_together_flage, trace_id))
-                thread_list.append(thread_hand)
-                thread_hand.start()
+                task_args_list.append((system, strategy, job_together_flage, trace_id))
+                
             else:
                 for strategy in ["FIFO","SRTF", "SRSF"]:
-                    if system=="Muri" and job_together_flage=="True":
-                        continue
-                    thread_hand=multiprocessing.Process(target=run_once, args=(system, strategy, job_together_flage, trace_id))
-                    thread_list.append(thread_hand)
-                    thread_hand.start()
+                    # if system=="Muri" and job_together_flage=="True":
+                    #     continue
+                    task_args_list.append((system, strategy, job_together_flage, trace_id))
 
-for thread_hand in thread_list:
-    thread_hand.join()
+with multiprocessing.Pool(processes=6) as pool:
+        # 使用 starmap 方法将任务分配给进程池中的进程执行
+        pool.starmap(run_once, task_args_list)
+
+
+
+
+
+
+
+
+# thread_list=[]
+
+# for trace_id in [0,1,2,3]:
+#     for job_together_flage in ["True", "False"]:
+#         for system in [ "Normal","Muri", "Weave"]:
+#             if system == "Weave":
+#                 strategy="BN-SRSF"
+#                 thread_hand=multiprocessing.Process(target=run_once, args=(system, strategy, job_together_flage, trace_id))
+#                 thread_list.append(thread_hand)
+#                 thread_hand.start()
+#             else:
+#                 for strategy in ["FIFO","SRTF", "SRSF"]:
+#                     if system=="Muri" and job_together_flage=="True":
+#                         continue
+#                     thread_hand=multiprocessing.Process(target=run_once, args=(system, strategy, job_together_flage, trace_id))
+#                     thread_list.append(thread_hand)
+#                     thread_hand.start()
+
+# for thread_hand in thread_list:
+#     thread_hand.join()
     
 print("End all sub threadings")
              
