@@ -20,7 +20,7 @@ import random
 import copy
 from blossom import _Blossom_Same
 random.seed(3)
-result_dict={}
+
 #cpu, gpu 按照百分比表示需求和剩余，即1个GPU 表示为100
 #mem, gmem按照存储单位表示，本平台中使用MB
 
@@ -141,6 +141,7 @@ class WeaveMaster:
         self.Weave_modify_factor=1.8
         self.Muri_modify_factor=1
         self.last_schedule_rest=False
+        
         #################################
 
         if self.print_level>0:
@@ -668,7 +669,7 @@ class WeaveMaster:
             print(out_string2)
         
         self.sum_string=out_string1+"\n"+out_string2
-        result_dict["JCT"]=_mean
+        self.ave_jct=_mean
 
 
 
@@ -725,48 +726,50 @@ def experiment_one_group_parameters(args, file_sum, file_trace, print_level):
         out_string=weave_master.get_sum_info()
         file_sum.write(out_string)
         file_sum.flush()
-        
-    result_dict["sum_info"]= weave_master.get_sum_info()
-
-
-
-def run_system(args):
-    global result_dict
+    result=str(weave_master.ave_jct)+"\n"
+    result+= weave_master.get_sum_info()
     
-    #control parameters
-    version=f"sim_v5.1_os{args.overshared_factor}_trace{args.trace_id}_together{args.job_together_flage}"
+    return result
 
-    system=args.system
-    strategy=args.strategy
-    write_sum =args.write_sum
-    write_trace = args.write_trace
-    print_level=args.print_level
 
-    cur_dir=os.path.dirname(os.path.abspath(__file__))
-    parent_dir= os.path.dirname(os.path.abspath(cur_dir))
-    # 格式化输出
-    now_time= datetime.datetime.now()
-    formatted_time = now_time.strftime('%m_%d_%H_%M_%S')
-    sim_sum_file_name="Sim_sum-"+system+"_"+strategy+"-"+version+"_"+formatted_time+".txt"
-    sim_trace_file_name="Sim_trace_"+system+"_"+strategy+"_"+version+"_"+formatted_time+".csv"
-    if write_sum:
-        file_sum=open(parent_dir+"/output/"+sim_sum_file_name,"w")
-    else:
-        file_sum=None
-
-    if write_trace:
-        file_trace = open(parent_dir + "/output/" + sim_trace_file_name, "w")
-    else:
-        file_trace=None
-
-    experiment_one_group_parameters(args, file_sum, file_trace, print_level)
-
-    if write_sum:
-        file_sum.close()
-    if write_trace:
-        file_trace.close()
+class Runsystem:
+    def run(self, args):
         
-    return result_dict
+        
+        #control parameters
+        version=f"sim_v5.1_os{args.overshared_factor}_trace{args.trace_id}_together{args.job_together_flage}"
+
+        system=args.system
+        strategy=args.strategy
+        write_sum =args.write_sum
+        write_trace = args.write_trace
+        print_level=args.print_level
+
+        cur_dir=os.path.dirname(os.path.abspath(__file__))
+        parent_dir= os.path.dirname(os.path.abspath(cur_dir))
+        # 格式化输出
+        now_time= datetime.datetime.now()
+        formatted_time = now_time.strftime('%m_%d_%H_%M_%S')
+        sim_sum_file_name="Sim_sum-"+system+"_"+strategy+"-"+version+"_"+formatted_time+".txt"
+        sim_trace_file_name="Sim_trace_"+system+"_"+strategy+"_"+version+"_"+formatted_time+".csv"
+        if write_sum:
+            file_sum=open(parent_dir+"/output/"+sim_sum_file_name,"w")
+        else:
+            file_sum=None
+
+        if write_trace:
+            file_trace = open(parent_dir + "/output/" + sim_trace_file_name, "w")
+        else:
+            file_trace=None
+
+        result=experiment_one_group_parameters(args, file_sum, file_trace, print_level)
+
+        if write_sum:
+            file_sum.close()
+        if write_trace:
+            file_trace.close()
+            
+        return result
 
 
 if __name__=="__main__":

@@ -1,28 +1,29 @@
 from WeaveMaster import *
 from util import *
 import datetime
-import threading
+import multiprocessing
 
 def generate_default_args():
     args=args_weave()
-    args.system="Weave"
-    args.strategy="BN-SRSF"
+    # args.system="Weave"
+    # args.strategy="BN-SRSF"
     args.mps_flage="True"
     args.sync_flage="True"
-    args.job_together_flage="False"
+    # args.job_together_flage="False"
     args.print_level=0
     args.node_kind="cluster"
     args.model_kind="all_model"
     args.gpu_mem_percent=0.9
-    args.node_num=200
-    args.job_num=1000
+    args.node_num=100
+    args.job_num=10000
     args.validation="False"
     args.overshared_factor=3
     args.write_sum=True
     args.write_trace=True
     args.couple_init_iter_percent=0.2
     args.job_come_time_factor=2
-    args.trace_id=0
+    args.bucket_length=100000000
+    # args.trace_id=0
     
     return args
 
@@ -43,8 +44,9 @@ def run_once(system, strategy, job_together_flage, trace_id):
     args.strategy=strategy
     args.job_together_flage=job_together_flage
     args.trace_id=trace_id
-    
-    run_system(args)
+    args_copy=copy.deepcopy(args)
+    run_system = Runsystem()
+    run_system.run(args_copy)
     print(f"End once {system}, {strategy}, {job_together_flage}, {trace_id}")
     
     
@@ -53,19 +55,20 @@ version="v1.0.0"
 # file_writer=get_out_file_writer()
 # file_writer.write("JCT:")
 thread_list=[]
+
 for trace_id in [0,1,2,3]:
     for job_together_flage in ["True", "False"]:
         for system in [ "Normal","Muri", "Weave"]:
             if system == "Weave":
                 strategy="BN-SRSF"
-                thread_hand=threading.Thread(target=run_once, args=(system, strategy, job_together_flage, trace_id))
+                thread_hand=multiprocessing.Process(target=run_once, args=(system, strategy, job_together_flage, trace_id))
                 thread_list.append(thread_hand)
                 thread_hand.start()
             else:
                 for strategy in ["FIFO","SRTF", "SRSF"]:
                     if system=="Muri" and job_together_flage=="True":
                         continue
-                    thread_hand=threading.Thread(target=run_once, args=(system, strategy, job_together_flage, trace_id))
+                    thread_hand=multiprocessing.Process(target=run_once, args=(system, strategy, job_together_flage, trace_id))
                     thread_list.append(thread_hand)
                     thread_hand.start()
 
