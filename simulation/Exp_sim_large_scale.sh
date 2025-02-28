@@ -14,7 +14,7 @@ sync_flage="True"
 
 
 job_together_flage="False"
-node_num=4   #max 1814
+node_num=100   #max 1814
 job_num=10000
 
 

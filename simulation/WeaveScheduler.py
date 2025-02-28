@@ -5,7 +5,7 @@ import threading
 from util import *
 import copy
 import time
-from blossom import Blossom_Same
+# from blossom import Blossom_Same
 
 
 class WeaveSchedulor:
@@ -617,7 +617,7 @@ class WeaveSchedulor:
                         instance_group[job.parallel_num]=[instance_mini]
         if self.print_level>5:
             print("start Blossom_Same... ")
-        packings=Blossom_Same.run(instance_group, self.master.monitor.get_idle_gpu_num())
+        packings=self.master.Blossom_Same.run(instance_group, self.master.monitor.get_idle_gpu_num())
         if self.print_level>5:
             print("end Blossom_Same... ")
         succeed_matched_instance_idx=set()
@@ -704,10 +704,12 @@ class WeaveSchedulor:
 
         pack_resource=[max_cpu, all_need_mem, max_gpu, 0]
         flage= self.master.monitor.judge_runable_with_resource(pack_resource, parallel_num, plan_flage=True, init=False)
-        if flage and self.print_level>5:
-            print(f"匹配好 {len(matched_instance)}，资源够")
+        if flage:
+            if self.print_level>5:
+                print(f"匹配好 {len(matched_instance)}，资源够")
         else:
-            print(f"匹配好 {len(matched_instance)}，资源不够")
+            if self.print_level>5:
+                print(f"匹配好 {len(matched_instance)}，资源不够")
         return flage
         
     
@@ -720,7 +722,8 @@ class WeaveSchedulor:
             order_matched_instances.append([arrive_time, instance_list])
         #matched_jobs排序
         order_matched_instances.sort(key=lambda x : x[0])
-        print("start schedule ordered_matched_job_list... ")
+        if self.print_level>2:
+            print("start schedule ordered_matched_job_list... ")
         self.schedule_muri_ordered_matched_job_list(order_matched_instances, job_list)
 
     

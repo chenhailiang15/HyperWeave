@@ -297,6 +297,10 @@ class args_weave:
         self.couple_init_iter_percent=0.2
         self.bucket_length=10000
         self.trace_id=0
+        self.job_come_time_factor=1
+        self.write_trace=False
+        self.write_sum=False
+        
         
     def set_queue(self, queue):
         self.queue=queue

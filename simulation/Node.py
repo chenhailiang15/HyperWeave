@@ -294,7 +294,7 @@ class Node:
         parallel_list=[]
         for gpu_id in instance.gpu_id_list[instance.node_rank]:
             parallel_list.append(self.dealing_instance_num_dict[gpu_id])
-        print(f"parallel num: {np.mean(parallel_list)}")
+        # print(f"parallel num: {np.mean(parallel_list)}")
         return np.mean(parallel_list)
         
         

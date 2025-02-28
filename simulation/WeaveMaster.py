@@ -18,6 +18,7 @@ from WeaveMonitor import WeaveMonitor
 import simpy
 import random
 import copy
+from blossom import _Blossom_Same
 random.seed(3)
 result_dict={}
 #cpu, gpu 按照百分比表示需求和剩余，即1个GPU 表示为100
@@ -59,8 +60,8 @@ class WeaveMaster:
         
 
         self.print_level=print_level
-
-        self.job_come_time_factor = 1
+        self.job_come_time_factor = int(self.args.job_come_time_factor)
+        
         
         
         
@@ -75,12 +76,14 @@ class WeaveMaster:
             self.ali_trace_job_info_file_name="ali_trace_job_info_sift_plan_gpu.csv"
             self.schedule_interval = 10
             self.status_out_interval=10
+            
 
         elif self.args.validation=="False":
             #纯仿真
             self.ali_trace_job_info_file_name="ali_trace_job_info_clear.csv"
             self.schedule_interval = 360
             self.status_out_interval=360
+            
             
         else:
             print("validation is wrong!")
@@ -166,6 +169,7 @@ class WeaveMaster:
         self.init_model_info()
         
         self.a_time_delay, self.b_time_delay=fit_mps_time_delay()
+        self.Blossom_Same = _Blossom_Same()
 
         
         
@@ -287,7 +291,7 @@ class WeaveMaster:
 
     def generate_job(self, ali_trace,job_idx):
         
-        if ali_trace["cpu_usage"]==0 or ali_trace["avg_mem"]==0 or ali_trace["duration_s"]>10000:
+        if ali_trace["cpu_usage"]==0 or ali_trace["avg_mem"]==0 or ali_trace["duration_s"]>100000: #
             return None
 
         model_name=self.model_info_list[self.model_info_list_index%self.model_info_list_max].split("-")[0]
@@ -730,12 +734,12 @@ def run_system(args):
     global result_dict
     
     #control parameters
-    version=f"sim_v2.2.0_os{args.overshared_factor}"
+    version=f"sim_v5.1_os{args.overshared_factor}_trace{args.trace_id}_together{args.job_together_flage}"
 
     system=args.system
     strategy=args.strategy
-    write_sum =False#args.write_sum
-    write_trace = False#args.write_trace
+    write_sum =args.write_sum
+    write_trace = args.write_trace
     print_level=args.print_level
 
     cur_dir=os.path.dirname(os.path.abspath(__file__))
@@ -743,8 +747,8 @@ def run_system(args):
     # 格式化输出
     now_time= datetime.datetime.now()
     formatted_time = now_time.strftime('%m_%d_%H_%M_%S')
-    sim_sum_file_name="Sim_Sum-"+system+"_"+strategy+"-"+version+"_"+formatted_time+".txt"
-    sim_trace_file_name="Sim_Trace_"+system+"_"+strategy+"_"+version+"_"+formatted_time+".csv"
+    sim_sum_file_name="Sim_sum-"+system+"_"+strategy+"-"+version+"_"+formatted_time+".txt"
+    sim_trace_file_name="Sim_trace_"+system+"_"+strategy+"_"+version+"_"+formatted_time+".csv"
     if write_sum:
         file_sum=open(parent_dir+"/output/"+sim_sum_file_name,"w")
     else:
@@ -767,8 +771,8 @@ def run_system(args):
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description='simulation for DL training job')
-    parser.add_argument("--system",default="Normal",type=str)
-    parser.add_argument("--strategy", default="SRSF", type=str)
+    parser.add_argument("--system",default="Muri",type=str)
+    parser.add_argument("--strategy", default="SRTF", type=str)
     parser.add_argument("--mps_flage", default="True", type=str)
     parser.add_argument("--sync_flage", default="True", type=str)
     parser.add_argument("--job_together_flage", default="False", type=str)
@@ -776,8 +780,8 @@ if __name__=="__main__":
     parser.add_argument("--node_kind", default="cluster", type=str, help="cluster, 4*3090, 3*2080ti, 4*2080")
     parser.add_argument("--model_kind", default="all_model", type=str, help="cv_model, all_model")
     parser.add_argument("--gpu_mem_percent", default=0.9, type=float, help="because of GPU fragement")
-    parser.add_argument("--node_num", default=4, type=int, help="only for node kind is cluster")
-    parser.add_argument("--job_num", default=10, type=int)
+    parser.add_argument("--node_num", default=100, type=int, help="only for node kind is cluster")
+    parser.add_argument("--job_num", default=1000, type=int)
     parser.add_argument("--validation", default="False", type=str)
     parser.add_argument("--overshared_factor", default=1.0, type=float)
     parser.add_argument("--write_sum", action='store_true')
@@ -785,7 +789,7 @@ if __name__=="__main__":
     parser.add_argument("--couple_init_iter_percent", default=0.2,type=float)
     parser.add_argument("--bucket_length", default=100000000, type=int)
     parser.add_argument("--trace_id", default=0, type=int)
-    
+    parser.add_argument("--job_come_time_factor", default=1, type=int)
     
     
     
@@ -793,7 +797,7 @@ if __name__=="__main__":
 
 
     #control parameters
-    version=f"sim_v4.0_os{args.overshared_factor}"
+    version=f"sim_v5.0_os{args.overshared_factor}_trace{args.trace_id}"
 
     system=args.system
     strategy=args.strategy

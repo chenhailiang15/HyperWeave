@@ -656,7 +656,7 @@ class _Blossom_Same(object):
             self.required_gpu += len(run_jobs_dict[key])*key
         # print("required gpu: ", self.required_gpu)
         for _ in range(0, packing_num):
-            print("pack once")
+            # print("pack once...")
             new_gpu_packing = self.blossom_one_round(gpu_packing, ordering)
             gpu_packing = new_gpu_packing
             if self.required_gpu <= self.cluster_gpu :
@@ -669,4 +669,5 @@ class _Blossom_Same(object):
         
         return gpu_packing
 
-Blossom_Same = _Blossom_Same()
+
+# Blossom_Same = _Blossom_Same()

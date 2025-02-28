@@ -12,7 +12,7 @@ print_level=10
 overshared_factor=3
 job_together_flage="True"
 validation="True"
-trace_id=1
+trace_id=0
 
 
 
