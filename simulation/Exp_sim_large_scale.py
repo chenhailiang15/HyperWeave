@@ -51,24 +51,24 @@ def run_once(system, strategy, job_together_flage, trace_id):
     
     
 
-version="v1.0.0"
+
 
 task_args_list=[]
 
 for trace_id in [0,1,2,3]:
-    for job_together_flage in ["True"]:#, "False"
-        for system in ["Muri"]: #"Normal","Muri", "Weave"
+    for job_together_flage in ["True", "False"]:#
+        for system in ["Normal","Muri", "Weave"]: #"Normal","Muri", "Weave"
             if system == "Weave":
                 strategy="BN-SRSF"
                 task_args_list.append((system, strategy, job_together_flage, trace_id))
                 
             else:
                 for strategy in ["FIFO","SRTF", "SRSF"]:
-                    # if system=="Muri" and job_together_flage=="True":
-                    #     continue
+                    if system=="Muri" and job_together_flage=="True":
+                        continue
                     task_args_list.append((system, strategy, job_together_flage, trace_id))
 
-with multiprocessing.Pool(processes=6) as pool:
+with multiprocessing.Pool(processes=8) as pool:
         # 使用 starmap 方法将任务分配给进程池中的进程执行
         pool.starmap(run_once, task_args_list)
 

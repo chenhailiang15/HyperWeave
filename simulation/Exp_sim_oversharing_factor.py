@@ -39,10 +39,10 @@ def run_once(overshared_factor, trace_id, gpu_kind):
     run_system.run(args_copy)
     print(f"End once {overshared_factor}, {trace_id}, {gpu_kind}")
     
-version="v1.0.0"
+
 task_args_list=[]
-for gpu_kind in ["V100","A100M40","A100M80"]:
-    for overshared_factor in np.arange(1,  5.01, 1):
+for gpu_kind in ["P100","V100M32","A100M80"]:
+    for overshared_factor in np.arange(1,  5.01, 0.1):
         overshared_factor=round(overshared_factor,1)
         for trace_id in range(10):
             print((overshared_factor, trace_id, gpu_kind))

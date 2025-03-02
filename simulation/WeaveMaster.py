@@ -428,7 +428,6 @@ class WeaveMaster:
             
             job = Job(job_idx, self.system)
             job_name = ali_trace["job_name"]
-            job.set_model_info(job_name, model_name,total_epochs, batch_size)
             if model_name == "GCN":
                 job.set_model_info(job_name, model_name,total_epochs, batch_size, layer_num=100, layer_feature=100)
             else:
@@ -492,6 +491,10 @@ class WeaveMaster:
                 print(f"job generate fail (used resource bigger than plan)!")
             return None
         
+        if pack_resource[2]/job.parallel_num<10:
+            if self.print_level>=2:
+                print(f"job generate fail (used GPU resource not well)!{pack_resource}")
+            return None
         # 并行度为1，实际使用为188，存在问题
         if self.monitor.judge_runable_with_resource(pack_resource, job.parallel_num, plan_flage=False, init=True) == False:
             if self.print_level>=2:
@@ -805,7 +808,7 @@ if __name__=="__main__":
 
 
     #control parameters
-    version=f"sim_v5.0_os{args.overshared_factor}_trace{args.trace_id}"
+    version=f"sim_v6.0_os{args.overshared_factor}_trace{args.trace_id}"
 
     system=args.system
     strategy=args.strategy

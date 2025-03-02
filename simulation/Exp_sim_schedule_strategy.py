@@ -1,7 +1,7 @@
 from WeaveMaster import *
 from util import *
 import datetime
-
+import multiprocessing
 
 def generate_default_args():
     args=args_weave()
@@ -14,42 +14,39 @@ def generate_default_args():
     args.node_kind="cluster"
     args.model_kind="all_model"
     args.gpu_mem_percent=0.9
-    args.node_num=100
+    args.node_num=4
     args.job_num=10000
     args.validation="False"
-    args.overshared_factor=3
-    args.write_sum=False
-    args.write_trace=False
+    args.overshared_factor=2
+    args.write_sum=True
+    args.write_trace=True
+    args.couple_init_iter_percent=0.2
+    args.job_come_time_factor=2
+    args.bucket_length=100000000
+    args.gpu_kind="V100M32"
     return args
 
 
-def get_out_file_writer():
-    now_time= datetime.datetime.now()
-    formatted_time = now_time.strftime('%m_%d_%H_%M_%S')
-    out_file_name="Sim_schedule_strategy-"+version+"_"+formatted_time+".txt"
-    cur_dir=os.path.dirname(os.path.abspath(__file__))
-    parent_dir= os.path.dirname(os.path.abspath(cur_dir))
-    file_writer=open(parent_dir+"/output/"+out_file_name,"w")
-    return file_writer
-
-
-version="v1.0.0"
-file_writer=get_out_file_writer()
-file_writer.write("JCT:")
-for strategy in ["FIFO", "SRTF", "SRSF","BN-SRSF"]:
-    
-
-    print(f"matching_factor:{strategy}",end="")
-    
+def run_once(strategy, trace_id):
+    print(f"start once {strategy}, {trace_id}")
     args=generate_default_args()
     args.strategy=strategy
-    result_dict=run_system(args)
-    jct_value=result_dict["JCT"]
-    print(f"\tJCT:{jct_value}")
-    file_writer.write(f"({strategy},{jct_value}),")
-    file_writer.flush()
+    args.trace_id=trace_id
+    args_copy=copy.deepcopy(args)
+    run_system = Runsystem()
+    run_system.run(args_copy)
+    print(f"End once {strategy}, {trace_id}")
+    
+
+task_args_list=[]
+for strategy in ["FIFO", "SRTF", "SRSF", "BN-SRSF"]:
+    for trace_id in range(10):
+        task_args_list.append((strategy, trace_id))
     
     
-sum_info=result_dict["sum_info"]
-file_writer.write(f"\n{sum_info}")
-file_writer.close()
+    
+with multiprocessing.Pool(processes=40) as pool:
+        # 使用 starmap 方法将任务分配给进程池中的进程执行
+        result=pool.starmap(run_once, task_args_list)
+        
+print("End all sub threadings")

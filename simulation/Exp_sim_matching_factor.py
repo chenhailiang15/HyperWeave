@@ -9,7 +9,7 @@ def generate_default_args():
     args.strategy="BN-SRSF"
     args.mps_flage="True"
     args.sync_flage="True"
-    args.job_together_flage="False"
+    args.job_together_flage="True"
     args.print_level=0
     args.node_kind="cluster"
     args.model_kind="all_model"
@@ -17,12 +17,13 @@ def generate_default_args():
     args.node_num=100
     args.job_num=10000
     args.validation="False"
-    args.overshared_factor=3
+    args.overshared_factor=2
     args.write_sum=True
     args.write_trace=True
     args.couple_init_iter_percent=0.2
     args.job_come_time_factor=2
     args.bucket_length=100000000
+    args.gpu_kind="V100M32"
     return args
 
 
