@@ -220,6 +220,14 @@ class WeaveMaster:
             self.nodes.append(node_3090)
             self.node_num =1
             
+        
+            
+        elif self.node_kind=="s4*3090":
+            node_3090=Node(self,self.env, "3090node", 0, self.overshared_factor, self.print_level)
+            node_3090.set_init_resouce(46*100, 235*1024, 4, 24*1024*self.args.gpu_mem_percent)
+            self.nodes.append(node_3090)
+            self.node_num =1
+            
         elif self.node_kind=="3*2080ti":
             node_2080ti=Node(self, self.env, "2080tinode",0, self.overshared_factor, self.print_level)
             node_2080ti.set_init_resouce(48*100,120*1024, 3, 11*1024*self.args.gpu_mem_percent)
@@ -806,7 +814,7 @@ if __name__=="__main__":
     parser.add_argument("--couple_init_iter_percent", default=0.2,type=float)
     parser.add_argument("--bucket_length", default=100000000, type=int)
     parser.add_argument("--trace_id", default=0, type=int)
-    parser.add_argument("--job_come_time_factor", default=1, type=int)
+    parser.add_argument("--job_come_time_factor", default=4, type=int)
     parser.add_argument("--gpu_kind", default="None", type=str)
     
     
@@ -827,8 +835,8 @@ if __name__=="__main__":
     # 格式化输出
     now_time= datetime.datetime.now()
     formatted_time = now_time.strftime('%m_%d_%H_%M_%S')
-    sim_sum_file_name="Sim_sum-"+system+"_"+strategy+"-"+version+"_"+formatted_time+".txt"
-    sim_trace_file_name="Sim_trace_"+system+"_"+strategy+"_"+version+"_"+formatted_time+".csv"
+    sim_sum_file_name="Sim_sum-"+system+"_"+strategy+"-"+args.mps_flage+"-"+version+"_"+formatted_time+".txt"
+    sim_trace_file_name="Sim_trace_"+system+"_"+strategy+"-"+args.mps_flage+"_"+version+"_"+formatted_time+".csv"
     if write_sum:
         file_sum=open(parent_dir+"/output/"+sim_sum_file_name,"w")
     else:

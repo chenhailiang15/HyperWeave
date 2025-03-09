@@ -46,7 +46,7 @@ class WeaveMaster:
             self.overshared_factor=1       #等于1存在GPU资源不够的情况
             
         if self.schedule_strategy=="BN-SRSF":
-            self.bucket_length=100000
+            self.bucket_length=10000000
         self.couple_init_iter_percent=0.2
             
         self.file_trace=file_trace
@@ -55,7 +55,7 @@ class WeaveMaster:
         
         self.print_level=print_level
         
-        self.job_come_time_factor=1
+        self.job_come_time_factor=self.args.job_come_time_factor
         self.job_duration_time_factor=1
         self.job_ddl_factor=10             #ddl是任务持续时间的job_ddl_factor倍
 
@@ -705,16 +705,18 @@ if __name__=="__main__":
     parser.add_argument("--mps_flage", default="True", type=str)
     parser.add_argument("--sync_flage", default="True", type=str)
     parser.add_argument("--job_together_flage", default="True", type=str)
+    parser.add_argument("--job_come_time_factor", default=1, type=int)
     parser.add_argument("--node_kind", default="4*3090", type=str, help="s4*3090,4*3090, 3*2080ti, 4*2080")
     parser.add_argument("--model_kind", default="all_model", type=str, help="cv_model, all_model")
     parser.add_argument("--gpu_mem_percent", default=0.9, type=float, help="because of GPU fragement")
     parser.add_argument("--job_num", default=100, type=int)
     parser.add_argument("--gpu_id_list", default=[4,5,6,7], type=parse_list_arg)
-    parser.add_argument("--overshared_factor", default=3.0, type=float)
+    parser.add_argument("--overshared_factor", default=2.0, type=float)
     parser.add_argument("--print_level", default=11, type=int)
     parser.add_argument("--write_sum", action='store_true')
     parser.add_argument("--write_trace", action='store_true')
     parser.add_argument("--trace_id", default=0, type=int)
+    
     
     args=parser.parse_args()
     
