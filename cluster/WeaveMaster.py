@@ -240,13 +240,13 @@ class WeaveMaster:
         thread_job_come.start()
         thread_schedule=threading.Thread(target=self.schedule_subthreading,args=())
         thread_schedule.start()
-        thread_state=threading.Thread(target=self.print_and_store_current_state,args=())
-        thread_state.start()
+        # thread_state=threading.Thread(target=self.print_and_store_current_state,args=())
+        # thread_state.start()
         
         
         thread_job_come.join()
         thread_schedule.join()
-        thread_state.join()
+        # thread_state.join()
         
     
     #job到来的函数，持续运行，直到读取的文件中的job结束
@@ -425,6 +425,12 @@ class WeaveMaster:
             for job in rest_jobs:
                 # print(f"wait for next scheduling:job name({job.job_name})")
                 self.wait_schedule_queue.put(job)
+            
+            #记录状态
+            self.print_and_store_current_state_now()
+        
+        time.sleep(self.status_out_interval)
+        self.print_and_store_current_state_multi()
                 
             
     
@@ -537,15 +543,31 @@ class WeaveMaster:
                 self.end_event.set()    #停止out info
                 # self.set_makespan()     #统计系统运行时间
             
-    def print_and_store_current_state(self):
-        # time.sleep(self.status_out_interval)
-        while not self.end_event.is_set():
-            self.print_current_state()
-            self.write_current_state()
-            time.sleep(self.status_out_interval)
+    # def print_and_store_current_state(self):
+    #     # time.sleep(self.status_out_interval)
+    #     while not self.end_event.is_set():
+    #         self.print_current_state()
+    #         self.write_current_state()
+    #         time.sleep(self.status_out_interval)
             
+    #     self.print_current_state()
+    #     self.write_current_state()
+            
+            
+            
+    def print_and_store_current_state_now(self):
         self.print_current_state()
         self.write_current_state()
+    
+    def print_and_store_current_state_multi(self):
+        while True:
+            self.print_and_store_current_state_now()
+            time.sleep(self.status_out_interval)
+            
+            if self.end_event.is_set():
+                self.print_and_store_current_state_now()
+                break
+            
             
     def print_current_state(self):
         # self.update_job_not_start_num()

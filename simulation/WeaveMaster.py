@@ -261,7 +261,8 @@ class WeaveMaster:
 
         self.env.process(self.job_come())
         self.env.process(self.schedule())
-        self.print_and_store_current_state()
+        self.print_and_store_current_state_now()
+        
         self.env.run()
 
     # job到来的函数，持续运行，直到读取的文件中的job结束
@@ -543,10 +544,11 @@ class WeaveMaster:
             
             self.queue_length.append(self.wait_schedule_queue.qsize())
            
-            self.print_and_store_current_state()
+            self.print_and_store_current_state_now()
             self.env.process(self.schedule())
         else:
-            self.print_and_store_current_state()
+            self.env.process( self.print_and_store_current_state_multi())
+           
                 
             
 
@@ -607,17 +609,21 @@ class WeaveMaster:
 
             # self.print_current_state()
 
-    def print_and_store_current_state(self):
+    def print_and_store_current_state_now(self):
         self.print_current_state()
         self.write_current_state()
-
-        # yield self.env.timeout(self.status_out_interval)
-        # if not self.end_event.is_set():
-        #     self.env.process(self.print_and_store_current_state())
-        # else:
-        #     self.print_current_state()
-        #     self.write_current_state()
-
+    
+    def print_and_store_current_state_multi(self):
+        
+        while True:
+            self.print_and_store_current_state_now()
+            yield self.env.timeout(self.status_out_interval)
+            
+            if self.end_event.is_set():
+                self.print_and_store_current_state_now()
+                break
+            
+            
 
     def print_current_state(self):
         # self.update_job_not_start_num()
@@ -745,7 +751,7 @@ class Runsystem:
         
         
         #control parameters
-        version=f"sim_v6.0_os{args.overshared_factor}_trace{args.trace_id}_together{args.job_together_flage}_match{args.couple_init_iter_percent}_bucket{args.bucket_length}_gpukind{args.gpu_kind}"
+        version=f"sim_v7.0_os{args.overshared_factor}_trace{args.trace_id}_together{args.job_together_flage}_match{args.couple_init_iter_percent}_bucket{args.bucket_length}_gpukind{args.gpu_kind}"
 
         system=args.system
         strategy=args.strategy
@@ -782,8 +788,8 @@ class Runsystem:
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description='simulation for DL training job')
-    parser.add_argument("--system",default="Muri",type=str)
-    parser.add_argument("--strategy", default="SRTF", type=str)
+    parser.add_argument("--system",default="Weave",type=str)
+    parser.add_argument("--strategy", default="SRSF", type=str)
     parser.add_argument("--mps_flage", default="True", type=str)
     parser.add_argument("--sync_flage", default="True", type=str)
     parser.add_argument("--job_together_flage", default="False", type=str)
@@ -808,7 +814,7 @@ if __name__=="__main__":
 
 
     #control parameters
-    version=f"sim_v6.0_os{args.overshared_factor}_trace{args.trace_id}"
+    version=f"sim_v7.0_os{args.overshared_factor}_trace{args.trace_id}_together{args.job_together_flage}_match{args.couple_init_iter_percent}_bucket{args.bucket_length}_gpukind{args.gpu_kind}"
 
     system=args.system
     strategy=args.strategy
