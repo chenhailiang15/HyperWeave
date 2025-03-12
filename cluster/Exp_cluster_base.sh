@@ -11,11 +11,11 @@ gpu_mem_percent=0.9
 model_kind="all_model"                       #"cv_model, all_model"
 job_num=100
 print_level=10
-job_come_time_factor=4
+job_come_time_factor=6
 job_together_flage="False"
 
 overshared_factor=2
-trace_id=1
+trace_id=0
 
 system="Weave"
 strategy="BN-SRSF"

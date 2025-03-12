@@ -252,7 +252,13 @@ class Node:
             if self.master.MPS_mode==True:
                 time_extend=instance.duration_time*self.master.get_mps_time_delay(self.get_max_parallel_for_instance(instance))
             else:
-                time_extend=instance.duration_time*self.master.get_mps_time_delay(self.get_max_parallel_for_instance(instance))*1.5
+                #如果并行度为1，不变
+                if self.get_max_parallel_for_instance(instance)==1:
+                    factor=1
+                else:
+                    factor=1.5
+                time_extend=instance.duration_time*self.master.get_mps_time_delay(self.get_max_parallel_for_instance(instance))*factor
+                
         yield self.env.timeout(time_extend)
         for gpu_id in instance.gpu_id_list[instance.node_rank]:
             if instance.couple_instance_name==None and instance.pack_gpu!=0:

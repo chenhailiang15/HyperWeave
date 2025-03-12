@@ -820,7 +820,7 @@ if __name__=="__main__":
     parser.add_argument("--couple_init_iter_percent", default=0.2,type=float)
     parser.add_argument("--bucket_length", default=100000000, type=int)
     parser.add_argument("--trace_id", default=0, type=int)
-    parser.add_argument("--job_come_time_factor", default=4, type=int)
+    parser.add_argument("--job_come_time_factor", default=6, type=int)
     parser.add_argument("--gpu_kind", default="None", type=str)
     
     
