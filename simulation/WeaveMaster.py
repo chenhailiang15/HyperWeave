@@ -132,6 +132,7 @@ class WeaveMaster:
         
         self.job_wait_time_list=[]
         self.job_complete_time_list=[]
+        self.job_info_list=[]
         self.instance_global_idx = 0
         self.wait_schedule_queue = queue.Queue()
         self.write_head=True
@@ -285,7 +286,10 @@ class WeaveMaster:
             job = self.generate_job(self.ali_trace_pd.iloc[index, :], self.job_come_num)
             if job == None:  # 由于数据原因，可能无法生成Job，因此跳过
                 continue
-
+            
+            job_info=f"(time:{self.env.now},job:{job.job_idx},info:{job.job_key_info()})"
+            self.job_info_list.append(job_info)
+            
             if self.print_level >= 2:
                 print(f"time: {self.env.now}\tjob {job.job_idx} \tcome ( detailed info :{job.job_key_info()})")
             self.wait_schedule_queue.put(job)
@@ -727,6 +731,8 @@ class WeaveMaster:
         temp_string+=f"queue:{self.queue_length}\n"
         temp_string+=f"job_wait_time_list:{self.job_wait_time_list}\n"
         temp_string+=f"job_complete_time_list:{self.job_complete_time_list}\n"
+        temp_string+=f"job_info_list:{self.job_info_list}\n"
+        
         
         return temp_string
         
@@ -822,7 +828,7 @@ if __name__=="__main__":
 
 
     #control parameters
-    version=f"sim_v7.0_os{args.overshared_factor}_trace{args.trace_id}_together{args.job_together_flage}_match{args.couple_init_iter_percent}_bucket{args.bucket_length}_gpukind{args.gpu_kind}"
+    version=f"sim_v7.1_os{args.overshared_factor}-trace{args.trace_id}-together{args.job_together_flage}-match{args.couple_init_iter_percent}-bucket{args.bucket_length}-gpukind{args.gpu_kind}"
 
     system=args.system
     strategy=args.strategy
@@ -835,8 +841,8 @@ if __name__=="__main__":
     # 格式化输出
     now_time= datetime.datetime.now()
     formatted_time = now_time.strftime('%m_%d_%H_%M_%S')
-    sim_sum_file_name="Sim_sum-"+system+"_"+strategy+"-"+args.mps_flage+"-"+version+"_"+formatted_time+".txt"
-    sim_trace_file_name="Sim_trace_"+system+"_"+strategy+"-"+args.mps_flage+"_"+version+"_"+formatted_time+".csv"
+    sim_sum_file_name="Sim-sum-"+system+"-"+strategy+"-MPS_"+args.mps_flage+"-Sync_"+args.sync_flage+"-"+version+"-"+formatted_time+".txt"
+    sim_trace_file_name="Sim-statistic_trace-"+system+"-"+strategy+"-MPS_"+args.mps_flage+"-Sync_"+args.sync_flage+"-"+version+"-"+formatted_time+".csv"
     if write_sum:
         file_sum=open(parent_dir+"/output/"+sim_sum_file_name,"w")
     else:

@@ -43,7 +43,7 @@ class WeaveMaster:
         if self.system=="Weave":
             self.overshared_factor=args.overshared_factor
         else:
-            self.overshared_factor=1       #等于1存在GPU资源不够的情况
+            self.overshared_factor=1       
             
         if self.schedule_strategy=="BN-SRSF":
             self.bucket_length=10000000
@@ -51,7 +51,6 @@ class WeaveMaster:
             
         self.file_trace=file_trace
         
-        # self.password=" "      #"sim2024"for sim812 " "for jf
         
         self.print_level=print_level
         
@@ -115,6 +114,7 @@ class WeaveMaster:
         
         self.job_wait_time_list=[]
         self.job_complete_time_list=[]
+        self.job_info_list=[]
         self.instance_global_idx = 0
         self.wait_schedule_queue=queue.Queue()
         self.write_head=True
@@ -260,6 +260,11 @@ class WeaveMaster:
             job=self.generate_job(self.ali_trace_pd.iloc[index,:], self.job_come_num)
             if job ==None: #由于数据原因，可能无法生成Job，因此跳过
                 continue
+            
+            job_info=f"(time:{time.time()-self.start_time},job:{job.job_idx},info:{job.job_key_info()})"
+            self.job_info_list.append(job_info)
+            
+            
             if self.print_level>=2:
                 print(f"job ${job.job_idx}$ come ( detailed info :{job.job_key_info()})")
             self.wait_schedule_queue.put(job)
@@ -659,7 +664,7 @@ class WeaveMaster:
         temp_string+=f"model_info_file_name:{self.model_info_file_name}\n"
         temp_string+=f"Bigstageresource_file_name:{self.Bigstageresource_file_name}\n"
         temp_string+=f"Ministagetime_file_name:{self.Ministagetime_file_name}\n"
-        
+        temp_string+=f"job_info_list:{self.job_info_list}\n"
         
         return temp_string+self.sum_string+"\n\n\n"
         
@@ -674,7 +679,7 @@ def experiment_one_group_parameters(args, file_sum, file_trace, version, print_l
     
     cur_dir=os.path.dirname(os.path.abspath(__file__))
     parent_dir  = os.path.dirname(os.path.abspath(cur_dir))
-    resource_file_name="Cluster_resource_record_"+args.system+"_"+args.strategy+"-"+version+"_"+formatted_time+".csv"
+    resource_file_name="Cluster-resource_record-"+args.system+"-"+args.strategy+"-"+version+"-"+formatted_time+".csv"
     event=threading.Event()
     subTread_record=threading.Thread(target=Record_resource,args=(args.gpu_id_list, parent_dir+"/output/",resource_file_name,event))
     subTread_record.start()
@@ -738,8 +743,8 @@ if __name__=="__main__":
     # 格式化输出
     now_time= datetime.datetime.now()
     formatted_time = now_time.strftime('%m_%d_%H_%M_%S')
-    sim_sum_file_name="Cluster_sum-"+system+"_"+strategy+"-"+version+"_"+formatted_time+".txt"
-    sim_trace_file_name="Cluster_statistic_trace_"+system+"_"+strategy+"_"+version+"_"+formatted_time+".csv"
+    sim_sum_file_name="Cluster-sum-"+system+"-"+strategy+"-"+version+"-"+formatted_time+".txt"
+    sim_trace_file_name="Cluster-statistic_trace-"+system+"-"+strategy+"-"+version+"-"+formatted_time+".csv"
     if write_sum:
         file_sum=open(parent_dir+"/output/"+sim_sum_file_name,"w")
     else:
