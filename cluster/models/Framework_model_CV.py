@@ -42,6 +42,11 @@ class CVModel:
             train_dataset, batch_size=self.args.batch_size, pin_memory=True, shuffle=False,
             sampler=self.train_sampler, num_workers=self.args.worker_num)
         
+        # self.train_loader = MultiEpochsDataLoader(
+        #     train_dataset, batch_size=self.args.batch_size, pin_memory=True, shuffle=False,
+        #     sampler=self.train_sampler, num_workers=self.args.worker_num)
+        
+        
         # num_classes=len(train_dataset.classes)
         class_names=train_dataset.classes
         # self.model = getattr(models, cv_model_dict[self.model_name])(num_classes=num_classes)
@@ -202,3 +207,33 @@ class CVModel:
                 break
             
         
+class MultiEpochsDataLoader(torch.utils.data.DataLoader):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._DataLoader__initialized = False
+        self.batch_sampler = _RepeatSampler(self.batch_sampler)
+        self._DataLoader__initialized = True
+        self.iterator = super().__iter__()
+
+    def __len__(self):
+        return len(self.batch_sampler.sampler)
+
+    def __iter__(self):
+        for i in range(len(self)):
+            yield next(self.iterator)
+
+
+class _RepeatSampler(object):
+    """ Sampler that repeats forever.
+
+    Args:
+        sampler (Sampler)
+    """
+
+    def __init__(self, sampler):
+        self.sampler = sampler
+
+    def __iter__(self):
+        while True:
+            yield from iter(self.sampler)
