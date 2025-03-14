@@ -12,8 +12,8 @@ couple_init_iter_percent=0.2
 overshared_factor=2
 job_together_flage="False"
 validation="True"
-trace_id=0
-
+trace_id=5
+job_come_time_factor=1
 
 
 system="Weave"
@@ -24,7 +24,7 @@ python WeaveMaster.py --system ${system} --strategy ${strategy} \
     --node_kind ${node_kind} --model_kind ${model_kind} --gpu_mem_percent ${gpu_mem_percent} --job_num ${job_num}\
     --print_level ${print_level} --write_trace --write_sum  --overshared_factor ${overshared_factor} \
     --job_together_flage ${job_together_flage} --validation ${validation} --trace_id ${trace_id} \
-    --couple_init_iter_percent ${couple_init_iter_percent} --mps_flage ${mps_flage} 
+    --couple_init_iter_percent ${couple_init_iter_percent} --mps_flage ${mps_flage} --job_come_time_factor ${job_come_time_factor}
 
 
 system="Muri"
@@ -35,7 +35,7 @@ python WeaveMaster.py --system ${system} --strategy ${strategy} \
     --node_kind ${node_kind} --model_kind ${model_kind} --gpu_mem_percent ${gpu_mem_percent} --job_num ${job_num}\
     --print_level ${print_level} --write_trace --write_sum  --overshared_factor ${overshared_factor} \
     --job_together_flage ${job_together_flage} --validation ${validation} --trace_id ${trace_id} \
-    --couple_init_iter_percent ${couple_init_iter_percent} --mps_flage ${mps_flage} 
+    --couple_init_iter_percent ${couple_init_iter_percent} --mps_flage ${mps_flage}  --job_come_time_factor ${job_come_time_factor}
 
 system="Normal"
 strategy="SRSF"
@@ -45,7 +45,7 @@ python WeaveMaster.py --system ${system} --strategy ${strategy} \
     --node_kind ${node_kind} --model_kind ${model_kind} --gpu_mem_percent ${gpu_mem_percent} --job_num ${job_num}\
     --print_level ${print_level} --write_trace --write_sum  --overshared_factor ${overshared_factor} \
     --job_together_flage ${job_together_flage} --validation ${validation} --trace_id ${trace_id} \
-    --couple_init_iter_percent ${couple_init_iter_percent} --mps_flage ${mps_flage} 
+    --couple_init_iter_percent ${couple_init_iter_percent} --mps_flage ${mps_flage}  --job_come_time_factor ${job_come_time_factor}
 
 system="Normal"
 strategy="SRSF"
@@ -55,7 +55,7 @@ python WeaveMaster.py --system ${system} --strategy ${strategy} \
     --node_kind ${node_kind} --model_kind ${model_kind} --gpu_mem_percent ${gpu_mem_percent} --job_num ${job_num}\
     --print_level ${print_level} --write_trace --write_sum  --overshared_factor ${overshared_factor} \
     --job_together_flage ${job_together_flage} --validation ${validation} --trace_id ${trace_id} \
-    --couple_init_iter_percent ${couple_init_iter_percent} --mps_flage ${mps_flage} 
+    --couple_init_iter_percent ${couple_init_iter_percent} --mps_flage ${mps_flage}  --job_come_time_factor ${job_come_time_factor}
 
 system="Normal"
 strategy="SRTF"
@@ -65,7 +65,7 @@ python WeaveMaster.py --system ${system} --strategy ${strategy} \
     --node_kind ${node_kind} --model_kind ${model_kind} --gpu_mem_percent ${gpu_mem_percent} --job_num ${job_num}\
     --print_level ${print_level} --write_trace --write_sum  --overshared_factor ${overshared_factor} \
     --job_together_flage ${job_together_flage} --validation ${validation} --trace_id ${trace_id} \
-    --couple_init_iter_percent ${couple_init_iter_percent} --mps_flage ${mps_flage}
+    --couple_init_iter_percent ${couple_init_iter_percent} --mps_flage ${mps_flage} --job_come_time_factor ${job_come_time_factor}
 
 
 system="Normal"
@@ -76,7 +76,7 @@ python WeaveMaster.py --system ${system} --strategy ${strategy} \
     --node_kind ${node_kind} --model_kind ${model_kind} --gpu_mem_percent ${gpu_mem_percent} --job_num ${job_num}\
     --print_level ${print_level} --write_trace --write_sum  --overshared_factor ${overshared_factor} \
     --job_together_flage ${job_together_flage} --validation ${validation} --trace_id ${trace_id} \
-    --couple_init_iter_percent ${couple_init_iter_percent} --mps_flage ${mps_flage}
+    --couple_init_iter_percent ${couple_init_iter_percent} --mps_flage ${mps_flage} --job_come_time_factor ${job_come_time_factor}
 
 # system="Weave"
 # strategy="BN-SRSF"
