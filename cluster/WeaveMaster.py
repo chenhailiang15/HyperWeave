@@ -657,16 +657,17 @@ class WeaveMaster:
         temp_string+=f"schedule_interval:{self.schedule_interval}\n"
         temp_string+=f"makespan_real:{self.makespan}\n"
         temp_string+=f"job_come_num:{self.job_come_num}\nsucceed_job_num:{self.succeed_job_num}\nfailed_job_num:{self.failed_job_num}\n"
-        temp_string+=f"queue:{self.queue_length}\n"
-        temp_string+=f"job_wait_time_list:{self.job_wait_time_list}\n"
-        temp_string+=f"job_complete_time_list:{self.job_complete_time_list}\n"
         temp_string+=f"ali_trace_job_info_file_name:{self.ali_trace_job_info_file_name}\n"
         temp_string+=f"model_info_file_name:{self.model_info_file_name}\n"
         temp_string+=f"Bigstageresource_file_name:{self.Bigstageresource_file_name}\n"
         temp_string+=f"Ministagetime_file_name:{self.Ministagetime_file_name}\n"
+        temp_string+=self.sum_string+"\n"
+        temp_string+=f"queue:{self.queue_length}\n"
+        temp_string+=f"job_wait_time_list:{self.job_wait_time_list}\n"
+        temp_string+=f"job_complete_time_list:{self.job_complete_time_list}\n"
         temp_string+=f"job_info_list:{self.job_info_list}\n"
         
-        return temp_string+self.sum_string+"\n\n\n"
+        return temp_string
         
 
 

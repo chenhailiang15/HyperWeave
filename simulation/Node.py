@@ -246,20 +246,17 @@ class Node:
     
 
     def end_instance(self,instance):
+        
+        
         if self.master.system=="Muri" or instance.pack_gpu==0:
             time_extend=instance.duration_time
         else:
             if self.master.MPS_mode==True:
                 time_extend=instance.duration_time*self.master.get_mps_time_delay(self.get_max_parallel_for_instance(instance))
             else:
-                #如果并行度为1，不变
-                if self.get_max_parallel_for_instance(instance)==1:
-                    factor=1
-                else:
-                    factor=1.5
-                time_extend=instance.duration_time*self.master.get_mps_time_delay(self.get_max_parallel_for_instance(instance))*factor
-                
-        yield self.env.timeout(time_extend)
+                time_extend=instance.duration_time*self.master.get_nomps_time_delay(self.get_max_parallel_for_instance(instance))
+        factor=0.72        
+        yield self.env.timeout(time_extend*factor)
         for gpu_id in instance.gpu_id_list[instance.node_rank]:
             if instance.couple_instance_name==None and instance.pack_gpu!=0:
                 self.dealing_instance_num_dict[gpu_id]-=1

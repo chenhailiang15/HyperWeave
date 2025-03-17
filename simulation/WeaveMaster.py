@@ -170,7 +170,8 @@ class WeaveMaster:
 
         self.init_model_info()
         
-        self.a_time_delay, self.b_time_delay=fit_mps_time_delay()
+        self.a_time_delay_mps, self.b_time_delay_mps=fit_mps_time_delay(True)
+        self.a_time_delay_nomps, self.b_time_delay_nomps=fit_mps_time_delay(False)
         self.Blossom_Same = _Blossom_Same()
 
         
@@ -179,7 +180,13 @@ class WeaveMaster:
         if parallel_number==1:
             return 1
         else:
-            return self.a_time_delay*parallel_number+self.b_time_delay
+            return self.a_time_delay_mps*parallel_number+self.b_time_delay_mps
+        
+    def get_nomps_time_delay(self,parallel_number):
+        if parallel_number==1:
+            return 1
+        else:
+            return self.a_time_delay_nomps*parallel_number+self.b_time_delay_nomps
 
 
     #初始化node信息
@@ -828,7 +835,7 @@ if __name__=="__main__":
 
 
     #control parameters
-    version=f"sim_v7.1_os{args.overshared_factor}-trace{args.trace_id}-together{args.job_together_flage}-match{args.couple_init_iter_percent}-bucket{args.bucket_length}-gpukind{args.gpu_kind}"
+    version=f"sim_v8.0_os{args.overshared_factor}-trace{args.trace_id}-together{args.job_together_flage}-match{args.couple_init_iter_percent}-bucket{args.bucket_length}-gpukind{args.gpu_kind}"
 
     system=args.system
     strategy=args.strategy

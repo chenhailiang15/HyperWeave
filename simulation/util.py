@@ -22,6 +22,17 @@ mps_time_extend={"AlexNet":[1.03, 1.08, 1.07, 1.08, 1.16, 1.32, 1.47, 1.63, 1.76
                  "GCN":[1.0, 1, 1.06, 1.01, 1.05, 1.13, 1.23, 1.41, 1.42, 1.54],
                  "GraphSage":[1.01, 1.09, 1.71, 2.64, 3.89, 4.9, 5.74, 6.66, 7.44, 8.41]}
 
+nomps_time_extend={"AlexNet":[1.0, 1.06, 1.11, 1.36, 1.59, 1.8, 2.03, 2.27, 2.59, 2.81],
+                 "ResNet18":[1.0, 1.28, 1.21, 1.45, 1.76, 2.07, 2.39, 2.68, 2.95, 3.3],
+                 "ResNet50":[1.0, 1.1, 1.5, 1.95, 2.42, 2.85, 3.28, 3.74, 4.21],
+                 "MobileNetv2":[1.0, 1.07, 1.16, 1.27, 1.35, 1.55, 1.77, 2.0, 2.23, 2.47],
+                 "VGG16":[1.0, 1.92, 2.78, 3.63, 4.52, 5.38, 6.24, 7.09],
+                 "Bert":[1.0, 1.31, 1.6, 1.89, 2.19, 2.49],
+                 "Transformer":[1.0, 1.39, 1.88, 2.43, 2.97, 3.51, 4.05, 4.57, 5.12, 5.65],
+                 "GCN":[1.0, 1.32, 1.73, 2.02, 2.46, 2.91, 3.29, 3.73, 4.16, 4.59],
+                 "GraphSage":[1.0, 1.08, 1.63, 2.85, 3.88, 4.79, 5.78, 6.63, 7.53, 8.26]}
+
+
 gpu_mem_dict={"T4":16.0,
               "MISC":16.0,
               "P100":16.0,
@@ -45,16 +56,20 @@ model_to_batch_size_g={"AlexNet" : [8,16,32,64,128],
 model_list_g=["AlexNet", "ResNet18", "ResNet50", "MobileNetv2", "VGG16", "Bert", "Transformer", "GCN", "GraphSage" ]
 
 
-def fit_mps_time_delay():
+def fit_mps_time_delay(flage):
+    if flage==True:
+        temp_time_extend_value=mps_time_extend
+    else:
+        temp_time_extend_value=nomps_time_extend
     # 找到最大长度
-    max_length = max(len(values) for values in mps_time_extend.values())
+    max_length = max(len(values) for values in temp_time_extend_value.values())
 
     # 初始化平均列表
     average_values = [0] * max_length
     counts = [0] * max_length
 
     # 计算每个位置的总和与计数
-    for values in mps_time_extend.values():
+    for values in temp_time_extend_value.values():
         for i, val in enumerate(values):
             average_values[i] += val
             counts[i] += 1

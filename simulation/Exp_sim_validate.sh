@@ -12,7 +12,7 @@ couple_init_iter_percent=0.2
 overshared_factor=2
 job_together_flage="False"
 validation="True"
-trace_id=5
+trace_id=8
 job_come_time_factor=1
 
 
