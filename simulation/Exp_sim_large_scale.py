@@ -75,7 +75,7 @@ for trace_id in [5,6,7,8]:
                         continue
                 task_args_list.append((system, strategy, job_together_flage, trace_id,"True"))
 
-with multiprocessing.Pool(processes=8) as pool:
+with multiprocessing.Pool(processes=10) as pool:
         # 使用 starmap 方法将任务分配给进程池中的进程执行
         pool.starmap(run_once, task_args_list)
 

@@ -772,7 +772,7 @@ class Runsystem:
         
         
         #control parameters
-        version=f"sim_v7.0_os{args.overshared_factor}_trace{args.trace_id}_together{args.job_together_flage}_match{args.couple_init_iter_percent}_bucket{args.bucket_length}_gpukind{args.gpu_kind}"
+        version=f"sim_v8.0_os{args.overshared_factor}-trace{args.trace_id}-together{args.job_together_flage}-match{args.couple_init_iter_percent}-bucket{args.bucket_length}-gpukind{args.gpu_kind}"
 
         system=args.system
         strategy=args.strategy
@@ -785,8 +785,8 @@ class Runsystem:
         # 格式化输出
         now_time= datetime.datetime.now()
         formatted_time = now_time.strftime('%m_%d_%H_%M_%S')
-        sim_sum_file_name="Sim_sum-"+system+"_"+strategy+"-"+version+"_"+formatted_time+".txt"
-        sim_trace_file_name="Sim_trace_"+system+"_"+strategy+"_"+version+"_"+formatted_time+".csv"
+        sim_sum_file_name="Sim-sum-"+system+"-"+strategy+"-MPS_"+args.mps_flage+"-Sync_"+args.sync_flage+"-"+version+"-"+formatted_time+".txt"
+        sim_trace_file_name="Sim-statistic_trace-"+system+"-"+strategy+"-MPS_"+args.mps_flage+"-Sync_"+args.sync_flage+"-"+version+"-"+formatted_time+".csv"
         if write_sum:
             file_sum=open(parent_dir+"/output/"+sim_sum_file_name,"w")
         else:
