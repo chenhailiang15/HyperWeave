@@ -44,10 +44,10 @@ port_id=2000
 
 
 def exp_one_model(model_name):
-    max_parallel_num=3
-    batch_size_list=[256] #
+    # max_parallel_num=3
+    # batch_size_list=[256] #
     total_epochs=10
-    gpu_id_list=[0,1,2]
+    gpu_id_list=[0,1,2,3]
     net_card="eno1"
     
     
@@ -57,22 +57,22 @@ def exp_one_model(model_name):
     # for parallel_num in range(1, max_parallel_num+1):
     #     for batch_size in batch_size_list:
     
-    # parallel_num=1
-    # batch_size=16
-    # # out_file_name="ExpPre__compareIdelTime_"+model_name+"_"+str(batch_size)+"_"+str(parallel_num)+"_"+formatted_time+".txt"
-    # command=generate_command(model_name, parallel_num, total_epochs, batch_size, gpu_id_list, net_card)
-    # run_command(command)
+    parallel_num=1
+    batch_size=16
+    # out_file_name="ExpPre__compareIdelTime_"+model_name+"_"+str(batch_size)+"_"+str(parallel_num)+"_"+formatted_time+".txt"
+    command=generate_command(model_name, parallel_num, total_epochs, batch_size, gpu_id_list, net_card)
+    run_command(command)
     
-    parallel_num=3
-    batch_size=256
+    parallel_num=4
+    batch_size=128
     # out_file_name="ExpPre__compareIdelTime_"+model_name+"_"+str(batch_size)+"_"+str(parallel_num)+"_"+formatted_time+".txt"
     command=generate_command(model_name, parallel_num, total_epochs, batch_size, gpu_id_list, net_card)
     run_command(command)
     
 if __name__=="__main__":
     
-    # exp_one_model("ResNet50")
-    # exp_one_model("VGG16")
-    # exp_one_model("MobileNetv2")
+    exp_one_model("ResNet50")
+    exp_one_model("VGG16")
+    exp_one_model("MobileNetv2")
     exp_one_model("AlexNet")
     # exp_one_model("ResNet18")

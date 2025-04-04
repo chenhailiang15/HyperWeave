@@ -29,7 +29,7 @@ def do_experiment(mps_state, max_parallel_num,file_writer,alloc):
             
         for _ in range(repeat):
             run_specific_model_paranum(model_name, para_num)
-            file_writer.write(f"mps={mps_state},{model_name},para_num={para_num},time_list={end_time_list}\n")
+            file_writer.write(f"mps={mps_state},alloc={alloc},{model_name},para_num={para_num},time_list={end_time_list}\n")
             file_writer.flush()
  
  
@@ -104,7 +104,7 @@ def run_command(command):
 
 port_id=2000
 end_time_list=[]
-gpu_id=6
+gpu_id=0
 
 if __name__=="__main__":
        
@@ -129,9 +129,10 @@ if __name__=="__main__":
     for model_name in model_list:
         with_mps=True
         do_experiment(with_mps, max_parallel_num,file_writer_true,alloc=False )
-        do_experiment(with_mps, max_parallel_num,file_writer_true,alloc=True )
+        do_experiment(with_mps, max_parallel_num,file_writer_true_alloc,alloc=True )
         with_mps=False
-        do_experiment(with_mps, max_parallel_num,file_writer_true,alloc=False )
+        do_experiment(with_mps, max_parallel_num,file_writer_false,alloc=False )
+        
     file_writer_true.close()
     file_writer_true_alloc.close()
     file_writer_false.close()
