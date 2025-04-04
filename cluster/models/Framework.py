@@ -126,7 +126,7 @@ class model_framework:
                     self.sync_er.sync_in_start_epoch(epoch==0)
                     # print("model name:",self.args.model_name,"\tepoch:",epoch,"/",self.args.total_epochs-1)
                 elif self.mode == "analyze":
-                    if self.local_rank==0 and epoch==1:
+                    if self.local_rank==0 and epoch==0:
                         self.sync_er.set_value(2,True)
                 else:
                     print("model mode wrong!")
@@ -138,7 +138,7 @@ class model_framework:
                 if self.mode == "train":
                     self.sync_er.sync_in_batch()
                 elif self.mode == "analyze":
-                    if self.local_rank==0 and epoch==1:
+                    if self.local_rank==0 and epoch==0:
                         self.sync_er.set_value(2,False)
                         self.sync_er.set_value(3,True)
                 else:
@@ -152,7 +152,7 @@ class model_framework:
                     #进行同步操作（）
                     self.sync_er.sync_in_end_epoch()
                 elif self.mode == "analyze":
-                    if self.local_rank==0 and epoch==1:
+                    if self.local_rank==0 and epoch==0:
                         self.sync_er.set_value(3,False)
                 else:
                     print("model mode wrong!")
