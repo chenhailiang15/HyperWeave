@@ -5,19 +5,32 @@ from models.Framework import *
 
 
 
-def do_experiment(mps_state,model_list, max_parallel_num,file_writer):
+def do_experiment(mps_state, max_parallel_num,file_writer,alloc):
     if mps_state ==True:
         start_MPS(11) 
     else:
         stop_MPS(11)
     
-    for _ in range(1):
-        for model_name in model_list:
-            for para_num in range(1, max_parallel_num+1):
-                
-                run_specific_model_paranum(model_name, para_num)
-                file_writer.write(f"mps={mps_state},{model_name},para_num={para_num},time_list={end_time_list}\n")
-                file_writer.flush()
+    
+    
+    for para_num in range(1, max_parallel_num+1):
+        if para_num==1:
+            repeat=2
+        else:
+            repeat=1
+            
+        if mps_state ==True:
+            if alloc==True:
+                alloc_percent=100/para_num
+            else:
+                alloc_percent=100
+            command_alloc=f"echo set_default_active_thread_percentage {alloc_percent} | nvidia-cuda-mps-control"
+            os.system(command_alloc)
+            
+        for _ in range(repeat):
+            run_specific_model_paranum(model_name, para_num)
+            file_writer.write(f"mps={mps_state},{model_name},para_num={para_num},time_list={end_time_list}\n")
+            file_writer.flush()
  
  
 def run_specific_model_paranum(model_name,para_num):
@@ -94,26 +107,34 @@ end_time_list=[]
 gpu_id=6
 
 if __name__=="__main__":
-    with_mps=True   
+       
     max_parallel_num=10
     # "AlexNet", "Transformer", "GCN", "Bert", "GraphSage", "ResNet18", "ResNet50",, "VGG16"
-    model_list=[ "MobileNetv2"]#"ResNet50", "MobileNetv2", "VGG16",  "Transformer", "GCN" 
+    model_list=["MobileNetv2","AlexNet", "Transformer", "GCN", "Bert", "GraphSage", "ResNet18", "ResNet50", "VGG16"]#"ResNet50", "MobileNetv2", "VGG16",  "Transformer", "GCN" 
+    
     
     #记录代码开始时间
     now_time = datetime.datetime.now()
     formatted_time = now_time.strftime('%m_%d_%H_%M_%S')
     
-    out_file_name="ExpPre_compareMPS_"+str(with_mps)+"_"+formatted_time+".txt"
-    file_writer=open(get_output_dir()+out_file_name,"w")
-    do_experiment(with_mps,model_list, max_parallel_num,file_writer )
-    file_writer.close()
+    out_file_name="ExpPre_compareMPS_True_"+formatted_time+".txt"
+    file_writer_true=open(get_output_dir()+out_file_name,"w")
     
-    with_mps=False 
+    out_file_name="ExpPre_compareMPS_True_alloc_"+formatted_time+".txt"
+    file_writer_true_alloc=open(get_output_dir()+out_file_name,"w")
     
-    out_file_name="ExpPre_compareMPS_"+str(with_mps)+"_"+formatted_time+".txt"
-    file_writer=open(get_output_dir()+out_file_name,"w")
-    do_experiment(with_mps,model_list, max_parallel_num,file_writer )
-    file_writer.close()
+    out_file_name="ExpPre_compareMPS_False_"+formatted_time+".txt"
+    file_writer_false=open(get_output_dir()+out_file_name,"w")
+    
+    for model_name in model_list:
+        with_mps=True
+        do_experiment(with_mps, max_parallel_num,file_writer_true,alloc=False )
+        do_experiment(with_mps, max_parallel_num,file_writer_true,alloc=True )
+        with_mps=False
+        do_experiment(with_mps, max_parallel_num,file_writer_true,alloc=False )
+    file_writer_true.close()
+    file_writer_true_alloc.close()
+    file_writer_false.close()
      
     stop_MPS(11)
     
