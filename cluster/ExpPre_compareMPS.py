@@ -56,7 +56,7 @@ def generate_command(model_name, index):
     nprocs_list="[1,0]"
 
     gpu_id_list=f"[[{gpu_id}],[]]"
-    net_card="eno1"
+    net_card="eth0"
 
     total_epochs=2
     if model_name == "Bert":

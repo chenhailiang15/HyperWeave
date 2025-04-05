@@ -48,7 +48,7 @@ def exp_one_model(model_name):
     # batch_size_list=[256] #
     total_epochs=10
     gpu_id_list=[0,1,2,3]
-    net_card="eno1"
+    net_card="eth0"
     
     
     now_time = datetime.datetime.now()
