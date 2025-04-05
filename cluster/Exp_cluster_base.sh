@@ -1,6 +1,6 @@
 #!/bin/bash
 
-node_kind="s4*3090" #"s4*3090, 4*3090, 3*2080ti, 4*2080"
+node_kind="4*A100" #"s4*3090, 4*3090, 3*2080ti, 4*2080"
 gpu_id_list=[0,1,2,3]
 
 # node_kind="4*3090" #"s4*3090, 4*3090, 3*2080ti, 4*2080"
@@ -66,7 +66,6 @@ python WeaveMaster.py --system ${system} --strategy ${strategy} --mps_flage ${mp
     
 
 
-
 system="Normal"
 strategy="SRSF"
 mps_flage="False"
@@ -102,36 +101,36 @@ python WeaveMaster.py --system ${system} --strategy ${strategy} --mps_flage ${mp
     --overshared_factor ${overshared_factor} --job_come_time_factor ${job_come_time_factor} --job_together_flage ${job_together_flage}
 
 #for ablation study
-system="Weave"
-strategy="BN-SRSF"
-mps_flage="False"
-sync_flage="False"
+# system="Weave"
+# strategy="BN-SRSF"
+# mps_flage="False"
+# sync_flage="False"
 
-python WeaveMaster.py --system ${system} --strategy ${strategy} --mps_flage ${mps_flage} --sync_flage ${sync_flage}\
-    --node_kind ${node_kind} --model_kind ${model_kind} --gpu_mem_percent ${gpu_mem_percent} --job_num ${job_num}\
-    --print_level ${print_level} --write_trace --write_sum --gpu_id_list ${gpu_id_list} --trace_id ${trace_id}\
-    --overshared_factor ${overshared_factor} --job_come_time_factor ${job_come_time_factor} --job_together_flage ${job_together_flage}
+# python WeaveMaster.py --system ${system} --strategy ${strategy} --mps_flage ${mps_flage} --sync_flage ${sync_flage}\
+#     --node_kind ${node_kind} --model_kind ${model_kind} --gpu_mem_percent ${gpu_mem_percent} --job_num ${job_num}\
+#     --print_level ${print_level} --write_trace --write_sum --gpu_id_list ${gpu_id_list} --trace_id ${trace_id}\
+#     --overshared_factor ${overshared_factor} --job_come_time_factor ${job_come_time_factor} --job_together_flage ${job_together_flage}
 
 
-system="Weave"
-strategy="BN-SRSF"
-mps_flage="False"
-sync_flage="True"
+# system="Weave"
+# strategy="BN-SRSF"
+# mps_flage="False"
+# sync_flage="True"
 
-python WeaveMaster.py --system ${system} --strategy ${strategy} --mps_flage ${mps_flage} --sync_flage ${sync_flage}\
-    --node_kind ${node_kind} --model_kind ${model_kind} --gpu_mem_percent ${gpu_mem_percent} --job_num ${job_num}\
-    --print_level ${print_level} --write_trace --write_sum --gpu_id_list ${gpu_id_list} --trace_id ${trace_id}\
-    --overshared_factor ${overshared_factor} --job_come_time_factor ${job_come_time_factor} --job_together_flage ${job_together_flage}
+# python WeaveMaster.py --system ${system} --strategy ${strategy} --mps_flage ${mps_flage} --sync_flage ${sync_flage}\
+#     --node_kind ${node_kind} --model_kind ${model_kind} --gpu_mem_percent ${gpu_mem_percent} --job_num ${job_num}\
+#     --print_level ${print_level} --write_trace --write_sum --gpu_id_list ${gpu_id_list} --trace_id ${trace_id}\
+#     --overshared_factor ${overshared_factor} --job_come_time_factor ${job_come_time_factor} --job_together_flage ${job_together_flage}
 
-system="Weave"
-strategy="BN-SRSF"
-mps_flage="True"
-sync_flage="False"
+# system="Weave"
+# strategy="BN-SRSF"
+# mps_flage="True"
+# sync_flage="False"
 
-python WeaveMaster.py --system ${system} --strategy ${strategy} --mps_flage ${mps_flage} --sync_flage ${sync_flage}\
-    --node_kind ${node_kind} --model_kind ${model_kind} --gpu_mem_percent ${gpu_mem_percent} --job_num ${job_num}\
-    --print_level ${print_level} --write_trace --write_sum --gpu_id_list ${gpu_id_list} --trace_id ${trace_id}\
-    --overshared_factor ${overshared_factor} --job_come_time_factor ${job_come_time_factor} --job_together_flage ${job_together_flage}
+# python WeaveMaster.py --system ${system} --strategy ${strategy} --mps_flage ${mps_flage} --sync_flage ${sync_flage}\
+#     --node_kind ${node_kind} --model_kind ${model_kind} --gpu_mem_percent ${gpu_mem_percent} --job_num ${job_num}\
+#     --print_level ${print_level} --write_trace --write_sum --gpu_id_list ${gpu_id_list} --trace_id ${trace_id}\
+#     --overshared_factor ${overshared_factor} --job_come_time_factor ${job_come_time_factor} --job_together_flage ${job_together_flage}
 
 
 #关闭MPS

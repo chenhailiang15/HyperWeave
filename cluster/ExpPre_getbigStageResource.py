@@ -10,4 +10,4 @@ if __name__=="__main__":
     gpu_id_list=[[0,1,2,3]]
     #s4*3090 -> net_card = "enp3s0"
     #others -> net_card = "en01"
-    offline_analyze(max_parrallel=max_parrallel,model_name_list=model_name_list,net_card="eno1", system="Weave", total_epochs=1, gpu_id_list=gpu_id_list)
+    offline_analyze(max_parrallel=max_parrallel,model_name_list=model_name_list,net_card="eth0", system="Weave", total_epochs=1, gpu_id_list=gpu_id_list)
