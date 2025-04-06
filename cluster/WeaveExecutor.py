@@ -185,9 +185,9 @@ if __name__=="__main__":
         
         
         out_file_name=model_name+"-"+device_name+\
-        "-nno:"+nnodes.__str__()+"-nra:"+args.node_rank.__str__()+"-wds:"+args.world_size.__str__()+\
-        "-bs:"+batch_size.__str__() +"-ep:"+total_epochs.__str__() +"-lan:"+layer_num.__str__() +"-laf:"+layer_feature.__str__() +\
-        "-si:"+sample_interval.__str__()+"-tim:"+formatted_time+".csv"
+        "-nno_"+nnodes.__str__()+"-nra_"+args.node_rank.__str__()+"-wds_"+args.world_size.__str__()+\
+        "-bs_"+batch_size.__str__() +"-ep_"+total_epochs.__str__() +"-lan_"+layer_num.__str__() +"-laf_"+layer_feature.__str__() +\
+        "-si_"+sample_interval.__str__()+"-tim_"+formatted_time+".csv"
         print(out_file_name)
         event=threading.Event()
         gpu_id_record=get_record_gpu_id_list(args)
