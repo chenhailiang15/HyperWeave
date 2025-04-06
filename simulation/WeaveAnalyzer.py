@@ -35,10 +35,15 @@ class AnalyzeDataLoader:
         file=open(dataset_dir+"exp_data"+"/"+file_name,"r")
         for line in file.readlines():
             model_info=line.split("-[(")[0]
-            # base_cost=np.array(ast.literal_eval(line.split("-[(")[1].split("), (")[0]))
+            base_cost=np.array(ast.literal_eval(line.split("-[(")[1].split("), (")[0]))
             stage_init_cost=np.array(ast.literal_eval(line.split("-[(")[1].split("), (")[1]))
             stage_sample_cost=np.array(ast.literal_eval(line.split("-[(")[1].split("), (")[2]))
             stage_train_cost=np.array(ast.literal_eval(line.split("-[(")[1].split("), (")[3].split(")]")[0]))
+            
+            stage_init_cost[1]=stage_init_cost[1]-base_cost[1]*0.95
+            stage_sample_cost[1]=stage_sample_cost[1]-base_cost[1]*0.95
+            stage_train_cost[1]=stage_train_cost[1]-base_cost[1]*0.95
+            
             temp_dict={}
             temp_dict["stage_init"]=stage_init_cost
             temp_dict["stage_sample"]=stage_sample_cost

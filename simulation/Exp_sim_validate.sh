@@ -4,13 +4,13 @@
 
 
 gpu_mem_percent=0.9
-node_kind="s4*3090"                           #"s4*3090, s8*3090, 4*3090, 3*2080ti, 4*2080"
+node_kind="4*A100"                           #"s4*3090, s8*3090, 4*3090, 3*2080ti, 4*2080"
 model_kind="all_model"                       #"cv_model, all_model"
 job_num=100
 print_level=10
 couple_init_iter_percent=0.2
 overshared_factor=2
-job_together_flage="False"
+job_together_flage="True"
 validation="True"
 trace_id=8
 job_come_time_factor=1

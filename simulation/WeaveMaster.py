@@ -89,9 +89,9 @@ class WeaveMaster:
             print("validation is wrong!")
             exit(-1)
         
-        self.Bigstageresource_file_name="Analyzer-NVIDIA_GeForce_RTX_3090-tim_02_09_23_52_05.csv"
-        self.Ministagetime_file_name="Muri_Analyzer-NVIDIA_GeForce_RTX_3090-tim_02_10_07_04_44.csv"
-            
+        self.Bigstageresource_file_name="Bigstageresource_Analyzer-NVIDIA_A100-PCIE-40GB-tim_04_05_07_21_47.csv"
+        self.Ministagetime_file_name="Ministagetime_Analyzer-NVIDIA_A100-PCIE-40GB-tim_04_05_11_25_29.csv"
+        
         if self.args.model_kind=="all_model":
             self.model_info_file_name="Full_model_info_12_27_21_27_41.txt"
         elif self.args.model_kind=="cv_model":
@@ -143,6 +143,7 @@ class WeaveMaster:
         self.Muri_modify_factor=1
         self.last_schedule_rest=False
         
+        self.job_duration_all=0
         #################################
 
         if self.print_level>0:
@@ -247,6 +248,12 @@ class WeaveMaster:
             node_2080.set_init_resouce(48*100, 60*1024, 4, 8*1024*args.gpu_mem_percent)
             self.nodes.append(node_2080)
             self.node_num=1
+        
+        elif self.node_kind=="4*A100":
+            node_A100=Node(self, self.env,  "A100node", 0, self.overshared_factor, self.print_level)
+            node_A100.set_init_resouce(40*100, 288*1024, 4, 40*1024*args.gpu_mem_percent)
+            self.nodes.append(node_A100)
+            self.node_num=1
             
         else:
             print("node kind parameter wrong!")
@@ -302,6 +309,7 @@ class WeaveMaster:
             self.wait_schedule_queue.put(job)
             self.job_come_num += 1
             self.job_not_start_num+=1
+            self.job_duration_all+=job.duration_time
             self.should_schedule=True  #有来的，则进行调度
             if self.job_come_num>=self.args.job_num:
                 break
@@ -724,6 +732,7 @@ class WeaveMaster:
         temp_string+=f"job_come_time_factor:{self.job_come_time_factor}\njob_duration_time_factor:{self.job_duration_time_factor}\njob_ddl_factor:{self.job_ddl_factor}\n"
         temp_string+=f"node_num:{self.node_num}\n"
         temp_string+=f"job_num:{self.args.job_num}\n"
+        temp_string+=f"job_ave_duration:{self.job_duration_all/self.args.job_num}\n"
         temp_string+=f"trace_id:{self.args.trace_id}\n"
         temp_string+=f"bucket_length:{self.args.bucket_length}\n"
         temp_string+=f"schedule_interval:{self.schedule_interval}\n"

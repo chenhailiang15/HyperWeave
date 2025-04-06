@@ -15,8 +15,8 @@ job_come_time_factor=1                   #trace 0 with factor 6;
 job_together_flage="False"
 
 overshared_factor=2
-trace_id=8
-
+trace_id=$1
+echo "trace id : $1"
 
 system="Normal"
 strategy="FIFO"
