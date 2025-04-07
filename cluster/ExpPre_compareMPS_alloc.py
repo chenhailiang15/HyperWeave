@@ -2,8 +2,8 @@
 from util import *
 from models.Framework import *
 
-
-
+batch_size_list=[16,32,128,64,8]
+batch_size_list_bert=[16,8,16,16,8]
 
 def do_experiment(model_name, mps_state, max_parallel_num,file_writer,alloc):
     
@@ -33,6 +33,7 @@ def run_specific_model_paranum(model_name,para_num):
         sub_thread=threading.Thread(target=run_command,args=(command, ))
         sub_thread.start()
         thread_hand.append(sub_thread)
+        time.sleep(5)
 
     for thread_t in thread_hand:
         thread_t.join()
@@ -49,9 +50,9 @@ def generate_command(model_name, index):
 
     total_epochs=2
     if model_name == "Bert":
-        batch_size=32
+        batch_size=batch_size_list_bert[index]    #16
     else:
-        batch_size=512           #8 for Bert (default:16)
+        batch_size=batch_size_list[index]   #128           #8 for Bert (default:16)
     
 
     if model_name == "GCN":
@@ -118,26 +119,31 @@ if __name__=="__main__":
     file_writer_false=open(get_output_dir()+out_file_name,"w")
     
     for model_name in model_list:
+        
         with_mps=True
         start_MPS(11) 
-        
+        alloc_percent=100
+        command_alloc=f"echo set_default_active_thread_percentage {alloc_percent} | nvidia-cuda-mps-control"
+        os.system(command_alloc)
         do_experiment(model_name, with_mps, max_parallel_num,file_writer_true,alloc=False )
         
     
     for model_name in model_list:
-        with_mps=True
-        alloc_percent=100/5
+        
+        alloc_percent=20
         command_alloc=f"echo set_default_active_thread_percentage {alloc_percent} | nvidia-cuda-mps-control"
         os.system(command_alloc)
         
         do_experiment(model_name, with_mps, max_parallel_num,file_writer_true_alloc,alloc=True )
         
-        
     for model_name in model_list:
-        
         with_mps=False
         stop_MPS(11) 
         do_experiment(model_name, with_mps, max_parallel_num,file_writer_false,alloc=False )
+        
+    # 
+        
+        
         
     file_writer_true.close()
     file_writer_true_alloc.close()
