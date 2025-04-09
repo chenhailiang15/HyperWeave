@@ -1,2 +1,0 @@
-mps=False,alloc=False,||[['Transformer', 128, 5], ['GraphSage', 128, 10]]||,para_num=2,time_list=[32.28939390182495, 340.7361960411072]
-mps=True,alloc=True,||[['Transformer', 128, 5], ['GraphSage', 128, 10]]||,para_num=2,time_list=[-1, -1]

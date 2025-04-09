@@ -1,1 +1,0 @@
-mps=False,alloc=False,||[['ResNet50', 512, 1], ['GCN', 8, 1]]||,time_list=[-1, -1]
