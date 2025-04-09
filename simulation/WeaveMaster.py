@@ -509,6 +509,12 @@ class WeaveMaster:
                                     1024*ali_trace["avg_gpu_wrk_mem"]*self.analyze_loader.get_value(model_info,"stage_sample", "gmem")/max_gmem_usage,\
                                     1024*ali_trace["avg_gpu_wrk_mem"]*self.analyze_loader.get_value(model_info,"stage_train", "gmem")/max_gmem_usage]
             
+            pack_resource=[max(job.used_resource_cpu), max(job.used_resource_mem), max(job.used_resource_gpu), max(job.used_resource_gmem)]
+        
+            if pack_resource[2]/job.parallel_num<10:
+                if self.print_level>=2:
+                    print(f"job generate fail (used GPU resource not well)!{pack_resource}")
+                return None
             
             
         pack_resource=[max(job.used_resource_cpu), max(job.used_resource_mem), max(job.used_resource_gpu), max(job.used_resource_gmem)]
@@ -519,10 +525,7 @@ class WeaveMaster:
                 print(f"job generate fail (used resource bigger than plan)!")
             return None
         
-        if pack_resource[2]/job.parallel_num<10:
-            if self.print_level>=2:
-                print(f"job generate fail (used GPU resource not well)!{pack_resource}")
-            return None
+        
         # 并行度为1，实际使用为188，存在问题
         if self.monitor.judge_runable_with_resource(pack_resource, job.parallel_num, plan_flage=False, init=True) == False:
             if self.print_level>=2:
@@ -569,7 +572,7 @@ class WeaveMaster:
                     # print(f"wait for next scheduling:job name({job.job_name})")
                     self.wait_schedule_queue.put(job)
             
-            self.queue_length.append(self.wait_schedule_queue.qsize())
+            
            
             self.print_and_store_current_state_now()
             self.env.process(self.schedule())
@@ -637,6 +640,7 @@ class WeaveMaster:
             # self.print_current_state()
 
     def print_and_store_current_state_now(self):
+        self.queue_length.append(self.wait_schedule_queue.qsize())
         self.print_current_state()
         self.write_current_state()
     
