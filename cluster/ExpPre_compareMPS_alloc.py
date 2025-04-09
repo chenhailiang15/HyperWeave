@@ -27,7 +27,7 @@ def run_specific_model_paranum(model_group,para_num):
     end_time_list=[]
     thread_hand=[]
     
-    for model_info in range(model_group):
+    for model_info in model_group:
         
         command = generate_command(model_info)
         sub_thread=threading.Thread(target=run_command,args=(command, ))
@@ -60,6 +60,9 @@ def generate_command(model_info):
     if model_name == "GCN":
         layer_num=100        #5000 for GCN (default:10)
         layer_feature=100        #100 for GCN (default:10)
+    elif model_name=="GraphSage":
+        layer_num=50       
+        layer_feature=100
     else:
         layer_num=10       
         layer_feature=10 
@@ -105,12 +108,35 @@ if __name__=="__main__":
     max_parallel_num=5
     
     # "AlexNet", "Transformer", "GCN", "Bert", "GraphSage", "ResNet18", "ResNet50",, "VGG16"
-    model_group_list=[[["ResNet50",512,5],["GCN",100,2],["AlexNet",16,2]],
-                      [["VGG16",512,5],["Bert",32,2],["ResNet18",16,2]],
-                      [["MobileNetv2",512,5],["GraphSage",32,2],["Transformer",128,2]],
-                      [["ResNet50",512,5],["VGG16",32,2],["MobileNetv2",16,2]],
-                      [["Transformer",128,3],["Transformer",128,3],["Transformer",128,3]],
-                      [["ResNet50",256,2],["ResNet50",256,2],["ResNet50",256,2]]]
+    # model_group_list=[[["ResNet50",128,3],["GCN",32,9],["Transformer",128,30]],
+    #                   [["VGG16",128,5],["Bert",8,20],["GraphSage",128,20]],
+    #                   [["MobileNetv2",16,1],["GraphSage",128,20],["Transformer",128,30]],
+    #                   [["ResNet50",32,1],["VGG16",16,2],["MobileNetv2",128,4]],
+    #                   [["Transformer",128,30],["Transformer",128,30],["Transformer",128,30]],
+    #                   [["ResNet50",256,1],["ResNet50",256,1],["ResNet50",256,1]]]
+    
+    model_group_list=[[["ResNet50",512,10],["GCN",8,1],["GCN",8,1],["GCN",8,1]],
+                        [["ResNet50",512,10],["MobileNetv2",8,1],["MobileNetv2",8,1],["MobileNetv2",8,1]],
+                        [["ResNet50",512,10],["MobileNetv2",32,1],["MobileNetv2",32,1],["MobileNetv2",32,1]],
+                        [["ResNet50",512,10],["Transformer",64,1],["Transformer",64,1],["Transformer",64,1]],
+                        [["ResNet50",512,10],["VGG16",8,1],["VGG16",8,1],["VGG16",8,1]],
+                        [["VGG16",512,10],["Bert",8,1],["Bert",8,1],["Bert",8,1]],
+                        [["VGG16",512,10],["Transformer",64,1],["Transformer",64,1],["Transformer",64,1]],
+                        [["VGG16",512,10],["GCN",8,1],["GCN",8,1],["GCN",8,1]],
+                        [["VGG16",512,10],["MobileNetv2",8,1],["MobileNetv2",8,1],["MobileNetv2",8,1]],
+                        # [["MobileNetv2",512,20],["GraphSage",8,2],["GraphSage",8,2],["GraphSage",8,2]],
+                        [["ResNet50",512,10],["Transformer",8,1],["Transformer",8,1],["Transformer",8,1]],
+                        [["Transformer",128,2],["MobileNetv2",32,1],["MobileNetv2",32,1],["MobileNetv2",32,1]],
+                        [["MobileNetv2",512,10],["Bert",8,2],["Bert",8,2],["Bert",8,2]],
+                        
+                        [["GraphSage",128,5],["GraphSage",128,5]],
+                        [["Bert",16,10],["Bert",16,10]],
+                        
+                        [["GCN",8,5],["GCN",8,5]],
+                        [["Transformer",128,2],["Transformer",128,2]],
+                        [["ResNet50",256,2],["ResNet50",256,2]],
+                        [["Transformer",128,2],["Transformer",128,2],["Transformer",128,2],["Transformer",128,2]],
+                        [["ResNet50",256,2],["ResNet50",256,2],["ResNet50",256,2],["ResNet50",256,2]]]
                     #   "ResNet50", "VGG16", "MobileNetv2","AlexNet", "Transformer", "GCN", "Bert", "GraphSage", "ResNet18"]#"ResNet50", "MobileNetv2", "VGG16",  "Transformer", "GCN" 
     
     
@@ -129,6 +155,13 @@ if __name__=="__main__":
         
         with_mps=True
         start_MPS(11) 
+        alloc_percent=100/len(one_group_info)
+        command_alloc=f"echo set_default_active_thread_percentage {alloc_percent} | nvidia-cuda-mps-control"
+        os.system(command_alloc)
+        
+        do_experiment(one_group_info, with_mps, max_parallel_num,file_writer,alloc=True )
+        
+        
         alloc_percent=100
         command_alloc=f"echo set_default_active_thread_percentage {alloc_percent} | nvidia-cuda-mps-control"
         os.system(command_alloc)
@@ -137,11 +170,7 @@ if __name__=="__main__":
     
     # for model_name in model_list:
         
-        alloc_percent=100/len(one_group_info)
-        command_alloc=f"echo set_default_active_thread_percentage {alloc_percent} | nvidia-cuda-mps-control"
-        os.system(command_alloc)
         
-        do_experiment(one_group_info, with_mps, max_parallel_num,file_writer,alloc=True )
         
     # for model_name in model_list:
         
