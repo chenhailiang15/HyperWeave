@@ -1,0 +1,7 @@
+mps=False,alloc=False,||[['ResNet50', 512, 5], ['VGG16', 512, 5]]||,para_num=2,time_list=[205.33354353904724, 211.77858018875122]
+mps=True,alloc=True,||[['ResNet50', 512, 5], ['VGG16', 512, 5]]||,para_num=2,time_list=[200.08117032051086, 237.0925908088684]
+mps=True,alloc=False,||[['ResNet50', 512, 5], ['VGG16', 512, 5]]||,para_num=2,time_list=[161.90131545066833, 198.4458510875702]
+
+mps=False,alloc=False,||[['ResNet50', 512, 5], ['GraphSage', 128, 7]]||,para_num=2,time_list=[154.0577244758606, 269.96278071403503]
+mps=True,alloc=True,||[['ResNet50', 512, 5], ['GraphSage', 128, 7]]||,para_num=2,time_list=[169.77890586853027, 248.45364689826965]
+mps=True,alloc=False,||[['ResNet50', 512, 5], ['GraphSage', 128, 7]]||,para_num=2,time_list=[161.60595107078552, 269.9471640586853]

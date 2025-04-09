@@ -57,6 +57,7 @@ def run_command(command,index):
             end_job_num_list[index]+=1
             temp_end_time=end_time_list[index]
             end_time_list[index]=time.time()-start_time_t
+            print(f"end_job_num_list:{end_job_num_list}, end_time_list:{end_time_list}")   
         else:
             print("model run wrong!")
             duration_time=-1
@@ -64,7 +65,9 @@ def run_command(command,index):
             return
     
     if end_job_num_list[index]!=1:
-        end_time_list[index]=temp_end_time/(end_job_num_list[index]-1)   
+        end_time_list[index]=temp_end_time/(end_job_num_list[index]-1)
+        end_job_num_list[index]-=1
+    print(f"end:::::::end_job_num_list:{end_job_num_list}, end_time_list:{end_time_list}")   
     return  
     
 
@@ -95,17 +98,22 @@ def do_experiment(model_group, mps_state,file_writer,alloc):
 
             
 port_id=2000
-gpu_id=7
+gpu_id=0
 end_time_list=[]
 end_job_num_list=[]
 
            
 
-max_parallel_num=5
 
 
 
-model_group_list=[[["ResNet50",512,1],["GCN",8,1]],
+
+model_group_list=[[['ResNet50', 512, 5], ['MobileNetv2', 32, 1], ['MobileNetv2', 32, 1], ['MobileNetv2', 32, 1]],
+                  [['VGG16', 512, 5], ['GCN', 8, 1], ['GCN', 8, 1], ['GCN', 8, 1]],
+                  [['MobileNetv2', 128, 3], ['Bert', 8, 6], ['Bert', 8, 6], ['Bert', 8, 6]],
+                  [['GraphSage', 64, 2], ['Transformer', 32, 1], ['Transformer', 32, 1], ['Transformer', 32, 1]],
+                  [['Transformer', 128, 5], ['Transformer', 128, 2], ['Transformer', 128, 2], ['Transformer', 128, 2]],
+                  [['ResNet50', 512, 5], ['ResNet50', 256, 2], ['ResNet50', 256, 2], ['ResNet50', 256, 2]]
                     # [["ResNet50",256,5],["MobileNetv2",8,1],["MobileNetv2",8,1],["MobileNetv2",8,1]],
                     # [["ResNet50",256,5],["MobileNetv2",32,1],["MobileNetv2",32,1],["MobileNetv2",32,1]],
                     # [["ResNet50",256,5],["Transformer",64,1],["Transformer",64,1],["Transformer",64,1]],
