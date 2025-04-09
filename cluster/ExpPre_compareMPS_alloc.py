@@ -3,7 +3,7 @@ from util import *
 from models.Framework import *
 
 
-def generate_command(model_info):
+def generate_command(model_info, job_idx):
     nprocs_list="[1,0]"
     model_name=model_info[0]
     batch_size=model_info[1]
@@ -36,7 +36,7 @@ def generate_command(model_info):
     
     command=f"python WeaveExecutor.py --model_name {model_name}  --net_card {net_card}  --MASTER_PORT {port_id}\
     --nprocs_list {nprocs_list} --gpu_id_list {gpu_id_list} --layer_num {layer_num} --layer_feature {layer_feature} \
-    --batch_size {batch_size} --total_epochs {total_epochs}"
+    --batch_size {batch_size} --total_epochs {total_epochs} --job_idx {job_idx}"
     return command
 
 def is_end():
@@ -46,29 +46,30 @@ def is_end():
         return False
 
 def run_command(command,index):
-        start_time_t=time.time()
-        temp_end_time=0
-        while not is_end():
-            print(f"command: {command}")
-            back=os.system(command)
-            # back=0
-            if back==0:
-                end_job_num_list[index]+=1
-                temp_end_time=end_time_list[index]
-                end_time_list[index]=time.time()-start_time_t
-            else:
-                print("model run wrong!")
-                duration_time=-1
-                end_time_list[index]=duration_time
-                return
-        
-        if end_job_num_list[index]!=1:
-            end_time_list[index]=temp_end_time/(end_job_num_list[index]-1)   
-        return  
+    global end_time_list, end_job_num_list
+    start_time_t=time.time()
+    temp_end_time=0
+    while not is_end():
+        print(f"command: {command}")
+        back=os.system(command)
+        # back=0
+        if back==0:
+            end_job_num_list[index]+=1
+            temp_end_time=end_time_list[index]
+            end_time_list[index]=time.time()-start_time_t
+        else:
+            print("model run wrong!")
+            duration_time=-1
+            end_time_list[index]=duration_time
+            return
+    
+    if end_job_num_list[index]!=1:
+        end_time_list[index]=temp_end_time/(end_job_num_list[index]-1)   
+    return  
     
 
 def do_experiment(model_group, mps_state,file_writer,alloc):
-    
+    global end_time_list, end_job_num_list
     thread_hand=[]
     #初始化统计变量
     job_parallel_num=len(model_group)
@@ -79,7 +80,7 @@ def do_experiment(model_group, mps_state,file_writer,alloc):
         
     for index, model_info in enumerate(model_group):
         
-        command = generate_command(model_info)
+        command = generate_command(model_info,index)
         sub_thread=threading.Thread(target=run_command,args=(command,index, ))
         sub_thread.start()
         thread_hand.append(sub_thread)
@@ -94,7 +95,7 @@ def do_experiment(model_group, mps_state,file_writer,alloc):
 
             
 port_id=2000
-gpu_id=0
+gpu_id=7
 end_time_list=[]
 end_job_num_list=[]
 
@@ -104,7 +105,7 @@ max_parallel_num=5
 
 
 
-model_group_list=[[["ResNet50",512,1],["GCN",8,1],["GCN",8,1],["GCN",8,1],["GCN",8,1],["GCN",8,1]],
+model_group_list=[[["ResNet50",512,1],["GCN",8,1]],
                     # [["ResNet50",256,5],["MobileNetv2",8,1],["MobileNetv2",8,1],["MobileNetv2",8,1]],
                     # [["ResNet50",256,5],["MobileNetv2",32,1],["MobileNetv2",32,1],["MobileNetv2",32,1]],
                     # [["ResNet50",256,5],["Transformer",64,1],["Transformer",64,1],["Transformer",64,1]],
@@ -141,7 +142,7 @@ file_writer=open(get_output_dir()+out_file_name,"w")
 for one_group_info in model_group_list:
     with_mps=False
     stop_MPS(11) 
-    do_experiment(one_group_info, with_mps, max_parallel_num,file_writer,alloc=False )
+    do_experiment(one_group_info, with_mps,file_writer,alloc=False )
     
     with_mps=True
     start_MPS(11) 
@@ -149,13 +150,13 @@ for one_group_info in model_group_list:
     command_alloc=f"echo set_default_active_thread_percentage {alloc_percent} | nvidia-cuda-mps-control"
     os.system(command_alloc)
     
-    do_experiment(one_group_info, with_mps, max_parallel_num,file_writer,alloc=True )
+    do_experiment(one_group_info, with_mps,file_writer,alloc=True )
     
     
     alloc_percent=100
     command_alloc=f"echo set_default_active_thread_percentage {alloc_percent} | nvidia-cuda-mps-control"
     os.system(command_alloc)
-    do_experiment(one_group_info, with_mps, max_parallel_num,file_writer,alloc=False )
+    do_experiment(one_group_info, with_mps,file_writer,alloc=False )
     
 
 # for model_name in model_list:
