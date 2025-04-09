@@ -10,9 +10,9 @@ job_num=100
 print_level=10
 couple_init_iter_percent=0.2
 overshared_factor=2
-job_together_flage="True"
+job_together_flage="False"
 validation="True"
-trace_id=8
+trace_id=512
 job_come_time_factor=1
 
 

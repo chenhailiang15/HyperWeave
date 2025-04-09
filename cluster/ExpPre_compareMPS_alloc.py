@@ -115,15 +115,15 @@ if __name__=="__main__":
     #                   [["Transformer",128,30],["Transformer",128,30],["Transformer",128,30]],
     #                   [["ResNet50",256,1],["ResNet50",256,1],["ResNet50",256,1]]]
     
-    model_group_list=[[["ResNet50",512,10],["GCN",8,1],["GCN",8,1],["GCN",8,1]],
-                        [["ResNet50",512,10],["MobileNetv2",8,1],["MobileNetv2",8,1],["MobileNetv2",8,1]],
-                        [["ResNet50",512,10],["MobileNetv2",32,1],["MobileNetv2",32,1],["MobileNetv2",32,1]],
-                        [["ResNet50",512,10],["Transformer",64,1],["Transformer",64,1],["Transformer",64,1]],
-                        [["ResNet50",512,10],["VGG16",8,1],["VGG16",8,1],["VGG16",8,1]],
-                        [["VGG16",512,10],["Bert",8,1],["Bert",8,1],["Bert",8,1]],
-                        [["VGG16",512,10],["Transformer",64,1],["Transformer",64,1],["Transformer",64,1]],
-                        [["VGG16",512,10],["GCN",8,1],["GCN",8,1],["GCN",8,1]],
-                        [["VGG16",512,10],["MobileNetv2",8,1],["MobileNetv2",8,1],["MobileNetv2",8,1]],
+    model_group_list=[[["ResNet50",256,5],["GCN",8,1],["GCN",8,1],["GCN",8,1],["GCN",8,1],["GCN",8,1]],
+                        [["ResNet50",256,5],["MobileNetv2",8,1],["MobileNetv2",8,1],["MobileNetv2",8,1]],
+                        [["ResNet50",256,5],["MobileNetv2",32,1],["MobileNetv2",32,1],["MobileNetv2",32,1]],
+                        [["ResNet50",256,5],["Transformer",64,1],["Transformer",64,1],["Transformer",64,1]],
+                        [["ResNet50",256,10],["VGG16",8,1],["VGG16",8,1],["VGG16",8,1]],
+                        [["VGG16",256,10],["Bert",8,1],["Bert",8,1],["Bert",8,1]],
+                        [["VGG16",256,10],["Transformer",64,1],["Transformer",64,1],["Transformer",64,1]],
+                        [["VGG16",256,10],["GCN",8,1],["GCN",8,1],["GCN",8,1]],
+                        [["VGG16",256,10],["MobileNetv2",8,1],["MobileNetv2",8,1],["MobileNetv2",8,1]],
                         # [["MobileNetv2",512,20],["GraphSage",8,2],["GraphSage",8,2],["GraphSage",8,2]],
                         [["ResNet50",512,10],["Transformer",8,1],["Transformer",8,1],["Transformer",8,1]],
                         [["Transformer",128,2],["MobileNetv2",32,1],["MobileNetv2",32,1],["MobileNetv2",32,1]],
@@ -136,7 +136,8 @@ if __name__=="__main__":
                         [["Transformer",128,2],["Transformer",128,2]],
                         [["ResNet50",256,2],["ResNet50",256,2]],
                         [["Transformer",128,2],["Transformer",128,2],["Transformer",128,2],["Transformer",128,2]],
-                        [["ResNet50",256,2],["ResNet50",256,2],["ResNet50",256,2],["ResNet50",256,2]]]
+                        [["ResNet50",256,2],["ResNet50",256,2],["ResNet50",256,2],["ResNet50",256,2]]
+                        ]
                     #   "ResNet50", "VGG16", "MobileNetv2","AlexNet", "Transformer", "GCN", "Bert", "GraphSage", "ResNet18"]#"ResNet50", "MobileNetv2", "VGG16",  "Transformer", "GCN" 
     
     
