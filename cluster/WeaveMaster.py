@@ -429,7 +429,7 @@ class WeaveMaster:
             time.sleep(self.schedule_interval)
             print("start scheduling ... ")
             wait_schedule_list=[]
-            self.queue_length.append(self.wait_schedule_queue.qsize())
+            
             
             while self.wait_schedule_queue.qsize()>0:
                 wait_schedule_list.append(self.wait_schedule_queue.get())
@@ -571,6 +571,7 @@ class WeaveMaster:
             
             
     def print_and_store_current_state_now(self):
+        self.queue_length.append(self.wait_schedule_queue.qsize())
         self.print_current_state()
         self.write_current_state()
     
