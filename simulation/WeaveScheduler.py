@@ -596,13 +596,15 @@ class WeaveSchedulor:
             operate_satisfy_gpu_list=satisfy_gpu_list.copy()
             dict_node_gpuid={}
             
-            for i in range(rest_gpu):
+            while rest_gpu>0:
                 index=random.randint(0, len(operate_satisfy_gpu_list) - 1) 
                 [node_index, score, temp_gpu_list]=operate_satisfy_gpu_list[index]
                 
+                if len(temp_gpu_list)==0:
+                    del operate_satisfy_gpu_list[index]
+                    continue
                 index_2=random.randint(0, len(temp_gpu_list) - 1) 
-                gpu_index=temp_gpu_list[index_2]
-                
+                [gpu_index,ave_per]=temp_gpu_list[index_2]
                 
                 if node_index not in dict_node_gpuid.keys():
                     dict_node_gpuid[node_index]=[gpu_index]
@@ -620,9 +622,14 @@ class WeaveSchedulor:
                 del operate_satisfy_gpu_list[index][2][index_2]
                 if len(operate_satisfy_gpu_list[index][2])==0:
                     del operate_satisfy_gpu_list[index]
+                
+                rest_gpu-=1
             
             for node_index in dict_node_gpuid.keys():    
                 selected_gpu_id_list.append([node_index, dict_node_gpuid[node_index]])
+        else:
+            print(f"gpu_select_mode wrong:{self.master.gpu_select_mode}")
+            exit(-1)
             
         return selected_gpu_id_list, shm_name_dict
     #********************************************************************************Muri***********************************************************************************************

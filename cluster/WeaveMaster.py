@@ -60,7 +60,7 @@ class WeaveMaster:
 
         self.schedule_interval=10
         self.status_out_interval=10
-        
+        self.gpu_select_mode=args.gpu_select_mode
         
         # self.model_name_list=model_list_g    #
         # self.batch_size_dict=model_to_batch_size_g
@@ -733,6 +733,7 @@ if __name__=="__main__":
     parser.add_argument("--write_sum", action='store_true')
     parser.add_argument("--write_trace", action='store_true')
     parser.add_argument("--trace_id", default=0, type=int)
+    parser.add_argument("--gpu_select_mode", default="min_prior", type=str)
     
     
     args=parser.parse_args()
