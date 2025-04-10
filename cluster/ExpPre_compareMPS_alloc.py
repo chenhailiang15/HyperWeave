@@ -108,12 +108,15 @@ end_job_num_list=[]
 
 
 
-model_group_list=[[['ResNet50', 512, 5], ['MobileNetv2', 32, 1], ['MobileNetv2', 32, 1], ['MobileNetv2', 32, 1]],
+model_group_list=[
+                  [['ResNet50', 512, 5], ['MobileNetv2', 32, 1], ['MobileNetv2', 32, 1], ['MobileNetv2', 32, 1]],
                   [['VGG16', 512, 5], ['GCN', 8, 1], ['GCN', 8, 1], ['GCN', 8, 1]],
                   [['MobileNetv2', 128, 3], ['Bert', 8, 6], ['Bert', 8, 6], ['Bert', 8, 6]],
                   [['GraphSage', 64, 2], ['Transformer', 32, 1], ['Transformer', 32, 1], ['Transformer', 32, 1]],
                   [['Transformer', 128, 5], ['Transformer', 128, 2], ['Transformer', 128, 2], ['Transformer', 128, 2]],
-                  [['ResNet50', 512, 5], ['ResNet50', 256, 2], ['ResNet50', 256, 2], ['ResNet50', 256, 2]]
+                  [['ResNet50', 512, 5], ['ResNet50', 512, 2], ['ResNet50', 512, 2], ['ResNet50', 512, 2]]
+                #   [['Transformer', 128, 1], ['Transformer', 128, 1], ['Transformer', 128, 1], ['Transformer', 128, 1]],
+                #   [['ResNet50', 512, 5], ['ResNet50', 256, 2], ['ResNet50', 256, 2], ['ResNet50', 256, 2]]
                     # [["ResNet50",256,5],["MobileNetv2",8,1],["MobileNetv2",8,1],["MobileNetv2",8,1]],
                     # [["ResNet50",256,5],["MobileNetv2",32,1],["MobileNetv2",32,1],["MobileNetv2",32,1]],
                     # [["ResNet50",256,5],["Transformer",64,1],["Transformer",64,1],["Transformer",64,1]],
@@ -157,15 +160,17 @@ for one_group_info in model_group_list:
     alloc_percent=100/len(one_group_info)
     command_alloc=f"echo set_default_active_thread_percentage {alloc_percent} | nvidia-cuda-mps-control"
     os.system(command_alloc)
-    
     do_experiment(one_group_info, with_mps,file_writer,alloc=True )
+    stop_MPS(11) 
     
     
+    with_mps=True
+    start_MPS(11) 
     alloc_percent=100
     command_alloc=f"echo set_default_active_thread_percentage {alloc_percent} | nvidia-cuda-mps-control"
     os.system(command_alloc)
     do_experiment(one_group_info, with_mps,file_writer,alloc=False )
-    
+    stop_MPS(11) 
 
 # for model_name in model_list:
     
