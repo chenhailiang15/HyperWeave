@@ -569,25 +569,61 @@ class WeaveSchedulor:
 
         selected_gpu_id_list = []
         shm_name_dict = {}
-        for [node_index, score, temp_gpu_list] in satisfy_gpu_list:
+        
+        if self.master.gpu_select_mode=="min_prior":
+            
+            for [node_index, score, temp_gpu_list] in satisfy_gpu_list:
 
-            temp_gpu_id_list = []
-            shm_name_dict_temp = {}
-            for [gpu_index, ave_per] in temp_gpu_list:
-                if rest_gpu > 0 :
-                    shm_name = generate_shm_name()
-                    shm_name_dict_temp[gpu_index] = shm_name
-                    temp_gpu_id_list.append(gpu_index)
-                    rest_gpu -= 1
-                elif rest_gpu == 0 :
+                temp_gpu_id_list = []
+                shm_name_dict_temp = {}
+                for [gpu_index, ave_per] in temp_gpu_list:
+                    if rest_gpu > 0 :
+                        shm_name = generate_shm_name()
+                        shm_name_dict_temp[gpu_index] = shm_name
+                        temp_gpu_id_list.append(gpu_index)
+                        rest_gpu -= 1
+                    elif rest_gpu == 0 :
+                        break
+                    else:
+                        print("(monitor) wrong!")
+                        exit(256)
+                selected_gpu_id_list.append([node_index, temp_gpu_id_list])
+                shm_name_dict[node_index] = shm_name_dict_temp
+                if rest_gpu == 0 :
                     break
+                
+        elif self.master.gpu_select_mode=="random":
+            operate_satisfy_gpu_list=satisfy_gpu_list.copy()
+            dict_node_gpuid={}
+            
+            for i in range(rest_gpu):
+                index=random.randint(0, len(operate_satisfy_gpu_list) - 1) 
+                [node_index, score, temp_gpu_list]=operate_satisfy_gpu_list[index]
+                
+                index_2=random.randint(0, len(temp_gpu_list) - 1) 
+                gpu_index=temp_gpu_list[index_2]
+                
+                
+                if node_index not in dict_node_gpuid.keys():
+                    dict_node_gpuid[node_index]=[gpu_index]
                 else:
-                    print("(monitor) wrong!")
-                    exit(256)
-            selected_gpu_id_list.append([node_index, temp_gpu_id_list])
-            shm_name_dict[node_index] = shm_name_dict_temp
-            if rest_gpu == 0 :
-                break
+                    dict_node_gpuid[node_index].append(gpu_index)
+                
+                shm_name = generate_shm_name()
+                if node_index not in shm_name_dict.keys():
+                    shm_name_dict_temp = {}
+                    shm_name_dict_temp[gpu_index] = shm_name
+                    shm_name_dict[node_index]=shm_name_dict_temp
+                else:
+                    shm_name_dict[node_index][gpu_index]= shm_name
+                
+                del operate_satisfy_gpu_list[index][2][index_2]
+                if len(operate_satisfy_gpu_list[index][2])==0:
+                    del operate_satisfy_gpu_list[index]
+            
+            for node_index in dict_node_gpuid.keys():    
+                selected_gpu_id_list.append([node_index, dict_node_gpuid[node_index]])
+            
         return selected_gpu_id_list, shm_name_dict
     #********************************************************************************Muri***********************************************************************************************
     #muri 调度主线

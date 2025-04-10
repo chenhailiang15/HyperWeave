@@ -62,7 +62,7 @@ class WeaveMaster:
         self.print_level=print_level
         self.job_come_time_factor = int(self.args.job_come_time_factor)
         
-        
+        self.gpu_select_mode=args.gpu_select_mode
         
         
         # self.model_name_list=model_list_g    #
@@ -842,6 +842,7 @@ if __name__=="__main__":
     parser.add_argument("--trace_id", default=0, type=int)
     parser.add_argument("--job_come_time_factor", default=6, type=int)
     parser.add_argument("--gpu_kind", default="None", type=str)
+    parser.add_argument("--gpu_select_mode", default="min_prior", type=str)
     
     
     args=parser.parse_args()

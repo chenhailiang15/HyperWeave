@@ -514,6 +514,8 @@ class WeaveSchedulor:
 
         selected_gpu_id_list = []
         shm_name_dict = {}
+        
+            
         for [node_index, score, temp_gpu_list] in satisfy_gpu_list:
 
             temp_gpu_id_list = []
