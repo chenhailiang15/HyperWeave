@@ -115,6 +115,34 @@ model_group_list=[
                   [['GraphSage', 64, 2], ['Transformer', 32, 1], ['Transformer', 32, 1], ['Transformer', 32, 1]],
                   [['Transformer', 128, 5], ['Transformer', 128, 2], ['Transformer', 128, 2], ['Transformer', 128, 2]],
                   [['ResNet50', 512, 5], ['ResNet50', 512, 2], ['ResNet50', 512, 2], ['ResNet50', 512, 2]]
+                #   [['GraphSage', 256, 5], ['Transformer', 128, 5]],
+                #   [['GraphSage', 256, 5], ['Transformer', 64, 5]],
+                #   [['GraphSage', 256, 5], ['Transformer', 64, 1]],
+                #   [['GraphSage', 512, 4], ['Transformer', 128, 5]],
+                #   [['GraphSage', 512, 1], ['Transformer', 128, 5]],
+                #   [['VGG16', 512, 1],  ['GCN', 512, 1]],
+                #   [['VGG16', 512, 4],  ['GCN', 512, 2]],
+                #   [['VGG16', 256, 2],  ['GCN', 512, 2]],
+                #   [['VGG16', 128, 4],  ['GCN', 512, 4]],
+                #   [['MobileNetv2', 512, 2], ['Bert', 128, 6]],
+                #   [['MobileNetv2', 512, 1], ['Bert', 128, 6]],
+                #   [['MobileNetv2', 128, 1], ['Bert', 128, 3]],
+                #   [['ResNet50', 512, 1], ['MobileNetv2', 512, 1]],
+                #   [['ResNet50', 256, 1], ['MobileNetv2', 256, 1]],
+                #   [['ResNet50', 512, 3], ['MobileNetv2', 512, 1]],
+                #   [['ResNet50', 512, 2], ['MobileNetv2', 256, 1]],
+                #   [['VGG16', 512, 1], ['Bert', 128,10]],
+                #   [['VGG16', 512, 5], ['Bert', 128,2]],
+                #   [['VGG16', 512, 2], ['Bert', 128,2]]
+                  [['VGG16', 256, 1], ['Bert', 128,1]],
+                  [['VGG16', 256, 1], ['Bert', 128,3]],
+                  [['VGG16', 256, 1], ['Bert', 128,2]],
+                  
+                #   [['VGG16', 256, 2], ['Bert', 64,2]],
+                #   [['VGG16', 512, 2], ['Bert', 64,2]]
+                #   [['GraphSage', 64, 2], ['Transformer', 32, 1], ['Transformer', 32, 1], ['Transformer', 32, 1]],
+                #   [['Transformer', 128, 5], ['Transformer', 128, 2], ['Transformer', 128, 2], ['Transformer', 128, 2]],
+                #   [['ResNet50', 512, 5], ['ResNet50', 512, 2], ['ResNet50', 512, 2], ['ResNet50', 512, 2]]
                 #   [['Transformer', 128, 1], ['Transformer', 128, 1], ['Transformer', 128, 1], ['Transformer', 128, 1]],
                 #   [['ResNet50', 512, 5], ['ResNet50', 256, 2], ['ResNet50', 256, 2], ['ResNet50', 256, 2]]
                     # [["ResNet50",256,5],["MobileNetv2",8,1],["MobileNetv2",8,1],["MobileNetv2",8,1]],
