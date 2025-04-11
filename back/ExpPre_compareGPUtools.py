@@ -89,7 +89,7 @@ def recored_tools(file_writer):
         
     
     
-    
+ #/usr/local/NVIDIA-Nsight-Compute-2024.1   
     
 gpu_id=0
 end_flage=False
