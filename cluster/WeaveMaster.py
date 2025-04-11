@@ -664,6 +664,7 @@ class WeaveMaster:
         temp_string+=f"MPS:{self.MPS_mode}\nSync:{self.weave_sync_mode}\n"
         temp_string+=f"overshared_factor:{self.overshared_factor}\ngpu_mem_percent:{self.args.gpu_mem_percent}\n"
         temp_string+=f"job_come_time_factor:{self.job_come_time_factor}\njob_duration_time_factor:{self.job_duration_time_factor}\njob_ddl_factor:{self.job_ddl_factor}\n"
+        temp_string+=f"job_together_flage:{args.job_together_flage}\n"
         temp_string+=f"job_num:{self.args.job_num}\n"
         temp_string+=f"schedule_interval:{self.schedule_interval}\n"
         temp_string+=f"makespan_real:{self.makespan}\n"
@@ -744,7 +745,7 @@ if __name__=="__main__":
         print("sync_flage or mps_flage value or job_together_flage wrong!")
         exit(-1)
         
-    version="v2.6.1-os"+f"{args.overshared_factor}-MPS_{args.mps_flage}-Sync_{args.sync_flage}"
+    version="v2.6.1-os"+f"{args.overshared_factor}-MPS_{args.mps_flage}-Sync_{args.sync_flage}-Gpus_{args.gpu_select_mode}"
     system=args.system
     strategy=args.strategy
     write_sum = (args.write_sum)
