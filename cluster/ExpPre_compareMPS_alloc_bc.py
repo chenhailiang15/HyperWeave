@@ -2,6 +2,7 @@
 from util import *
 from models.Framework import *
 
+lock = threading.Lock()
 
 def generate_command(model_info, job_idx):
     nprocs_list="[1,0]"
@@ -22,71 +23,68 @@ def generate_command(model_info, job_idx):
         layer_num=100        #5000 for GCN (default:10)
         layer_feature=100        #100 for GCN (default:10)
     elif model_name=="GraphSage":
-        layer_num=50       
-        layer_feature=100
+        layer_num=10       
+        layer_feature=10
     else:
         layer_num=10       
         layer_feature=10 
-              
-    global port_id
-    port_id+=1
-    while is_port_in_use("localhost",port_id):
+    with lock:          
+        global port_id
         port_id+=1
-    
-    
-    command=f"python WeaveExecutor.py --model_name {model_name}  --net_card {net_card}  --MASTER_PORT {port_id}\
-    --nprocs_list {nprocs_list} --gpu_id_list {gpu_id_list} --layer_num {layer_num} --layer_feature {layer_feature} \
-    --batch_size {batch_size} --total_epochs {total_epochs} --job_idx {job_idx}"
+        while is_port_in_use("localhost",port_id):
+            port_id+=1
+        
+        
+        command=f"python WeaveExecutor.py --model_name {model_name}  --net_card {net_card}  --MASTER_PORT {port_id}\
+        --nprocs_list {nprocs_list} --gpu_id_list {gpu_id_list} --layer_num {layer_num} --layer_feature {layer_feature} \
+        --batch_size {batch_size} --total_epochs {total_epochs} --job_idx {job_idx}"
     return command
 
-def is_end():
-    if all(num > 0 for num in end_job_num_list):
+def is_end(model_group,job_order):
+    if job_order>=len(model_group):
         return True
     else:
         return False
 
-def run_command(command,index):
-    global end_time_list, end_job_num_list
+def run_command(model_group,index):
+    global end_time_list,job_order
     start_time_t=time.time()
-    temp_end_time=0
-    while not is_end():
+    while not is_end(model_group,job_order):
+        this_index=job_order
+        job_order+=1
+        command=generate_command(model_group[this_index], this_index)
+        
         print(f"command: {command}")
         back=os.system(command)
         # back=0
         if back==0:
-            end_job_num_list[index]+=1
-            temp_end_time=end_time_list[index]
-            end_time_list[index]=time.time()-start_time_t
-            print(f"end_job_num_list:{end_job_num_list}, end_time_list:{end_time_list}")   
+            end_time_list[this_index]=time.time()-start_time_t
+            print(f"end_time_list:{end_time_list}")   
         else:
             print("model run wrong!")
             duration_time=-1
-            end_time_list[index]=duration_time
+            end_time_list[this_index]=duration_time
             return
     
-    if end_job_num_list[index]!=1:
-        end_time_list[index]=temp_end_time/(end_job_num_list[index]-1)
-        end_job_num_list[index]-=1
-    print(f"end:::::::end_job_num_list:{end_job_num_list}, end_time_list:{end_time_list}")   
     return  
     
 
-def do_experiment(model_group, mps_state,file_writer,alloc):
-    global end_time_list, end_job_num_list
+def do_experiment(model_group, mps_state,file_writer,alloc,para_num):
+    global end_time_list,job_order
+    job_order=0
     thread_hand=[]
     #初始化统计变量
     job_parallel_num=len(model_group)
     end_time_list=[0]*job_parallel_num
-    end_job_num_list=[0]*job_parallel_num
+    # end_job_num_list=[0]*job_parallel_num
         
+    for index in range(para_num):
         
-        
-    for index, model_info in enumerate(model_group):
-        
-        command = generate_command(model_info,index)
-        sub_thread=threading.Thread(target=run_command,args=(command,index, ))
+        # command = generate_command(model_info, index)
+        sub_thread=threading.Thread(target=run_command,args=(model_group,index, ))
         sub_thread.start()
         thread_hand.append(sub_thread)
+        
         
 
     for thread_t in thread_hand:
@@ -100,74 +98,20 @@ def do_experiment(model_group, mps_state,file_writer,alloc):
 port_id=2000
 gpu_id=0
 end_time_list=[]
-end_job_num_list=[]
+# end_job_num_list=[]
+job_order=0
+mps_limite=33.3
+para_num_low=1
+para_num_high=9
 
-           
-
-
-
-
-
-model_group_list=[
-                  [['ResNet50', 512, 5], ['MobileNetv2', 32, 1], ['MobileNetv2', 32, 1], ['MobileNetv2', 32, 1]],
-                  [['VGG16', 512, 5], ['GCN', 8, 1], ['GCN', 8, 1], ['GCN', 8, 1]],
-                  [['MobileNetv2', 128, 3], ['Bert', 8, 6], ['Bert', 8, 6], ['Bert', 8, 6]],
-                  [['GraphSage', 64, 2], ['Transformer', 32, 1], ['Transformer', 32, 1], ['Transformer', 32, 1]],
-                  [['Transformer', 128, 5], ['Transformer', 128, 2], ['Transformer', 128, 2], ['Transformer', 128, 2]],
-                  [['ResNet50', 512, 5], ['ResNet50', 512, 2], ['ResNet50', 512, 2], ['ResNet50', 512, 2]]
-                #   [['GraphSage', 256, 5], ['Transformer', 128, 5]],
-                #   [['GraphSage', 256, 5], ['Transformer', 64, 5]],
-                #   [['GraphSage', 256, 5], ['Transformer', 64, 1]],
-                #   [['GraphSage', 512, 4], ['Transformer', 128, 5]],
-                #   [['GraphSage', 512, 1], ['Transformer', 128, 5]],
-                #   [['VGG16', 512, 1],  ['GCN', 512, 1]],
-                #   [['VGG16', 512, 4],  ['GCN', 512, 2]],
-                #   [['VGG16', 256, 2],  ['GCN', 512, 2]],
-                #   [['VGG16', 128, 4],  ['GCN', 512, 4]],
-                #   [['MobileNetv2', 512, 2], ['Bert', 128, 6]],
-                #   [['MobileNetv2', 512, 1], ['Bert', 128, 6]],
-                #   [['MobileNetv2', 128, 1], ['Bert', 128, 3]],
-                #   [['ResNet50', 512, 1], ['MobileNetv2', 512, 1]],
-                #   [['ResNet50', 256, 1], ['MobileNetv2', 256, 1]],
-                #   [['ResNet50', 512, 3], ['MobileNetv2', 512, 1]],
-                #   [['ResNet50', 512, 2], ['MobileNetv2', 256, 1]],
-                #   [['VGG16', 512, 1], ['Bert', 128,10]],
-                #   [['VGG16', 512, 5], ['Bert', 128,2]],
-                #   [['VGG16', 512, 2], ['Bert', 128,2]]
-                  [['VGG16', 256, 1], ['Bert', 128,1]],
-                  [['VGG16', 256, 1], ['Bert', 128,3]],
-                  [['VGG16', 256, 1], ['Bert', 128,2]],
+model_group=[['ResNet18', 8, 1],['ResNet18', 16, 1],['ResNet18', 32, 1], ['ResNet18', 64, 1],['ResNet18', 128, 1],
+                   ['AlexNet', 8, 1], ['AlexNet', 16, 1], ['AlexNet', 32, 1], ['AlexNet', 64, 1],
+                   ['Transformer', 8, 1],['Transformer', 16, 1],
+                   ['ResNet50', 8, 1], ['ResNet50', 16, 1], ['ResNet50', 32, 1], ['ResNet50', 64, 1],
+                   ['MobileNetv2', 8, 1],['MobileNetv2', 16, 1],['MobileNetv2', 32, 1], ['MobileNetv2', 64, 1],['MobileNetv2', 128, 1]
+            ]
                   
-                #   [['VGG16', 256, 2], ['Bert', 64,2]],
-                #   [['VGG16', 512, 2], ['Bert', 64,2]]
-                #   [['GraphSage', 64, 2], ['Transformer', 32, 1], ['Transformer', 32, 1], ['Transformer', 32, 1]],
-                #   [['Transformer', 128, 5], ['Transformer', 128, 2], ['Transformer', 128, 2], ['Transformer', 128, 2]],
-                #   [['ResNet50', 512, 5], ['ResNet50', 512, 2], ['ResNet50', 512, 2], ['ResNet50', 512, 2]]
-                #   [['Transformer', 128, 1], ['Transformer', 128, 1], ['Transformer', 128, 1], ['Transformer', 128, 1]],
-                #   [['ResNet50', 512, 5], ['ResNet50', 256, 2], ['ResNet50', 256, 2], ['ResNet50', 256, 2]]
-                    # [["ResNet50",256,5],["MobileNetv2",8,1],["MobileNetv2",8,1],["MobileNetv2",8,1]],
-                    # [["ResNet50",256,5],["MobileNetv2",32,1],["MobileNetv2",32,1],["MobileNetv2",32,1]],
-                    # [["ResNet50",256,5],["Transformer",64,1],["Transformer",64,1],["Transformer",64,1]],
-                    # [["ResNet50",256,10],["VGG16",8,1],["VGG16",8,1],["VGG16",8,1]],
-                    # [["VGG16",256,10],["Bert",8,1],["Bert",8,1],["Bert",8,1]],
-                    # [["VGG16",256,10],["Transformer",64,1],["Transformer",64,1],["Transformer",64,1]],
-                    # [["VGG16",256,10],["GCN",8,1],["GCN",8,1],["GCN",8,1]],
-                    # [["VGG16",256,10],["MobileNetv2",8,1],["MobileNetv2",8,1],["MobileNetv2",8,1]],
-                    # # [["MobileNetv2",512,20],["GraphSage",8,2],["GraphSage",8,2],["GraphSage",8,2]],
-                    # [["ResNet50",512,10],["Transformer",8,1],["Transformer",8,1],["Transformer",8,1]],
-                    # [["Transformer",128,2],["MobileNetv2",32,1],["MobileNetv2",32,1],["MobileNetv2",32,1]],
-                    # [["MobileNetv2",512,10],["Bert",8,2],["Bert",8,2],["Bert",8,2]],
-                    
-                    # [["GraphSage",128,5],["GraphSage",128,5]],
-                    # [["Bert",16,10],["Bert",16,10]],
-                    
-                    # [["GCN",8,5],["GCN",8,5]],
-                    # [["Transformer",128,2],["Transformer",128,2]],
-                    # [["ResNet50",256,2],["ResNet50",256,2]],
-                    # [["Transformer",128,2],["Transformer",128,2],["Transformer",128,2],["Transformer",128,2]],
-                    # [["ResNet50",256,2],["ResNet50",256,2],["ResNet50",256,2],["ResNet50",256,2]]
-                    ]
-                #   "ResNet50", "VGG16", "MobileNetv2","AlexNet", "Transformer", "GCN", "Bert", "GraphSage", "ResNet18"]#"ResNet50", "MobileNetv2", "VGG16",  "Transformer", "GCN" 
+
 
 
 #记录代码开始时间
@@ -177,55 +121,19 @@ formatted_time = now_time.strftime('%m_%d_%H_%M_%S')
 out_file_name="ExpPre_compareMPS_"+formatted_time+".txt"
 file_writer=open(get_output_dir()+out_file_name,"w")
 
+with_mps=True
+alloc_percent=mps_limite
 
-for one_group_info in model_group_list:
-    with_mps=False
-    stop_MPS(11) 
-    do_experiment(one_group_info, with_mps,file_writer,alloc=False )
+start_MPS(11) 
+command_alloc=f"echo set_default_active_thread_percentage {alloc_percent} | nvidia-cuda-mps-control"
+os.system(command_alloc)
     
-    with_mps=True
-    start_MPS(11) 
-    alloc_percent=100/len(one_group_info)
-    command_alloc=f"echo set_default_active_thread_percentage {alloc_percent} | nvidia-cuda-mps-control"
-    os.system(command_alloc)
-    do_experiment(one_group_info, with_mps,file_writer,alloc=True )
-    stop_MPS(11) 
-    
-    
-    with_mps=True
-    start_MPS(11) 
-    alloc_percent=100
-    command_alloc=f"echo set_default_active_thread_percentage {alloc_percent} | nvidia-cuda-mps-control"
-    os.system(command_alloc)
-    do_experiment(one_group_info, with_mps,file_writer,alloc=False )
-    stop_MPS(11) 
+for para_num in range(para_num_low,para_num_high+1):
+    do_experiment(model_group, with_mps,file_writer,alloc=True,para_num=para_num )
+     
 
-# for model_name in model_list:
-    
-    
-    
-# for model_name in model_list:
-    
-    
-# 
-    
-    
+
     
 file_writer.close()
-# file_writer_true_alloc.close()
-# file_writer_false.close()
-    
+
 stop_MPS(11)
-    
-    
-
-
-
-    
-    
-    
-    
-
-
-
-
