@@ -91,7 +91,7 @@ def do_experiment(model_group, mps_state,file_writer,alloc,para_num):
         thread_t.join()
     
     
-    file_writer.write(f"mps={mps_state},alloc={alloc},||{model_group}||,time_list={end_time_list}\n")
+    file_writer.write(f"mps={mps_state},alloc={alloc},para_num={para_num},||{model_group}||,time_list={end_time_list}\n")
     file_writer.flush()
 
             
@@ -102,16 +102,22 @@ end_time_list=[]
 job_order=0
 mps_limite=40
 
-model_group_list=[
-                   [['ResNet18', 8, 1],['ResNet18', 16, 1],['ResNet18', 32, 1], ['ResNet18', 64, 1],['ResNet18', 128, 1],
-                   ['AlexNet', 8, 1], ['AlexNet', 16, 1], ['AlexNet', 32, 1], ['AlexNet', 64, 1],
-                   ['Transformer', 8, 1],['Transformer', 16, 1],
-                   ['ResNet50', 8, 1], ['ResNet50', 16, 1], ['ResNet50', 32, 1], ['ResNet50', 64, 1],
-                   ['MobileNetv2', 8, 1],['MobileNetv2', 16, 1],['MobileNetv2', 32, 1], ['MobileNetv2', 64, 1],['MobileNetv2', 128, 1]
-                   ]
+model_group_list1=[
+    [['Transformer', 64, 1],['Transformer', 64, 1],['Transformer', 64, 1],['GraphSage', 128, 1],["GraphSage",128,1],["GraphSage",128,1]],
+    [["VGG16",256,1],["GCN",8,1],["VGG16",256,1],["GCN",8,1],["VGG16",256,1],["GCN",8,1]],
+    [['MobileNetv2', 64, 1],["Bert",32,1],['MobileNetv2', 64, 1],["Bert",32,1],['MobileNetv2', 64, 1],["Bert",32,1]],
+    [ ['ResNet50', 128, 1],['MobileNetv2', 64, 1],['ResNet50', 128, 1],['MobileNetv2', 64, 1],['ResNet50', 128, 1],['MobileNetv2', 64, 1]],
+    [["VGG16",256,1], ["Bert",32,1],["VGG16",256,1], ["Bert",32,1],["VGG16",256,1], ["Bert",32,1]]
                   ]
 
 
+model_group_list2=[
+    [['Transformer', 64, 1],['Transformer', 64, 1],['Transformer', 64, 1],['GraphSage', 128, 1],["GraphSage",128,1],["GraphSage",128,1],['Transformer', 64, 1],['Transformer', 64, 1],['Transformer', 64, 1],['GraphSage', 128, 1],["GraphSage",128,1],["GraphSage",128,1]],
+    [["VGG16",256,1],["GCN",8,1],["VGG16",256,1],["GCN",8,1],["VGG16",256,1],["GCN",8,1],["VGG16",256,1],["GCN",8,1],["VGG16",256,1],["GCN",8,1],["VGG16",256,1],["GCN",8,1]],
+    [['MobileNetv2', 64, 1],["Bert",32,1],['MobileNetv2', 64, 1],["Bert",32,1],['MobileNetv2', 64, 1],["Bert",32,1],['MobileNetv2', 64, 1],["Bert",32,1],['MobileNetv2', 64, 1],["Bert",32,1],['MobileNetv2', 64, 1],["Bert",32,1]],
+    [['ResNet50', 128, 1],['MobileNetv2', 64, 1],['ResNet50', 128, 1],['MobileNetv2', 64, 1],['ResNet50', 128, 1],['MobileNetv2', 64, 1],['ResNet50', 128, 1],['MobileNetv2', 64, 1],['ResNet50', 128, 1],['MobileNetv2', 64, 1],['ResNet50', 128, 1],['MobileNetv2', 64, 1]],
+    [["VGG16",256,1], ["Bert",32,1],["VGG16",256,1], ["Bert",32,1],["VGG16",256,1], ["Bert",32,1],["VGG16",256,1], ["Bert",32,1],["VGG16",256,1], ["Bert",32,1],["VGG16",256,1], ["Bert",32,1]]
+                  ]
 
 #记录代码开始时间
 now_time = datetime.datetime.now()
@@ -121,20 +127,8 @@ out_file_name="ExpPre_compareMPS_"+formatted_time+".txt"
 file_writer=open(get_output_dir()+out_file_name,"w")
 
 
-for one_group_info in model_group_list:
+for one_group_info in model_group_list1:
     
-    
-    with_mps=True
-    para_num=2
-    alloc_percent=mps_limite
-    
-    start_MPS(11) 
-    command_alloc=f"echo set_default_active_thread_percentage {alloc_percent} | nvidia-cuda-mps-control"
-    os.system(command_alloc)
-    do_experiment(one_group_info, with_mps,file_writer,alloc=True,para_num=para_num )
-    stop_MPS(11) 
-    
-
     with_mps=True
     para_num=3
     alloc_percent=100
@@ -144,6 +138,54 @@ for one_group_info in model_group_list:
     os.system(command_alloc)
     do_experiment(one_group_info, with_mps,file_writer,alloc=False,para_num=para_num )
     stop_MPS(11) 
+    
+    
+    with_mps=True
+    para_num=2
+    alloc_percent=40
+    
+    start_MPS(11) 
+    command_alloc=f"echo set_default_active_thread_percentage {alloc_percent} | nvidia-cuda-mps-control"
+    os.system(command_alloc)
+    do_experiment(one_group_info, with_mps,file_writer,alloc=True,para_num=para_num )
+    stop_MPS(11) 
+    
+for one_group_info in model_group_list2:  
+    
+    with_mps=True
+    para_num=3
+    alloc_percent=30
+    
+    start_MPS(11) 
+    command_alloc=f"echo set_default_active_thread_percentage {alloc_percent} | nvidia-cuda-mps-control"
+    os.system(command_alloc)
+    do_experiment(one_group_info, with_mps,file_writer,alloc=True,para_num=para_num )
+    stop_MPS(11) 
+    
+    
+    with_mps=True
+    para_num=4
+    alloc_percent=30
+    
+    start_MPS(11) 
+    command_alloc=f"echo set_default_active_thread_percentage {alloc_percent} | nvidia-cuda-mps-control"
+    os.system(command_alloc)
+    do_experiment(one_group_info, with_mps,file_writer,alloc=True,para_num=para_num )
+    stop_MPS(11) 
+    
+    
+
+    
+    
+    # with_mps=True
+    # para_num=6
+    # alloc_percent=100
+    
+    # start_MPS(11) 
+    # command_alloc=f"echo set_default_active_thread_percentage {alloc_percent} | nvidia-cuda-mps-control"
+    # os.system(command_alloc)
+    # do_experiment(one_group_info, with_mps,file_writer,alloc=False,para_num=para_num )
+    # stop_MPS(11)
 
 
     
