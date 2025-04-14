@@ -23,8 +23,8 @@ def generate_command(model_info, job_idx):
         layer_num=100        #5000 for GCN (default:10)
         layer_feature=100        #100 for GCN (default:10)
     elif model_name=="GraphSage":
-        layer_num=50       
-        layer_feature=100
+        layer_num=10       
+        layer_feature=10
     else:
         layer_num=10       
         layer_feature=10 
@@ -100,27 +100,17 @@ gpu_id=0
 end_time_list=[]
 # end_job_num_list=[]
 job_order=0
-           
-
+mps_limite=40
 
 model_group_list=[
-    # 
-                  [['Transformer', 8, 1], ['Transformer', 8, 1], ['Transformer', 8, 1],['GraphSage', 16, 1],['GraphSage', 16, 1],['GraphSage', 16, 1]],
-                  [['GCN', 8, 1], ['GCN', 8, 1], ['GCN', 8, 1],['VGG16', 16, 1],['VGG16', 16, 1],['VGG16', 16, 1]],
-                  [['Bert', 8, 1], ['Bert', 8, 1], ['Bert', 8, 1], ['MobileNetv2', 16, 1],['MobileNetv2', 16, 1],['MobileNetv2', 16, 1]],
-                  [['MobileNetv2', 16, 1], ['MobileNetv2', 16, 1], ['MobileNetv2', 16, 1], ['ResNet50', 16, 1],['ResNet50', 16, 1],['ResNet50', 16, 1] ],
-                #   [['Bert', 8,1], ['Bert', 8,1], ['Bert', 8,1], ['VGG16', 16, 1],['VGG16', 16, 1],['VGG16', 16, 1]]
-                    ]
+                   [['ResNet18', 8, 1],['ResNet18', 16, 1],['ResNet18', 32, 1], ['ResNet18', 64, 1],['ResNet18', 128, 1],
+                   ['AlexNet', 8, 1], ['AlexNet', 16, 1], ['AlexNet', 32, 1], ['AlexNet', 64, 1],
+                   ['Transformer', 8, 1],['Transformer', 16, 1],
+                   ['ResNet50', 8, 1], ['ResNet50', 16, 1], ['ResNet50', 32, 1], ['ResNet50', 64, 1],
+                   ['MobileNetv2', 8, 1],['MobileNetv2', 16, 1],['MobileNetv2', 32, 1], ['MobileNetv2', 64, 1],['MobileNetv2', 128, 1]
+                   ]
+                  ]
 
-model_group_list_over=[
-                  [['GraphSage', 32, 1], ['Transformer', 8, 1],['GraphSage', 32, 1]],
-                  [['VGG16', 32, 1], ['GCN', 8, 1], ['GCN', 8, 1]],
-                  [['MobileNetv2', 32, 1], ['Bert', 16, 1], ['Bert', 16, 1]],
-                  [['ResNet50', 32, 1], ['MobileNetv2', 32, 1], ['MobileNetv2', 32, 1]],
-                  [['VGG16', 32, 1], ['Bert', 16,1], ['Bert', 16,1]]
-                    ]
-
-                #   "ResNet50", "VGG16", "MobileNetv2","AlexNet", "Transformer", "GCN", "Bert", "GraphSage", "ResNet18"]#"ResNet50", "MobileNetv2", "VGG16",  "Transformer", "GCN" 
 
 
 #记录代码开始时间
@@ -133,57 +123,30 @@ file_writer=open(get_output_dir()+out_file_name,"w")
 
 for one_group_info in model_group_list:
     
-    with_mps=False
-    stop_MPS(11) 
-    para_num=2
-    do_experiment(one_group_info, with_mps,file_writer,alloc=False,para_num=para_num )
     
     with_mps=True
     para_num=2
+    alloc_percent=mps_limite
+    
     start_MPS(11) 
-    alloc_percent=100/para_num
     command_alloc=f"echo set_default_active_thread_percentage {alloc_percent} | nvidia-cuda-mps-control"
     os.system(command_alloc)
-    
     do_experiment(one_group_info, with_mps,file_writer,alloc=True,para_num=para_num )
     stop_MPS(11) 
     
 
     with_mps=True
-    start_MPS(11) 
+    para_num=3
     alloc_percent=100
+    
+    start_MPS(11) 
     command_alloc=f"echo set_default_active_thread_percentage {alloc_percent} | nvidia-cuda-mps-control"
     os.system(command_alloc)
-    para_num=3
     do_experiment(one_group_info, with_mps,file_writer,alloc=False,para_num=para_num )
     stop_MPS(11) 
 
-# for model_name in model_list:
-    
-    
-    
-# for model_name in model_list:
-    
-    
-# 
-    
-    
+
     
 file_writer.close()
-# file_writer_true_alloc.close()
-# file_writer_false.close()
-    
+
 stop_MPS(11)
-    
-    
-
-
-
-    
-    
-    
-    
-
-
-
-
