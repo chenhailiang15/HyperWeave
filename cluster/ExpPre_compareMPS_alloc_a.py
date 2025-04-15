@@ -52,6 +52,7 @@ def run_command(model_group,index):
     while not is_end(model_group,job_order):
         this_index=job_order
         job_order+=1
+        
         command=generate_command(model_group[this_index], this_index)
         
         print(f"command: {command}")
@@ -77,7 +78,7 @@ def do_experiment(model_group, mps_state,file_writer,alloc,para_num):
     job_parallel_num=len(model_group)
     end_time_list=[0]*job_parallel_num
     # end_job_num_list=[0]*job_parallel_num
-        
+    start_time=time.time()
     for index in range(para_num):
         
         # command = generate_command(model_info, index)
@@ -90,8 +91,8 @@ def do_experiment(model_group, mps_state,file_writer,alloc,para_num):
     for thread_t in thread_hand:
         thread_t.join()
     
-    
-    file_writer.write(f"mps={mps_state},alloc={alloc},para_num={para_num},||{model_group}||,time_list={end_time_list}\n")
+    makespan=time.time()-start_time
+    file_writer.write(f"mps={mps_state},alloc={alloc},para_num={para_num},||{model_group}||,makespan={makespan},time_list={end_time_list}\n")
     file_writer.flush()
 
             
@@ -102,12 +103,14 @@ end_time_list=[]
 job_order=0
 mps_limite=40
 
+
+
 model_group_list1=[
-    [['Transformer', 64, 1],['Transformer', 64, 1],['Transformer', 64, 1],['GraphSage', 128, 1],["GraphSage",128,1],["GraphSage",128,1]],
-    [["VGG16",256,1],["GCN",8,1],["VGG16",256,1],["GCN",8,1],["VGG16",256,1],["GCN",8,1]],
-    [['MobileNetv2', 64, 1],["Bert",32,1],['MobileNetv2', 64, 1],["Bert",32,1],['MobileNetv2', 64, 1],["Bert",32,1]],
-    [ ['ResNet50', 128, 1],['MobileNetv2', 64, 1],['ResNet50', 128, 1],['MobileNetv2', 64, 1],['ResNet50', 128, 1],['MobileNetv2', 64, 1]],
-    [["VGG16",256,1], ["Bert",32,1],["VGG16",256,1], ["Bert",32,1],["VGG16",256,1], ["Bert",32,1]]
+    [['Transformer', 64, 5],['Transformer', 64, 5],['Transformer', 64, 5],['GraphSage', 128, 5],["GraphSage",128,5],["GraphSage",128,5]],
+    [["VGG16",512,5],["GCN",512,5],["VGG16",512,5],["GCN",512,5],["VGG16",512,5],["GCN",512,5]],
+    [['MobileNetv2', 64, 5],["Bert",32,5],['MobileNetv2', 64, 5],["Bert",64,5],['MobileNetv2', 512, 5],["Bert",64,5]],
+    [ ['ResNet50', 512, 5],['MobileNetv2', 512, 5],['ResNet50', 512,5],['MobileNetv2', 512, 5],['ResNet50', 512, 5],['MobileNetv2', 64, 1]],
+    [["VGG16",256,5], ["Bert",32,5],["VGG16",256,5], ["Bert",32,5],["VGG16",512,5], ["Bert",64,5]]
                   ]
 
 
@@ -131,17 +134,6 @@ for one_group_info in model_group_list1:
     
     with_mps=True
     para_num=3
-    alloc_percent=100
-    
-    start_MPS(11) 
-    command_alloc=f"echo set_default_active_thread_percentage {alloc_percent} | nvidia-cuda-mps-control"
-    os.system(command_alloc)
-    do_experiment(one_group_info, with_mps,file_writer,alloc=False,para_num=para_num )
-    stop_MPS(11) 
-    
-    
-    with_mps=True
-    para_num=2
     alloc_percent=40
     
     start_MPS(11) 
@@ -150,18 +142,21 @@ for one_group_info in model_group_list1:
     do_experiment(one_group_info, with_mps,file_writer,alloc=True,para_num=para_num )
     stop_MPS(11) 
     
-for one_group_info in model_group_list2:  
     
     with_mps=True
-    para_num=3
-    alloc_percent=30
+    para_num=5
+    alloc_percent=40
     
     start_MPS(11) 
     command_alloc=f"echo set_default_active_thread_percentage {alloc_percent} | nvidia-cuda-mps-control"
     os.system(command_alloc)
-    do_experiment(one_group_info, with_mps,file_writer,alloc=True,para_num=para_num )
+    do_experiment(one_group_info, with_mps,file_writer,alloc=False,para_num=para_num )
     stop_MPS(11) 
     
+    
+    
+    
+for one_group_info in model_group_list2:  
     
     with_mps=True
     para_num=4
@@ -172,6 +167,20 @@ for one_group_info in model_group_list2:
     os.system(command_alloc)
     do_experiment(one_group_info, with_mps,file_writer,alloc=True,para_num=para_num )
     stop_MPS(11) 
+    
+    
+    with_mps=True
+    para_num=6
+    alloc_percent=30
+    
+    start_MPS(11) 
+    command_alloc=f"echo set_default_active_thread_percentage {alloc_percent} | nvidia-cuda-mps-control"
+    os.system(command_alloc)
+    do_experiment(one_group_info, with_mps,file_writer,alloc=True,para_num=para_num )
+    stop_MPS(11) 
+    
+    
+    
     
     
 
