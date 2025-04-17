@@ -1,7 +1,7 @@
 import threading
 import numpy as np
 import math
-class WeaveMonitor:
+class HyperWeaveMonitor:
     def __init__(self,nodes, print_level):
         self.print_level=print_level
         self.nodes=nodes

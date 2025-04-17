@@ -196,7 +196,7 @@ def generate_file_name_for_analyze():
     return out_file_name
 
 #系统参数解析，便于修改操作
-class args_weave:
+class args_hyperweave:
     def __init__(self,args=None):
         if args==None:
             self.init_with_default()
@@ -258,7 +258,7 @@ class args_weave:
         self.prior=True
         
         #
-        self.system="Weave"
+        self.system="HyperWeave"
         self.mode="train"
         self.job_idx=0
         self.idx_on_gpu=0

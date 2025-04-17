@@ -16,12 +16,11 @@ The system needs to run in the created conda virtual environment named: torch_mp
 
 - run:
 conda activate torch_mp
+- run:
 sh start_weave
 
 
 
 ***
 # Note
-- The following files need to be added manually ( contached with chenhailiang_15@163.com )
-    - SQuAD_train_features.pkl
-    - model.safetensors
+ None

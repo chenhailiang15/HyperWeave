@@ -12,25 +12,25 @@ import queue
 from Job import Job, Instance
 from Node import Node
 import subprocess
-from WeaveAnalyzer import AnalyzeDataLoader
-from WeaveScheduler import WeaveSchedulor
-from WeaveMonitor import WeaveMonitor
+from HyperWeaveAnalyzer import AnalyzeDataLoader
+from HyperWeaveScheduler import HyperWeaveSchedulor
+from HyperWeaveMonitor import HyperWeaveMonitor
 import simpy
 import random
 import copy
-from blossom import _Blossom_Same
+from simulation.platform.blossom import _Blossom_Same
 random.seed(3)
 
 #cpu, gpu 按照百分比表示需求和剩余，即1个GPU 表示为100
 #mem, gmem按照存储单位表示，本平台中使用MB
 
 ####################已有的问题#####################
-#Weave 和 Muri的时间分析结果不一样
+#HyperWeave 和 Muri的时间分析结果不一样
 
 
 
 #################################################
-class WeaveMaster:
+class HyperWeaveMaster:
     
     def __init__(self,args, file_trace, print_level=0):
         
@@ -41,11 +41,11 @@ class WeaveMaster:
         self.schedule_strategy=args.strategy   # "FIFO", "SRTF"，"SRSF", "BNPF"   Bucket-based Non-blocking SRSF
         self.node_kind=args.node_kind
         
-        self.weave_sync_mode=(self.args.sync_flage=="True")
+        self.hyperweave_sync_mode=(self.args.sync_flage=="True")
         #需要最好手动确认
         self.MPS_mode=(self.args.mps_flage=="True")
         
-        if self.system=="Weave":
+        if self.system=="HyperWeave":
             self.overshared_factor=args.overshared_factor
         else:
             self.overshared_factor = 1  # 等于1存在GPU资源不够的情况
@@ -139,7 +139,7 @@ class WeaveMaster:
         
         self.should_schedule=True
         
-        self.Weave_modify_factor=1.8
+        self.HyperWeave_modify_factor=1.8
         self.Muri_modify_factor=1
         self.last_schedule_rest=False
         
@@ -163,11 +163,11 @@ class WeaveMaster:
         #资源监视器
         if self.print_level>0:
             print("init monitor...")
-        self.monitor=WeaveMonitor(self.nodes, self.print_level)
+        self.monitor=HyperWeaveMonitor(self.nodes, self.print_level)
 
         if self.print_level>0:
             print("init scheduler...")
-        self.scheduler=WeaveSchedulor(self, print_level=self.print_level)
+        self.scheduler=HyperWeaveSchedulor(self, print_level=self.print_level)
 
         self.init_model_info()
         
@@ -617,7 +617,7 @@ class WeaveMaster:
                 self.instance_end_num+=1
                 self.instance_dealing_num-=1
                 # 回收资源
-                if self.system == "Weave":
+                if self.system == "HyperWeave":
                     self.monitor.takeback_resource(instance)
                 else:
                     self.monitor.takeback_resource(instance, plan=True)
@@ -731,7 +731,7 @@ class WeaveMaster:
         temp_string=f"system:{self.system}\nschedule_strategy:{self.schedule_strategy}\n"
         temp_string+=f"node_kind:{self.node_kind}\nvalidation:{self.args.validation}\n"
         temp_string+=f"model_kind:{self.args.model_kind}\n"
-        temp_string+=f"MPS:{self.MPS_mode}\nSync:{self.weave_sync_mode}\n"
+        temp_string+=f"MPS:{self.MPS_mode}\nSync:{self.hyperweave_sync_mode}\n"
         temp_string+=f"overshared_factor:{self.overshared_factor}\ngpu_mem_percent:{self.args.gpu_mem_percent}\n"
         temp_string+=f"job_come_time_factor:{self.job_come_time_factor}\njob_duration_time_factor:{self.job_duration_time_factor}\njob_ddl_factor:{self.job_ddl_factor}\n"
         temp_string+=f"node_num:{self.node_num}\n"
@@ -763,19 +763,19 @@ class WeaveMaster:
     
 def experiment_one_group_parameters(args, file_sum, file_trace, print_level):
 
-    weave_master=WeaveMaster(args, file_trace, print_level)
-    weave_master.run()
-    weave_master.print_job_time_info()
+    hyperweave_master=HyperWeaveMaster(args, file_trace, print_level)
+    hyperweave_master.run()
+    hyperweave_master.print_job_time_info()
     if print_level>=1:
         
         print(f"The simulation end (system:{args.system}, strategy:{args.strategy}, file_sum:{file_sum != None}, file_trace:{file_trace != None}) !")
 
     if file_sum != None:
-        out_string=weave_master.get_sum_info()
+        out_string=hyperweave_master.get_sum_info()
         file_sum.write(out_string)
         file_sum.flush()
-    result=str(weave_master.ave_jct)+"\n"
-    result+= weave_master.get_sum_info()
+    result=str(hyperweave_master.ave_jct)+"\n"
+    result+= hyperweave_master.get_sum_info()
     
     return result
 
@@ -822,7 +822,7 @@ class Runsystem:
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description='simulation for DL training job')
-    parser.add_argument("--system",default="Weave",type=str)
+    parser.add_argument("--system",default="HyperWeave",type=str)
     parser.add_argument("--strategy", default="SRSF", type=str)
     parser.add_argument("--mps_flage", default="True", type=str)
     parser.add_argument("--sync_flage", default="True", type=str)
