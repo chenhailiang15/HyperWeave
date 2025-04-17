@@ -172,10 +172,10 @@ def system_type_arg(system_type):
     
 #获取数据集文件夹路径
 def get_dataset_dir():
-    cur_dir=os.path.dirname(os.path.abspath(__file__))
     # 获取当前文件所在目录的上级目录
-    parent_parent_dir  = os.path.dirname(os.path.dirname(os.path.abspath(cur_dir)))
-    dataset_dir = parent_parent_dir + '/dataset/'
+    cur_dir=os.path.dirname(os.path.abspath(__file__))
+    root_dir  = os.path.dirname(os.path.dirname(os.path.abspath(cur_dir)))
+    dataset_dir = root_dir + '/dataset/'
     return dataset_dir
 
 #获取输出文件夹路径
@@ -184,6 +184,7 @@ def get_output_dir():
     parent_parent_dir  =  os.path.dirname(os.path.dirname(os.path.abspath(cur_dir)))
     out_dir     = parent_parent_dir + "/output/"
     return out_dir
+
 
 #为分析结果生成文件名
 def generate_file_name_for_analyze():
@@ -306,7 +307,7 @@ class args_hyperweave:
         self.device=None
         self.dataset_dir=None
         self.muri_file_path_name=None
-        
+        self.gpu_select_mode="min_prior"
         
         
     def set_queue(self, queue):

@@ -1,11 +1,14 @@
-from platform.HyperWeaveMaster import *
-from platform.util import *
+import sys
+sys.path.append("..")
+sys.path.append("platform_h")
+from simulation.platform_h.HyperWeaveMaster import *
+from simulation.platform_h.util import *
 import datetime
 import multiprocessing
 
 def generate_default_args():
     args=args_hyperweave()
-    args.system="Weave"
+    args.system="HyperWeave"
     args.strategy="BN-SRSF"
     args.mps_flage="True"
     args.sync_flage="True"

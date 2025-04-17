@@ -168,14 +168,14 @@ def parse_list_arg(list_arg):
 def get_dataset_dir():
     # 获取当前文件所在目录的上级目录
     cur_dir=os.path.dirname(os.path.abspath(__file__))
-    parent_dir  = os.path.dirname(os.path.abspath(cur_dir))
-    dataset_dir = parent_dir + '/dataset/'
+    root_dir  = os.path.dirname(os.path.dirname(os.path.abspath(cur_dir)))
+    dataset_dir = root_dir + '/dataset/'
     return dataset_dir
 
 #获取输出文件夹路径
 def get_output_dir():
     cur_dir=os.path.dirname(os.path.abspath(__file__))
-    parent_dir  = os.path.dirname(os.path.abspath(cur_dir))
+    parent_dir  = os.path.dirname(os.path.dirname(os.path.abspath(cur_dir)))
     out_dir     = parent_dir + "/output/"
     return out_dir
 
@@ -318,6 +318,7 @@ class args_hyperweave:
         self.write_trace=False
         self.write_sum=False
         self.gpu_kind="None"
+        self.gpu_select_mode="min_prior"
         
     def set_queue(self, queue):
         self.queue=queue

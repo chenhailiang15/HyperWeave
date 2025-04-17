@@ -1,4 +1,4 @@
 #!/bin/bash
 
 
-python HyperWeaveMaster.py 
+python platform_h/HyperWeaveMaster.py 

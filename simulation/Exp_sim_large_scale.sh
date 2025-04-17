@@ -1,8 +1,5 @@
 #!/bin/bash
 
-#!/bin/bash
-
-
 gpu_mem_percent=0.9
 node_kind="cluster"                           #"s4*3090, 4*3090, 3*2080ti, 4*2080"
 model_kind="all_model"                       #"cv_model, all_model"
@@ -12,17 +9,16 @@ overshared_factor=3
 bucket_length=10000000
 sync_flage="True"
 
-
 job_together_flage="False"
 node_num=100   #max 1814
 job_num=10000
 
 
-system=$1
-strategy=$2
-trace_id=$3
+system="HyperWeave"
+strategy="BN-SRSF"
+trace_id="0"
 
-python platform/HyperWeaveMaster.py --system ${system} --strategy ${strategy} \
+python platform_h/HyperWeaveMaster.py --system ${system} --strategy ${strategy} \
     --node_kind ${node_kind} --model_kind ${model_kind} --gpu_mem_percent ${gpu_mem_percent} --job_num ${job_num}\
     --print_level ${print_level} --write_trace --write_sum  --overshared_factor ${overshared_factor} --job_together_flage ${job_together_flage}\
     --validation ${validation} --node_num ${node_num} --trace_id ${trace_id} --bucket_length ${bucket_length} --sync_flage ${sync_flage}

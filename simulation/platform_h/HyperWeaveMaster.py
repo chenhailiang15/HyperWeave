@@ -18,7 +18,7 @@ from HyperWeaveMonitor import HyperWeaveMonitor
 import simpy
 import random
 import copy
-from simulation.platform.blossom import _Blossom_Same
+from blossom import _Blossom_Same
 random.seed(3)
 
 #cpu, gpu 按照百分比表示需求和剩余，即1个GPU 表示为100
@@ -793,20 +793,18 @@ class Runsystem:
         write_trace = args.write_trace
         print_level=args.print_level
 
-        cur_dir=os.path.dirname(os.path.abspath(__file__))
-        parent_dir= os.path.dirname(os.path.abspath(cur_dir))
         # 格式化输出
         now_time= datetime.datetime.now()
         formatted_time = now_time.strftime('%m_%d_%H_%M_%S')
         sim_sum_file_name="Sim-sum-"+system+"-"+strategy+"-MPS_"+args.mps_flage+"-Sync_"+args.sync_flage+"-"+version+"-"+formatted_time+".txt"
         sim_trace_file_name="Sim-statistic_trace-"+system+"-"+strategy+"-MPS_"+args.mps_flage+"-Sync_"+args.sync_flage+"-"+version+"-"+formatted_time+".csv"
         if write_sum:
-            file_sum=open(parent_dir+"/output/"+sim_sum_file_name,"w")
+            file_sum=open(get_output_dir()+sim_sum_file_name,"w")
         else:
             file_sum=None
 
         if write_trace:
-            file_trace = open(parent_dir + "/output/" + sim_trace_file_name, "w")
+            file_trace = open(get_output_dir()+ sim_trace_file_name, "w")
         else:
             file_trace=None
 
@@ -857,20 +855,19 @@ if __name__=="__main__":
     write_trace = True#args.write_trace
     print_level=args.print_level
 
-    cur_dir=os.path.dirname(os.path.abspath(__file__))
-    parent_dir= os.path.dirname(os.path.abspath(cur_dir))
+
     # 格式化输出
     now_time= datetime.datetime.now()
     formatted_time = now_time.strftime('%m_%d_%H_%M_%S')
     sim_sum_file_name="Sim-sum-"+system+"-"+strategy+"-MPS_"+args.mps_flage+"-Sync_"+args.sync_flage+"-"+version+"-"+formatted_time+".txt"
     sim_trace_file_name="Sim-statistic_trace-"+system+"-"+strategy+"-MPS_"+args.mps_flage+"-Sync_"+args.sync_flage+"-"+version+"-"+formatted_time+".csv"
     if write_sum:
-        file_sum=open(parent_dir+"/output/"+sim_sum_file_name,"w")
+        file_sum=open(get_output_dir()+sim_sum_file_name,"w")
     else:
         file_sum=None
 
     if write_trace:
-        file_trace = open(parent_dir + "/output/" + sim_trace_file_name, "w")
+        file_trace = open(get_output_dir() + sim_trace_file_name, "w")
     else:
         file_trace=None
 

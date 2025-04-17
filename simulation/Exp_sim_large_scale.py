@@ -1,11 +1,14 @@
-from platform.HyperWeaveMaster import *
-from platform.util import *
+import sys
+sys.path.append("..")
+sys.path.append("platform_h")
+from platform_h.HyperWeaveMaster import *
+from platform_h.util import *
 import datetime
 import multiprocessing
 
 def generate_default_args():
     args=args_hyperweave()
-    # args.system="Weave"
+    # args.system="HyperWeave"
     # args.strategy="BN-SRSF"
     args.mps_flage="True"
     args.sync_flage="True"
@@ -28,15 +31,6 @@ def generate_default_args():
     return args
 
 
-# def get_out_file_writer():
-#     now_time= datetime.datetime.now()
-#     formatted_time = now_time.strftime('%m_%d_%H_%M_%S')
-#     out_file_name="Sim_bucket_length-"+version+"_"+formatted_time+".txt"
-#     cur_dir=os.path.dirname(os.path.abspath(__file__))
-#     parent_dir= os.path.dirname(os.path.abspath(cur_dir))
-#     file_writer=open(parent_dir+"/output/"+out_file_name,"w")
-#     return file_writer
-
 def run_once(system, strategy, job_together_flage, trace_id, mps_flage):
     print(f"start once {system}, {strategy}, {job_together_flage}, {trace_id}, {mps_flage}")
     args=generate_default_args()
@@ -58,14 +52,14 @@ task_args_list=[]
 
 for trace_id in [5,6,7,8]:
     for job_together_flage in ["True", "False"]:#
-        for system in ["Normal","Muri", "Weave"]: #"Normal","Muri", "Weave"
+        for system in ["Normal","Muri", "HyperWeave"]: #"Normal","Muri", "HyperWeave"
             if system=="Normal":
                 for strategy in ["FIFO","SRTF", "SRSF"]:
                     task_args_list.append((system, strategy, job_together_flage, trace_id,"False"))
                     if strategy == "SRSF":
                         task_args_list.append((system, strategy, job_together_flage, trace_id,"True"))
             
-            elif system == "Weave":
+            elif system == "HyperWeave":
                 strategy="BN-SRSF"
                 task_args_list.append((system, strategy, job_together_flage, trace_id,"True"))
                 
@@ -80,32 +74,6 @@ with multiprocessing.Pool(processes=10) as pool:
         pool.starmap(run_once, task_args_list)
 
 
-
-
-
-
-
-
-# thread_list=[]
-
-# for trace_id in [0,1,2,3]:
-#     for job_together_flage in ["True", "False"]:
-#         for system in [ "Normal","Muri", "Weave"]:
-#             if system == "Weave":
-#                 strategy="BN-SRSF"
-#                 thread_hand=multiprocessing.Process(target=run_once, args=(system, strategy, job_together_flage, trace_id))
-#                 thread_list.append(thread_hand)
-#                 thread_hand.start()
-#             else:
-#                 for strategy in ["FIFO","SRTF", "SRSF"]:
-#                     if system=="Muri" and job_together_flage=="True":
-#                         continue
-#                     thread_hand=multiprocessing.Process(target=run_once, args=(system, strategy, job_together_flage, trace_id))
-#                     thread_list.append(thread_hand)
-#                     thread_hand.start()
-
-# for thread_hand in thread_list:
-#     thread_hand.join()
     
 print("End all sub threadings")
              
