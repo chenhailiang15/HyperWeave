@@ -14,9 +14,9 @@ from Node import Node
 import subprocess
 from Recorder import Record
 from NodeCommunicate import CommunicateServer
-from WeaveAnalyzer import AnalyzeDataLoader
-from WeaveScheduler import WeaveSchedulor
-from WeaveMonitor import WeaveMonitor
+from HyperWeaveAnalyzer import AnalyzeDataLoader
+from HyperWeaveScheduler import HyperWeaveSchedulor
+from HyperWeaveMonitor import HyperWeaveMonitor
 import random
 
 random.seed(3)
@@ -24,7 +24,7 @@ random.seed(3)
 #mem, gmem按照存储单位表示，本平台中使用MB
 # 需要解决 S4*3090 初始调度问题
 
-class WeaveMaster:
+class HyperWeaveMaster:
     
     def __init__(self,args, file_trace,  print_level=0):
         
@@ -35,12 +35,12 @@ class WeaveMaster:
         self.schedule_strategy=args.strategy   # "FIFO", "SRTF"，"SRSF", "BN-SRSF"   Bucket-based Non-blocking SRSF
         self.node_kind=args.node_kind
         
-        self.weave_sync_mode=(self.args.sync_flage=="True")
+        self.hyperweave_sync_mode=(self.args.sync_flage=="True")
         #需要最好手动确认
         self.MPS_mode=(self.args.mps_flage=="True")
         self.single_node_mode=True    #实验中固定为True
         
-        if self.system=="Weave":
+        if self.system=="HyperWeave":
             self.overshared_factor=args.overshared_factor
         else:
             self.overshared_factor=1       
@@ -142,12 +142,12 @@ class WeaveMaster:
         #资源监视器
         if self.print_level>0:
             print("master init monitor...")
-        self.monitor=WeaveMonitor(self.nodes, self.print_level)
+        self.monitor=HyperWeaveMonitor(self.nodes, self.print_level)
         
     
         if self.print_level>0:
             print("master init scheduler...")
-        self.scheduler=WeaveSchedulor(self, print_level=self.print_level)
+        self.scheduler=HyperWeaveSchedulor(self, print_level=self.print_level)
         
         if not self.single_node_mode:
             #通讯器，初始化和启动监听。
@@ -538,7 +538,7 @@ class WeaveMaster:
                 self.instance_end_num+=1
                 self.instance_dealing_num-=1
                 # 回收资源
-                if self.system == "Weave":
+                if self.system == "HyperWeave":
                     self.monitor.takeback_resource(instance, plan=False)
                 else:
                     self.monitor.takeback_resource(instance, plan=True)
@@ -661,7 +661,7 @@ class WeaveMaster:
         temp_string+=f"node_kind:{self.node_kind}\n"
         temp_string+=f"model_kind:{self.args.model_kind}\n"
         temp_string+=f"trace_id:{self.args.trace_id}\n"
-        temp_string+=f"MPS:{self.MPS_mode}\nSync:{self.weave_sync_mode}\n"
+        temp_string+=f"MPS:{self.MPS_mode}\nSync:{self.hyperweave_sync_mode}\n"
         temp_string+=f"overshared_factor:{self.overshared_factor}\ngpu_mem_percent:{self.args.gpu_mem_percent}\n"
         temp_string+=f"job_come_time_factor:{self.job_come_time_factor}\njob_duration_time_factor:{self.job_duration_time_factor}\njob_ddl_factor:{self.job_ddl_factor}\n"
         temp_string+=f"job_together_flage:{args.job_together_flage}\n"
@@ -697,19 +697,19 @@ def experiment_one_group_parameters(args, file_sum, file_trace, version, print_l
     subTread_record=threading.Thread(target=Record_resource,args=(args.gpu_id_list, parent_dir+"/output/",resource_file_name,event))
     subTread_record.start()
         
-    weave_master=WeaveMaster(args, file_trace, print_level)
-    weave_master.run()
-    weave_master.wait()
-    weave_master.close()
+    hyperweave_master=HyperWeaveMaster(args, file_trace, print_level)
+    hyperweave_master.run()
+    hyperweave_master.wait()
+    hyperweave_master.close()
     
     event.set()
     subTread_record.join()
     if print_level>=1:
-        weave_master.print_job_time_info()
+        hyperweave_master.print_job_time_info()
         print(f"The cluster end (system:{args.system}, strategy:{args.strategy}, file_sum:{file_sum != None}, file_trace:{file_trace != None}) !")
     
     if file_sum != None:
-        out_string=weave_master.get_sum_info()
+        out_string=hyperweave_master.get_sum_info()
         file_sum.write(out_string)
         file_sum.flush()
 
@@ -717,6 +717,7 @@ def experiment_one_group_parameters(args, file_sum, file_trace, version, print_l
 
 
 if __name__=="__main__":
+    # SYSTEM_TYPE=["HyperWeave","Muri","Normal"]
     parser = argparse.ArgumentParser(description='Prototype platform for DL training job')
     parser.add_argument("--system",default="Muri",type=str)
     parser.add_argument("--strategy", default="FIFO", type=str)

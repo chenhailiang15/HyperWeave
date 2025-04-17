@@ -10,10 +10,11 @@ import time
 import datetime
 import ast
 import gc
-
+import sys
+sys.path.append('..')
 from Recorder import Record
 from util import *
-from models.Framework import model_framework
+from cluster.models.Framework import model_framework
 
 def ddp_setup(local_rank, args):
     """
@@ -85,7 +86,7 @@ if __name__=="__main__":
     #优先级参数
     parser.add_argument('--prior', action='store_true',help='A flage for label it is prior to run or not in Synchronizer')
     
-    parser.add_argument("--system", default="Weave",type=str)
+    parser.add_argument("--system", default="HyperWeave",type=system_type_arg)
     parser.add_argument("--mode", default="train",type=str)
     parser.add_argument("--job_idx", default=0,type=int)
     parser.add_argument("--idx_on_gpu",default=0, type=int)
@@ -128,7 +129,7 @@ if __name__=="__main__":
     parser.add_argument("--print_level",default=10, type=int)
 
     args = parser.parse_args()
-    args=args_weave(args)
+    args=args_hyperweave(args)
     
     
     os.environ["MASTER_ADDR"]=args.MASTER_ADDR

@@ -162,20 +162,27 @@ def parse_list_arg(list_arg):
         return ast.literal_eval(list_arg)
     except (ValueError, SyntaxError) as e:
         raise argparse.ArgumentTypeError(f"Invalid list argument: {list_arg}")
-
+    
+def system_type_arg(system_type):
+    SYSTEM_TYPE=["HyperWeave","Muri","Normal"]
+    if system_type not in SYSTEM_TYPE:
+        raise ValueError(f"Invalid system_type: {system_type}. Must be one of: {SYSTEM_TYPE}")
+    else:
+        return system_type
+    
 #获取数据集文件夹路径
 def get_dataset_dir():
     cur_dir=os.path.dirname(os.path.abspath(__file__))
     # 获取当前文件所在目录的上级目录
-    parent_dir  = os.path.dirname(os.path.abspath(cur_dir))
-    dataset_dir = parent_dir + '/dataset/'
+    parent_parent_dir  = os.path.dirname(os.path.dirname(os.path.abspath(cur_dir)))
+    dataset_dir = parent_parent_dir + '/dataset/'
     return dataset_dir
 
 #获取输出文件夹路径
 def get_output_dir():
     cur_dir=os.path.dirname(os.path.abspath(__file__))
-    parent_dir  = os.path.dirname(os.path.abspath(cur_dir))
-    out_dir     = parent_dir + "/output/"
+    parent_parent_dir  =  os.path.dirname(os.path.dirname(os.path.abspath(cur_dir)))
+    out_dir     = parent_parent_dir + "/output/"
     return out_dir
 
 #为分析结果生成文件名
@@ -195,7 +202,7 @@ def generate_file_name_for_analyze():
     return out_file_name
 
 #系统参数解析，便于修改操作
-class args_weave:
+class args_hyperweave:
     def __init__(self,args=None):
         if args==None:
             self.init_with_default()
@@ -257,7 +264,7 @@ class args_weave:
         self.prior=True
         
         #
-        self.system="Weave"
+        self.system="HyperWeave"
         self.mode="train"
         self.job_idx=0
         self.idx_on_gpu=0

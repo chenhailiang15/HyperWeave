@@ -8,7 +8,7 @@ import time
 from blossom import Blossom_Same
 
 
-class WeaveSchedulor:
+class HyperWeaveSchedulor:
     def __init__(self,master, print_level=0):
         
         self.master=master
@@ -27,21 +27,21 @@ class WeaveSchedulor:
         if self.print_level>10:
             print(f"start schedule ({self.strategy})...")
             
-        if self.master.system=="Weave":
-            rest_job=self.schedule_weave(job_list)
+        if self.master.system=="HyperWeave":
+            rest_job=self.schedule_hyperweave(job_list)
         elif self.master.system=="Muri":
             rest_job=self.schedule_muri(job_list)
         elif self.master.system == "Normal":
             rest_job=self.schedule_normal(job_list)
         else:
-            print(f"system name wrong! {self.master.system} (should be Weave, Muri or Normal)")
+            print(f"system name wrong! {self.master.system} (should be HyperWeave, Muri or Normal)")
         
         if self.print_level>10:
             print(f"end schedule ({self.strategy})...")
         return rest_job
     
-    #Weave 调度主线
-    def schedule_weave(self,job_list):
+    #HyperWeave 调度主线
+    def schedule_hyperweave(self,job_list):
         if self.strategy=="BN-SRSF":
             
             all_bucket_job={}
@@ -61,7 +61,7 @@ class WeaveSchedulor:
                     self.paired_instance_name[bucket_id]=[]
                     
                 bucket_job_list=all_bucket_job[bucket_id]
-                instance_group=self.schedule_weave_classify_instance_based_on_gpu_num(bucket_job_list)
+                instance_group=self.schedule_hyperweave_classify_instance_based_on_gpu_num(bucket_job_list)
                 all_matched_instance_list=[]
                 
                 for parallel_num in instance_group:
@@ -72,7 +72,7 @@ class WeaveSchedulor:
                             sub_instance_list.remove(sub_instance_list[i])
                     if self.print_level>10:
                         print(f"start match...  -parallel:{parallel_num}  -instance num: {len(sub_instance_list)}")
-                    matched_instance_list=self.schedule_weave_match_instances(sub_instance_list)
+                    matched_instance_list=self.schedule_hyperweave_match_instances(sub_instance_list)
                     #将新匹配成功的，加入调度器记录(进行记录的需要从原始列表中删除)
                     for i in range(len(matched_instance_list) - 1, -1, -1):
                         [instance1, instance2, pack_resource] = matched_instance_list[i]
@@ -86,10 +86,10 @@ class WeaveSchedulor:
                 all_matched_instance_list.extend(self.paired_instance_list[bucket_id])
                 bucket_all_matched_instance_dict[bucket_id]=all_matched_instance_list
             
-            self.schedule_weave_BN_SRSF(bucket_all_matched_instance_dict, job_list)
+            self.schedule_hyperweave_BN_SRSF(bucket_all_matched_instance_dict, job_list)
             
         else:
-            instance_group=self.schedule_weave_classify_instance_based_on_gpu_num(job_list)
+            instance_group=self.schedule_hyperweave_classify_instance_based_on_gpu_num(job_list)
             all_matched_instance_list=[]
             
             for parallel_num in instance_group:
@@ -100,7 +100,7 @@ class WeaveSchedulor:
                         sub_instance_list.remove(sub_instance_list[i])
                 if self.print_level>10:
                     print(f"start match...  -parallel:{parallel_num}  -instance num: {len(sub_instance_list)}")
-                matched_instance_list=self.schedule_weave_match_instances(sub_instance_list)
+                matched_instance_list=self.schedule_hyperweave_match_instances(sub_instance_list)
                 #将新匹配成功的，加入调度器记录(进行记录的需要从原始列表中删除)
                 for i in range(len(matched_instance_list) - 1, -1, -1):
                     [instance1, instance2, pack_resource] = matched_instance_list[i]
@@ -115,11 +115,11 @@ class WeaveSchedulor:
             if self.print_level>10:
                 print("start strategy...")
             if self.strategy=="FIFO":
-                self.schedule_weave_FIFO(all_matched_instance_list, job_list)
+                self.schedule_hyperweave_FIFO(all_matched_instance_list, job_list)
             elif self.strategy=="SRTF":
-                self.schedule_weave_SRTF(all_matched_instance_list, job_list)
+                self.schedule_hyperweave_SRTF(all_matched_instance_list, job_list)
             elif self.strategy=="SRSF":
-                self.schedule_weave_SRSF(all_matched_instance_list, job_list)
+                self.schedule_hyperweave_SRSF(all_matched_instance_list, job_list)
 
             else:
                 print("strategy wrong!")
@@ -127,7 +127,7 @@ class WeaveSchedulor:
 
         return job_list
     
-    def schedule_weave_FIFO(self, matched_instances, job_list):
+    def schedule_hyperweave_FIFO(self, matched_instances, job_list):
         order_matched_instances=[]
         for [instance1,instance2,pack_resource] in matched_instances:
             if instance2 != None:
@@ -138,12 +138,12 @@ class WeaveSchedulor:
         #matched_jobs排序
         order_matched_instances.sort(key=lambda x : x[3])
         
-        self.schedule_weave_ordered_matched_job_list(order_matched_instances, job_list)
+        self.schedule_hyperweave_ordered_matched_job_list(order_matched_instances, job_list)
 
     
     
     
-    def schedule_weave_SRTF(self, matched_instances, job_list):
+    def schedule_hyperweave_SRTF(self, matched_instances, job_list):
         order_matched_instances=[]
         time_now=time.time()
 
@@ -158,11 +158,11 @@ class WeaveSchedulor:
         
         #match_jobs排序
         order_matched_instances.sort(key=lambda x : x[3])
-        self.schedule_weave_ordered_matched_job_list(order_matched_instances, job_list)
+        self.schedule_hyperweave_ordered_matched_job_list(order_matched_instances, job_list)
 
         
         
-    def schedule_weave_SRSF(self, matched_instances, job_list):
+    def schedule_hyperweave_SRSF(self, matched_instances, job_list):
         order_matched_instances=[]
         time_now=time.time()
 
@@ -177,9 +177,9 @@ class WeaveSchedulor:
         
         #match_jobs排序
         order_matched_instances.sort(key=lambda x : x[3])
-        self.schedule_weave_ordered_matched_job_list(order_matched_instances, job_list)
+        self.schedule_hyperweave_ordered_matched_job_list(order_matched_instances, job_list)
 
-    def schedule_weave_BN_SRSF(self, bucket_all_matched_instance_dict, job_list):
+    def schedule_hyperweave_BN_SRSF(self, bucket_all_matched_instance_dict, job_list):
         bucket_order_matched_instances={}
         for bucket_id in bucket_all_matched_instance_dict.keys():
             matched_instance=bucket_all_matched_instance_dict[bucket_id]
@@ -199,10 +199,10 @@ class WeaveSchedulor:
             order_matched_jobs.sort(key=lambda x: x[3])
             bucket_order_matched_instances[bucket_id]=order_matched_jobs
             
-        self.schedule_weave_bucket_ordered_matched_job_list(bucket_order_matched_instances, job_list)
+        self.schedule_hyperweave_bucket_ordered_matched_job_list(bucket_order_matched_instances, job_list)
     
     
-    def schedule_weave_classify_instance_based_on_gpu_num(self, job_list):
+    def schedule_hyperweave_classify_instance_based_on_gpu_num(self, job_list):
         instance_group = {}
         # 将Job根据GPU使用数量打包
         for job in job_list:
@@ -214,7 +214,7 @@ class WeaveSchedulor:
         return instance_group
     
     # 任务匹配
-    def schedule_weave_match_instances(self, instances_list):
+    def schedule_hyperweave_match_instances(self, instances_list):
         complete_match_list = []
         out_matched_instances_list = []
         
@@ -258,15 +258,15 @@ class WeaveSchedulor:
                 [gmem20, gmem21, gmem22] = instance2.job.used_resource_gmem
                 [time20, time21, time22] = instance2.job.get_three_stage_time()
 
-                epoch_factor = self.schedule_weave_cal_similarity(epoch1, epoch2)
-                parallel_factor = self.schedule_weave_cal_similarity(parallel1, parallel2)
-                cpu_factor = self.schedule_weave_cal_similarity(cpu11 + cpu22, cpu12 + cpu21)
-                mem_factor = self.schedule_weave_cal_similarity(mem11 + mem22, mem12 + mem21)
-                gpu_factor = self.schedule_weave_cal_similarity(gpu11 + gpu22, gpu12 + gpu21)
-                gmem_factor = self.schedule_weave_cal_similarity(gmem11 + gmem22, gmem12 + gmem21)
-                time_factor = self.schedule_weave_cal_similarity(time11 + time22, time12 + time21)
+                epoch_factor = self.schedule_hyperweave_cal_similarity(epoch1, epoch2)
+                parallel_factor = self.schedule_hyperweave_cal_similarity(parallel1, parallel2)
+                cpu_factor = self.schedule_hyperweave_cal_similarity(cpu11 + cpu22, cpu12 + cpu21)
+                mem_factor = self.schedule_hyperweave_cal_similarity(mem11 + mem22, mem12 + mem21)
+                gpu_factor = self.schedule_hyperweave_cal_similarity(gpu11 + gpu22, gpu12 + gpu21)
+                gmem_factor = self.schedule_hyperweave_cal_similarity(gmem11 + gmem22, gmem12 + gmem21)
+                time_factor = self.schedule_hyperweave_cal_similarity(time11 + time22, time12 + time21)
                 
-                if self.master.weave_sync_mode==True:
+                if self.master.hyperweave_sync_mode==True:
                     pack_resource = [max(cpu10 + cpu20, cpu11 + cpu22, cpu12 + cpu21), max(mem10 + mem20, mem11 + mem22, mem12 + mem21), max(gpu10 + gpu20, gpu11 + gpu22, gpu12 + gpu21), max(gmem10 + gmem20, gmem11 + gmem22, gmem12 + gmem21)]
                 else:
                     pack_resource = [max(cpu10, cpu11, cpu12)+ max(cpu20, cpu21, cpu22), max(mem10, mem11, mem12)+max(mem20, mem21, mem22), max(gpu10, gpu11, gpu12)+max(gpu20, gpu21, gpu22), max(gmem10, gmem11, gmem12)+max(gmem20, gmem21, gmem22)]
@@ -311,17 +311,17 @@ class WeaveSchedulor:
             if single_instance.instance_name not in matched_instance_name:
                 out_matched_instances_list.append([single_instance, None, single_instance_pack_resource])
             else:
-                print("schedule_weave_match_instances wrong!")
+                print("schedule_hyperweave_match_instances wrong!")
                 exit(256)
         return out_matched_instances_list
 
     # 匹配值计算的子函数，匹配效果越好，值越接近1
-    def schedule_weave_cal_similarity(self, var1, var2):
+    def schedule_hyperweave_cal_similarity(self, var1, var2):
         if max(var1, var2) == 0:
             return 1
         return 1 - (abs(var1 - var2) / max(var1, var2))
     
-    def schedule_weave_ordered_matched_job_list(self, match_instances, job_list):
+    def schedule_hyperweave_ordered_matched_job_list(self, match_instances, job_list):
         if self.print_level>10:
             print("start execute...")
         # 是否继续调度的标志，当遇到一个无法调度的任务时，停止调度等待下一轮调度，将剩余的job返回
@@ -356,7 +356,7 @@ class WeaveSchedulor:
 
 
 
-                    selected_gpu_id_list, shm_name_dict = self.schedule_weave_select_gpu(need_parallel, satisfy_gpu_list)
+                    selected_gpu_id_list, shm_name_dict = self.schedule_hyperweave_select_gpu(need_parallel, satisfy_gpu_list)
                     # scheduled_jobs.append([job1, job1_gpu_id_list, shm_name_dict])
                     # scheduled_jobs.append([job2, job2_gpu_id_list, shm_name_dict])
                     [cpu, mem, gpu, gmem] = pack_resource
@@ -388,7 +388,7 @@ class WeaveSchedulor:
                     self.execute_schedule(instance2, selected_gpu_id_list, False, shm_name_dict)
                     if self.print_level>10:
                         print(f"instance:{instance1.instance_name} couple with instance: {instance2.instance_name}")
-                    # if self.master.weave_sync_mode == False: 仿真系统难以准确建模同步不同步，以及是否启用MPS对系统的影响，因此，凡是Weave，都默认启动
+                    # if self.master.hyperweave_sync_mode == False: 仿真系统难以准确建模同步不同步，以及是否启用MPS对系统的影响，因此，凡是HyperWeave，都默认启动
                     #     shm_name_dict = {}
 
 
@@ -399,7 +399,7 @@ class WeaveSchedulor:
                         continue_schedule_flage = False
                         continue
 
-                    selected_gpu_id_list,_ = self.schedule_weave_select_gpu(need_parallel, satisfy_gpu_list)
+                    selected_gpu_id_list,_ = self.schedule_hyperweave_select_gpu(need_parallel, satisfy_gpu_list)
                     # scheduled_jobs.append([job1, job1_gpu_id_list, {}])
                     [cpu, mem, gpu, gmem] = pack_resource
                     instance1.set_pack_resource(math.ceil(cpu), math.ceil(mem), math.ceil(gpu), math.ceil(gmem))
@@ -416,7 +416,7 @@ class WeaveSchedulor:
             else:
                 return
 
-    def schedule_weave_bucket_ordered_matched_job_list(self, bucket_match_instances, job_list):
+    def schedule_hyperweave_bucket_ordered_matched_job_list(self, bucket_match_instances, job_list):
         if len(bucket_match_instances.keys())==0:
             return
         # 是否继续调度的标志，当遇到一个无法调度的任务时，停止调度等待下一轮调度，将剩余的job返回
@@ -459,7 +459,7 @@ class WeaveSchedulor:
                         continue
                         
                 if instance2 != None:
-                    selected_gpu_id_list, shm_name_dict = self.schedule_weave_select_gpu(need_parallel, satisfy_gpu_list)
+                    selected_gpu_id_list, shm_name_dict = self.schedule_hyperweave_select_gpu(need_parallel, satisfy_gpu_list)
                     # scheduled_jobs.append([job1, job1_gpu_id_list, shm_name_dict])
                     # scheduled_jobs.append([job2, job2_gpu_id_list, shm_name_dict])
                     [cpu, mem, gpu, gmem] = pack_resource
@@ -493,11 +493,11 @@ class WeaveSchedulor:
                     self.execute_schedule(instance2, selected_gpu_id_list, False, shm_name_dict)
                     if self.print_level>10:
                         print(f"instance:{instance1.instance_name} couple with instance: {instance2.instance_name}")
-                    # if self.master.weave_sync_mode == False: 仿真系统难以准确建模同步不同步，以及是否启用MPS对系统的影响，因此，凡是Weave，都默认启动
+                    # if self.master.hyperweave_sync_mode == False: 仿真系统难以准确建模同步不同步，以及是否启用MPS对系统的影响，因此，凡是HyperWeave，都默认启动
                     #     shm_name_dict = {}
 
                 else:
-                    selected_gpu_id_list,_ = self.schedule_weave_select_gpu(need_parallel, satisfy_gpu_list)
+                    selected_gpu_id_list,_ = self.schedule_hyperweave_select_gpu(need_parallel, satisfy_gpu_list)
                     # scheduled_jobs.append([job1, job1_gpu_id_list, {}])
                     [cpu, mem, gpu, gmem] = pack_resource
                     instance1.set_pack_resource(math.ceil(cpu), math.ceil(mem), math.ceil(gpu), math.ceil(gmem))
@@ -510,7 +510,7 @@ class WeaveSchedulor:
                     self.master.monitor.alloc_resource(instance1, None, selected_gpu_id_list)
                     self.execute_schedule(instance1, selected_gpu_id_list, False, {})
 
-    def schedule_weave_select_gpu(self, rest_gpu,  satisfy_gpu_list):
+    def schedule_hyperweave_select_gpu(self, rest_gpu,  satisfy_gpu_list):
 
         selected_gpu_id_list = []
         shm_name_dict = {}
@@ -915,7 +915,7 @@ class WeaveSchedulor:
                     for [node_index, score, temp_gpu_list] in satisfy_gpu_list:
                         all_satisfy_gpu_num+=len(temp_gpu_list)
                     if all_satisfy_gpu_num>=job.parallel_num:
-                        selected_gpu_id_list,_= self.schedule_weave_select_gpu(job.parallel_num, satisfy_gpu_list)
+                        selected_gpu_id_list,_= self.schedule_hyperweave_select_gpu(job.parallel_num, satisfy_gpu_list)
                         instance=job.instance_list.pop(0)
                         job.dealing_instance_num+=1
                         self.master.monitor.alloc_resource(instance, None, selected_gpu_id_list, plan=True)
@@ -965,7 +965,7 @@ class WeaveSchedulor:
             
             
     # #over share 调度主线
-    # def schedule_weave_over_sharing_back(self,job_list):
+    # def schedule_hyperweave_over_sharing_back(self,job_list):
     #     multi_gpu_jobs, single_gpu_jobs=self.__over_sharing_classify_jobs(job_list)         #job 根据其并行数量（GPU数量）分类为多GPU任务和单GPU任务
     #     matched_multi_jobs_list=self.__over_sharing_match_jobs(multi_gpu_jobs)                    #对多GPU任务进行匹配
     #     matched_single_jobs_list=self.__over_sharing_match_jobs(single_gpu_jobs)                   #对单GPU任务进行匹配

@@ -7,7 +7,7 @@ import psutil
 import gpustat
 import time
 import threading 
-from WeaveSynchronizer import Synchronizer
+from HyperWeaveSynchronizer import Synchronizer
 import numpy as np
 import math
 

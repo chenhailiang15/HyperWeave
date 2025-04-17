@@ -1,10 +1,12 @@
 import time
-from WeaveSynchronizer import Synchronizer
-from models.Framework_model_CV import CVModel
-from models.Framework_model_Bert import BertModel
-from models.Framework_model_Transformer import TransformerModel
-from models.Framework_model_GraphSage import GraphSageModel
-from models.Framework_model_GCN import GCNModel
+import sys
+# sys.path.append('..')
+from cluster.platform.HyperWeaveSynchronizer import Synchronizer
+from cluster.models.Framework_model_CV import CVModel
+from cluster.models.Framework_model_Bert import BertModel
+from cluster.models.Framework_model_Transformer import TransformerModel
+from cluster.models.Framework_model_GraphSage import GraphSageModel
+from cluster.models.Framework_model_GCN import GCNModel
 import torch, gc
 
 
@@ -64,7 +66,7 @@ class model_framework:
             shm_name=""
             enable_flage=False
         
-        if self.system == "Weave":
+        if self.system == "HyperWeave":
             if self.args.mode=="train":
                 self.sync_er=Synchronizer(shm_name, shm_size=3, prior=self.args.prior, enable_flage=enable_flage)
             elif self.args.mode == "analyze" and self.local_rank==0 :
@@ -79,7 +81,7 @@ class model_framework:
 
     
     def load_mode_data(self):
-        if self.system=="Weave" and self.mode=="analyze":
+        if self.system=="HyperWeave" and self.mode=="analyze":
             if self.local_rank==0:
                 self.sync_er.set_value(0,True)
                 time.sleep(10)
@@ -98,7 +100,7 @@ class model_framework:
         #************************
         self.model.prepare()
         #************************
-        if self.system=="Weave" and self.mode == "analyze":
+        if self.system=="HyperWeave" and self.mode == "analyze":
             if self.local_rank==0:
                 self.sync_er.set_value(1,False)
         
@@ -118,7 +120,7 @@ class model_framework:
                 
             
     def run(self):
-        if self.system=="Weave":
+        if self.system=="HyperWeave":
             for epoch in range(self.args.total_epochs):
                 print(f"job:{self.job_idx} epoch:{epoch+1}/{self.args.total_epochs} gpu:{self.device} ...")
                  

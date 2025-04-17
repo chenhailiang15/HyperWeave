@@ -1,5 +1,5 @@
 # 生成不同模型在MPS开启和不开启之下，并行时的资源消耗
-from util import *
+from cluster.platform.util import *
 from models.Framework import *
 
 
@@ -78,7 +78,7 @@ def generate_command(model_name, index):
         port_id+=1
     
     
-    command=f"python WeaveExecutor.py --model_name {model_name}  --net_card {net_card}  --MASTER_PORT {port_id}\
+    command=f"python platform/HyperWeaveExecutor.py --model_name {model_name}  --net_card {net_card}  --MASTER_PORT {port_id}\
     --nprocs_list {nprocs_list} --gpu_id_list {gpu_id_list} --layer_num {layer_num} --layer_feature {layer_feature} \
     --batch_size {batch_size} --total_epochs {total_epochs}"
     return command

@@ -13,11 +13,12 @@ import queue
 import pandas as pd
 import numpy as np
 
-
+import sys
+sys.path.append('../..')
 from Recorder import Record
-from models.Framework import model_framework
+from cluster.models.Framework import model_framework
 from util import *
-from WeaveSynchronizer import Synchronizer
+from HyperWeaveSynchronizer import Synchronizer
 
 
 
@@ -118,7 +119,7 @@ def analyze_tasks(args,queue,max_parrallel=4, model_name_list=None, sync=None):
 
 def offline_analyze(max_parrallel=4,model_name_list=None,system="Muri", net_card="eno1", total_epochs=2, gpu_id_list=[[0]]):
 
-    args=args_weave()
+    args=args_hyperweave()
     args.system=system
     args.mode="analyze"
     args.net_card=net_card
@@ -135,7 +136,7 @@ def offline_analyze(max_parrallel=4,model_name_list=None,system="Muri", net_card
     
     output_dir=get_output_dir()
     record_file_name=generate_file_name_for_analyze()
-    if args.system == "Weave":
+    if args.system == "HyperWeave":
         event=threading.Event()
         subthread_record=threading.Thread(target=Record_resource,args=(args,gpu_id_list[0],output_dir,"Bigstageresource_"+record_file_name,event,my_queue))
         subthread_record.start()
@@ -147,7 +148,7 @@ def offline_analyze(max_parrallel=4,model_name_list=None,system="Muri", net_card
     analyze_tasks(args,my_queue,max_parrallel,model_name_list,sync_er)
     #*************************************************
 
-    if args.system == "Weave":
+    if args.system == "HyperWeave":
         event.set()
         subthread_record.join()
     

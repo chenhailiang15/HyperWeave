@@ -109,7 +109,7 @@ class Node:
                 mem_rest_per = (self.mem_rest - mem_need) / self.mem
 
                 for i in range(self.gpu_num):
-                    if self.master.system=="Weave" and len(self.dealing_instance_name[i]) >= self.max_instance_num_for_single_gpu:
+                    if self.master.system=="HyperWeave" and len(self.dealing_instance_name[i]) >= self.max_instance_num_for_single_gpu:
                         continue
                     
                     if self.gpu_rest[i] >= gpu_need and self.gmem_rest[i] >= gmem_need:

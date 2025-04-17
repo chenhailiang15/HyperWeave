@@ -6,7 +6,7 @@ from Job import Job
 import time
 import queue
 
-class WeaveWorker:
+class HyperWeaveWorker:
     def __init__(self,print_level):
         self.master_ip="10.26.128.51"
         self.master_port=8888
@@ -60,6 +60,6 @@ class WeaveWorker:
 
 if __name__=="__main__":
     print_level=10
-    weave_worker=WeaveWorker(print_level=print_level)
-    weave_worker.sub_thread_join()
+    hyperweave_worker=HyperWeaveWorker(print_level=print_level)
+    hyperweave_worker.sub_thread_join()
     print("The whole process end (by worker)!")
