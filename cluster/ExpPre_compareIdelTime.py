@@ -1,5 +1,8 @@
+import sys
+sys.path.append("..")
+sys.path.append("platform_h")
 # 分析模型运行时GPU空闲时间，通过增加并行和batch size来对比
-from cluster.platform.util import *
+from cluster.platform_h.util import *
 
 
 
@@ -30,7 +33,7 @@ def generate_command(model_name, parallel_num, total_epochs, batch_size,gpu_id_l
         port_id+=1
     
     
-    command=f"python WeaveExecutor.py --model_name {model_name}  --world_size {world_size} --net_card {net_card}  --MASTER_PORT {port_id}\
+    command=f"python platform_h/HyperWeaveExecutor.py --model_name {model_name}  --world_size {world_size} --net_card {net_card}  --MASTER_PORT {port_id}\
     --nprocs_list {nprocs_list} --gpu_id_list {gpu_id_list} --layer_num {layer_num} --layer_feature {layer_feature} \
     --batch_size {batch_size} --total_epochs {total_epochs} --record_flage"
     return command
@@ -46,7 +49,7 @@ port_id=2000
 def exp_one_model(model_name):
     # max_parallel_num=3
     # batch_size_list=[256] #
-    total_epochs=10
+    total_epochs=2
     gpu_id_list=[0,1,2,3]
     net_card="eth0"
     

@@ -1,7 +1,7 @@
 import time
 import sys
 # sys.path.append('..')
-from cluster.platform.HyperWeaveSynchronizer import Synchronizer
+from cluster.platform_h.HyperWeaveSynchronizer import Synchronizer
 from cluster.models.Framework_model_CV import CVModel
 from cluster.models.Framework_model_Bert import BertModel
 from cluster.models.Framework_model_Transformer import TransformerModel

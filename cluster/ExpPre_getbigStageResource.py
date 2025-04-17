@@ -1,6 +1,6 @@
 # 分析生成每个模型大阶段资源消耗和耗时
 
-from platform.HyperWeaveAnalyzer import offline_analyze
+from platform_h.HyperWeaveAnalyzer import offline_analyze
 
 
 if __name__=="__main__":

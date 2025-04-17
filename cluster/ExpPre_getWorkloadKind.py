@@ -3,7 +3,7 @@
 
 import sys
 sys.path.append("../..")
-from cluster.platform.util import *
+from cluster.platform_h.util import *
 import datetime
 import random
 

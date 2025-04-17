@@ -1,5 +1,5 @@
 # 分析生成每个模型小阶段耗时
-from platform.HyperWeaveAnalyzer import offline_analyze
+from platform_h.HyperWeaveAnalyzer import offline_analyze
 
 
 
