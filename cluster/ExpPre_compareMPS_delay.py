@@ -1,6 +1,6 @@
 import sys
-sys.path.append("..")
-# sys.path.append("platform_h")
+sys.path.append("../")
+sys.path.append("platform_h")
 # 生成不同模型在MPS开启和不开启之下，并行时的资源消耗
 from platform_h.util import *
 from models.Framework import *

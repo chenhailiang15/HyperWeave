@@ -330,7 +330,7 @@ class Instance:
         shm_name_list_c="\""+str(shm_name_list)+"\""
         # print("(job) shm_name_list_c dict:", shm_name_list_c)
         
-        self.command=f"python HyperWeaveExecutor.py --MASTER_ADDR {MASTER_ADDR} --MASTER_PORT {MASTER_PORT} --net_card {net_card}  --node_rank {node_rank} \
+        self.command=f"python platform_h/HyperWeaveExecutor.py --MASTER_ADDR {MASTER_ADDR} --MASTER_PORT {MASTER_PORT} --net_card {net_card}  --node_rank {node_rank} \
             --world_size {world_size} --nprocs_list {nprocs_list_c} --gpu_id_list {gpu_id_list_c} --model_name {self.job.model_name} --batch_size {self.job.batch_size} \
             --batch_num {self.job.batch_num} --total_epochs {self.job.total_epochs} --worker_num {self.job.worker_num} --layer_num {self.job.layer_num} --layer_feature {self.job.layer_feature} \
             --squad_data_size {self.job.squad_data_size} --shm_name_list {shm_name_list_c} --job_idx {self.job.job_idx} --idx_on_gpu {self.idx_on_gpu} --system {self.system} \

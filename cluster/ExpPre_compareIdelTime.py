@@ -1,5 +1,5 @@
 import sys
-sys.path.append("..")
+sys.path.append("../")
 sys.path.append("platform_h")
 # 分析模型运行时GPU空闲时间，通过增加并行和batch size来对比
 from cluster.platform_h.util import *

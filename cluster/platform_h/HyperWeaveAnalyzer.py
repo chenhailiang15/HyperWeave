@@ -13,8 +13,8 @@ import queue
 import pandas as pd
 import numpy as np
 
-import sys
-sys.path.append('../..')
+# import sys
+# sys.path.append('../..')
 from Recorder import Record
 from cluster.models.Framework import model_framework
 from util import *
@@ -90,7 +90,7 @@ def analyze_tasks(args,queue,max_parrallel=4, model_name_list=None, sync=None):
                     
                 # try:
                 print("start analyze: ", model_name+"-"+batch_size.__str__()+"-"+parrallel.__str__())
-                if args.system=="Weave":
+                if args.system=="HyperWeave":
                     queue.put(model_name+"-"+batch_size.__str__()+"-"+parrallel.__str__())
                 args.model_name=model_name
                 args.batch_size=batch_size

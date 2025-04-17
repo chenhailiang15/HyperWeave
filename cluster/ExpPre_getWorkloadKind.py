@@ -2,7 +2,8 @@
 # 包含模型类型和batch size
 
 import sys
-sys.path.append("../..")
+sys.path.append("..")
+
 from cluster.platform_h.util import *
 import datetime
 import random
@@ -15,7 +16,7 @@ def generate_model_with_full_info(spec_string, number, is_full_mode=False):
     else:
         file_name="CV_model_info_"+spec_string+".txt"
         temp_model_list=cv_model_list_g
-    file_writer=open(file_name,"w")
+    file_writer=open(get_output_dir() +file_name,"w")
     for _ in range(number):
         model_name=random.choice(temp_model_list)
         batch_size=random.choice(model_to_batch_size_g[model_name])

@@ -1,3 +1,7 @@
+import sys
+# sys.path.append("..")
+sys.path.append("../")
+# print(f"system path:{sys.path}")
 import time
 import json
 import secrets
@@ -690,11 +694,10 @@ def Record_resource( gpu_id_list, out_dir, out_file_name,event):
     
 def experiment_one_group_parameters(args, file_sum, file_trace, version, print_level):
     
-    cur_dir=os.path.dirname(os.path.abspath(__file__))
-    parent_dir  = os.path.dirname(os.path.abspath(cur_dir))
+
     resource_file_name="Cluster-resource_record-"+args.system+"-"+args.strategy+"-"+version+"-"+formatted_time+".csv"
     event=threading.Event()
-    subTread_record=threading.Thread(target=Record_resource,args=(args.gpu_id_list, parent_dir+"/output/",resource_file_name,event))
+    subTread_record=threading.Thread(target=Record_resource,args=(args.gpu_id_list, get_output_dir(),resource_file_name,event))
     subTread_record.start()
         
     hyperweave_master=HyperWeaveMaster(args, file_trace, print_level)
@@ -753,20 +756,19 @@ if __name__=="__main__":
     write_trace = args.write_trace
     print_level=args.print_level
 
-    cur_dir=os.path.dirname(os.path.abspath(__file__))
-    parent_dir= os.path.dirname(os.path.abspath(cur_dir))
+    
     # 格式化输出
     now_time= datetime.datetime.now()
     formatted_time = now_time.strftime('%m_%d_%H_%M_%S')
     sim_sum_file_name="Cluster-sum-"+system+"-"+strategy+"-"+version+"-"+formatted_time+".txt"
     sim_trace_file_name="Cluster-statistic_trace-"+system+"-"+strategy+"-"+version+"-"+formatted_time+".csv"
     if write_sum:
-        file_sum=open(parent_dir+"/output/"+sim_sum_file_name,"w")
+        file_sum=open(get_output_dir()+sim_sum_file_name,"w")
     else:
         file_sum=None
 
     if write_trace:
-        file_trace = open(parent_dir + "/output/" + sim_trace_file_name, "w")
+        file_trace = open(get_output_dir() + sim_trace_file_name, "w")
     else:
         file_trace=None
 

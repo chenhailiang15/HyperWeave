@@ -42,7 +42,7 @@ class BertModel:
         #num_workers = worker_num,
         # 加载BERT模型和优化器
         # 下载未经微调的BERT
-        config = BertConfig.from_json_file('../model_para_data/bert_config.json')  
+        config = BertConfig.from_json_file('models/model_para_data/bert_config.json')  
         self.model = BertForQuestionAnswering(config=config).to(self.device)
         self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=5e-5)
         print("start ddp model..." )

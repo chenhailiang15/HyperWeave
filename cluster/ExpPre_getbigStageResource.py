@@ -1,5 +1,7 @@
 # 分析生成每个模型大阶段资源消耗和耗时
-
+import sys
+sys.path.append('platform_h')
+sys.path.append("../")
 from platform_h.HyperWeaveAnalyzer import offline_analyze
 
 
@@ -10,4 +12,4 @@ if __name__=="__main__":
     gpu_id_list=[[0,1,2,3]]
     #s4*3090 -> net_card = "enp3s0"
     #others -> net_card = "en01"
-    offline_analyze(max_parrallel=max_parrallel,model_name_list=model_name_list,net_card="eth0", system="Weave", total_epochs=1, gpu_id_list=gpu_id_list)
+    offline_analyze(max_parrallel=max_parrallel,model_name_list=model_name_list,net_card="eth0", system="HyperWeave", total_epochs=1, gpu_id_list=gpu_id_list)

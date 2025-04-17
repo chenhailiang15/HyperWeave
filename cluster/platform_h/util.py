@@ -301,7 +301,7 @@ class args_hyperweave:
         
         #其他参数
         self.MASTER_ADDR="localhost"
-        self.MASTER_PORT="12355"
+        self.MASTER_PORT="12335"
         self.net_card="eno1"
         
         self.device=None

@@ -1,4 +1,7 @@
 # 分析生成每个模型小阶段耗时
+import sys
+sys.path.append('platform_h')
+sys.path.append("../")
 from platform_h.HyperWeaveAnalyzer import offline_analyze
 
 
