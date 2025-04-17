@@ -6,19 +6,19 @@
 gpu_mem_percent=0.9
 node_kind="cluster"                           #"s4*3090, s8*3090, 4*3090, 3*2080ti, 4*2080"
 model_kind="all_model"                       #"cv_model, all_model"
-job_num=10000
+job_num=1000
 print_level=10
-couple_init_iter_percent=0.2
+couple_init_iter_percent=1
 overshared_factor=2
 validation="False"
 job_come_time_factor=1
 
-trace_id=0
-job_together_flage="False"
+trace_id=101
+job_together_flage="True"
 
 
 system="Weave"
-strategy="SRSF"
+strategy="FIFO"
 mps_flage="True"
 sync_flage="True"
 gpu_select_mode="random"

@@ -4,14 +4,6 @@
 
 # Is_Master=false
 
-# if [ "${Is_Master}" = true ]; then
-#     node_rank=0
-#     net_card="eno2"
-# else
-#     node_rank=1
-#     net_card="eno1"
-# fi
-# conda activate torch_mp_chl
 system="Weave"
 mode="train"
 
@@ -21,9 +13,9 @@ MASTER_ADDR="localhost"   # one node:localhost  multi node: master ip
 MASTER_PORT="12345"
 
 model_name="ResNet18"
-world_size=2
-nprocs_list=[2]
-gpu_id_list="[[2,3],[]]"
+world_size=1
+nprocs_list=[1]
+gpu_id_list="[[0],[]]"
 
 job_idx=10
 

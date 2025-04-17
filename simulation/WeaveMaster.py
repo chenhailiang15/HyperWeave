@@ -89,8 +89,8 @@ class WeaveMaster:
             print("validation is wrong!")
             exit(-1)
         
-        self.Bigstageresource_file_name="Bigstageresource_Analyzer-NVIDIA_A100-PCIE-40GB-tim_04_05_07_21_47.csv"
-        self.Ministagetime_file_name="Ministagetime_Analyzer-NVIDIA_A100-PCIE-40GB-tim_04_05_11_25_29.csv"
+        self.Bigstageresource_file_name="Bigstageresource_Analyzer-NVIDIA_GeForce_RTX_3090-tim_02_12_14_58_41.csv"
+        self.Ministagetime_file_name="Ministagetime_Analyzer-NVIDIA_GeForce_RTX_3090-tim_02_12_13_34_46.csv"
         
         if self.args.model_kind=="all_model":
             self.model_info_file_name="Full_model_info_12_27_21_27_41.txt"
@@ -849,7 +849,7 @@ if __name__=="__main__":
 
 
     #control parameters
-    version=f"sim_v8.0_os{args.overshared_factor}-trace{args.trace_id}-together{args.job_together_flage}-match{args.couple_init_iter_percent}-bucket{args.bucket_length}-gpukind{args.gpu_kind}"
+    version=f"sim_v8.0_os{args.overshared_factor}-trace{args.trace_id}-together{args.job_together_flage}-match{args.couple_init_iter_percent}-bucket{args.bucket_length}-gpukind{args.gpu_kind}-Gpus_{args.gpu_select_mode}"
 
     system=args.system
     strategy=args.strategy
