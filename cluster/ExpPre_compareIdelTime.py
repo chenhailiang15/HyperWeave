@@ -74,8 +74,8 @@ def exp_one_model(model_name):
     
 if __name__=="__main__":
     
+    exp_one_model("AlexNet")
     exp_one_model("ResNet50")
-    # exp_one_model("VGG16")
+    exp_one_model("VGG16")
     # exp_one_model("MobileNetv2")
-    # exp_one_model("AlexNet")
     # exp_one_model("ResNet18")
