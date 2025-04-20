@@ -109,11 +109,11 @@ mps_limite=40
 
 
 model_group_list1=[
-    [['Transformer', 64, 5],['Transformer', 64, 5],['Transformer', 64, 5],['GraphSage', 128, 5],["GraphSage",128,5],["GraphSage",128,5]],
-    [["VGG16",512,5],["GCN",512,5],["VGG16",512,5],["GCN",512,5],["VGG16",512,5],["GCN",512,5]],
-    [['MobileNetv2', 64, 5],["Bert",32,5],['MobileNetv2', 64, 5],["Bert",64,5],['MobileNetv2', 512, 5],["Bert",64,5]],
-    [ ['ResNet50', 512, 5],['MobileNetv2', 512, 5],['ResNet50', 512,5],['MobileNetv2', 512, 5],['ResNet50', 512, 5],['MobileNetv2', 64, 1]],
-    [["VGG16",256,5], ["Bert",32,5],["VGG16",256,5], ["Bert",32,5],["VGG16",512,5], ["Bert",64,5]]
+    [['Transformer', 8, 1],['Transformer', 8, 1],['Transformer', 8, 1],['GraphSage', 8, 1],["GraphSage",8,1],["GraphSage",8,1]],
+    [['VGG16', 256, 1], ['GCN', 8, 1], ['VGG16', 256, 1], ['GCN', 8, 1], ['VGG16', 256, 1], ['GCN', 8, 1]],
+    [['MobileNetv2', 64, 1], ['Bert', 32, 1], ['MobileNetv2', 64, 1], ['Bert', 32, 1], ['MobileNetv2', 64, 1], ['Bert', 32, 1]],
+    [['ResNet50', 128, 1], ['MobileNetv2', 64, 1], ['ResNet50', 128, 1], ['MobileNetv2', 64, 1], ['ResNet50', 128, 1], ['MobileNetv2', 64, 1]],
+    [['VGG16', 256, 1], ['Bert', 32, 1], ['VGG16', 256, 1], ['Bert', 32, 1], ['VGG16', 256, 1], ['Bert', 32, 1]]
                   ]
 
 
@@ -136,7 +136,7 @@ file_writer=open(get_output_dir()+out_file_name,"w")
 for one_group_info in model_group_list1:
     
     with_mps=True
-    para_num=3
+    para_num=2
     alloc_percent=40
     
     start_MPS(11) 
@@ -147,7 +147,7 @@ for one_group_info in model_group_list1:
     
     
     with_mps=True
-    para_num=5
+    para_num=3
     alloc_percent=40
     
     start_MPS(11) 
@@ -162,7 +162,7 @@ for one_group_info in model_group_list1:
 for one_group_info in model_group_list2:  
     
     with_mps=True
-    para_num=4
+    para_num=3
     alloc_percent=30
     
     start_MPS(11) 
@@ -173,7 +173,7 @@ for one_group_info in model_group_list2:
     
     
     with_mps=True
-    para_num=6
+    para_num=4
     alloc_percent=30
     
     start_MPS(11) 
@@ -182,22 +182,6 @@ for one_group_info in model_group_list2:
     do_experiment(one_group_info, with_mps,file_writer,alloc=True,para_num=para_num )
     stop_MPS(11) 
     
-    
-    
-    
-    
-
-    
-    
-    # with_mps=True
-    # para_num=6
-    # alloc_percent=100
-    
-    # start_MPS(11) 
-    # command_alloc=f"echo set_default_active_thread_percentage {alloc_percent} | nvidia-cuda-mps-control"
-    # os.system(command_alloc)
-    # do_experiment(one_group_info, with_mps,file_writer,alloc=False,para_num=para_num )
-    # stop_MPS(11)
 
 
     

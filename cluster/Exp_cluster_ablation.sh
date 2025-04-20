@@ -15,11 +15,11 @@ job_come_time_factor=1                   #trace 0 with factor 6;
 # job_together_flage="false"
 
 overshared_factor=2
-trace_id=$1
-job_together_flage=$2
+trace_id=512
+job_together_flage="True"
 
-echo "trace id : $1"
-echo "job_together_flage: $2"
+# echo "trace id : $1"
+# echo "job_together_flage: $2"
 
 
 system="HyperWeave"

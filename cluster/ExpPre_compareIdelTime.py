@@ -61,16 +61,16 @@ def exp_one_model(model_name):
     #     for batch_size in batch_size_list:
     
     parallel_num=1
-    batch_size=512
+    batch_size=16
     # out_file_name="ExpPre__compareIdelTime_"+model_name+"_"+str(batch_size)+"_"+str(parallel_num)+"_"+formatted_time+".txt"
     command=generate_command(model_name, parallel_num, total_epochs, batch_size, gpu_id_list, net_card)
     run_command(command)
     
-    # parallel_num=4
-    # batch_size=128
-    # # out_file_name="ExpPre__compareIdelTime_"+model_name+"_"+str(batch_size)+"_"+str(parallel_num)+"_"+formatted_time+".txt"
-    # command=generate_command(model_name, parallel_num, total_epochs, batch_size, gpu_id_list, net_card)
-    # run_command(command)
+    parallel_num=4
+    batch_size=128
+    # out_file_name="ExpPre__compareIdelTime_"+model_name+"_"+str(batch_size)+"_"+str(parallel_num)+"_"+formatted_time+".txt"
+    command=generate_command(model_name, parallel_num, total_epochs, batch_size, gpu_id_list, net_card)
+    run_command(command)
     
 if __name__=="__main__":
     
